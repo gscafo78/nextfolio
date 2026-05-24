@@ -19,5 +19,7 @@ export function useAuth() {
     navigate("/login");
   };
 
-  return { user, isLoading, isAuthenticated: !!user, logout };
+  const isSuperAdmin = user?.role === "SUPERADMIN";
+
+  return { user, isLoading, isAuthenticated: !!user, logout, isSuperAdmin };
 }

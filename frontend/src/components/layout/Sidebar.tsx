@@ -7,6 +7,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,7 +21,7 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin } = useAuth();
 
   return (
     <aside className="w-64 min-h-screen bg-white border-r border-gray-200 flex flex-col">
@@ -46,6 +47,21 @@ export function Sidebar() {
             {label}
           </NavLink>
         ))}
+        {isSuperAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-brand-50 text-brand-600"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`
+            }
+          >
+            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+            Amministrazione
+          </NavLink>
+        )}
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-200">

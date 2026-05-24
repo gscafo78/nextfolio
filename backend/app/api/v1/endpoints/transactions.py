@@ -106,6 +106,7 @@ async def import_csv(
         )
         asset = await get_or_create_asset(db, asset_data)
 
+        price_currency = row.get("currency", "EUR")
         tx_data = TransactionCreate(
             account_id=account_id,
             asset_id=asset.id,
@@ -113,8 +114,9 @@ async def import_csv(
             date=row["date"],
             quantity=row["quantity"],
             price=row["price"],
+            price_currency=price_currency,
+            exchange_rate=1.0,  # i CSV italiani riportano già i prezzi in EUR
             fee=row.get("fee", 0.0),
-            currency=row.get("currency", "EUR"),
             notes=row.get("notes"),
         )
         tx = await create_transaction(db, tx_data)

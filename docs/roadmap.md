@@ -41,16 +41,16 @@ nextfolio/
 
 ---
 
-## FASE 1 — Setup e infrastruttura base
+## FASE 1 — Setup e infrastruttura base ✅
 **Durata stimata: 1–2 settimane**
 **Obiettivo: ambiente funzionante, autenticazione, DB schema**
 
 ### 1.1 Ambiente di sviluppo
 
-- [ ] Inizializzare il monorepo (`git init`, `.gitignore`, `README.md`)
-- [ ] Creare `docker-compose.dev.yml` con PostgreSQL 15 e Redis 7
-- [ ] Configurare VS Code workspace (`.vscode/settings.json`, estensioni consigliate)
-- [ ] Aggiungere `.env.example` con tutte le variabili necessarie
+- [x] Inizializzare il monorepo (`git init`, `.gitignore`, `README.md`)
+- [x] Creare `docker-compose.dev.yml` con PostgreSQL 15 e Redis 7
+- [x] Configurare VS Code workspace (`.vscode/settings.json`, estensioni consigliate)
+- [x] Aggiungere `.env.example` con tutte le variabili necessarie
 
 **Estensioni VS Code da installare:**
 ```json
@@ -71,48 +71,48 @@ nextfolio/
 
 ### 1.2 Backend — FastAPI scaffold
 
-- [ ] Creare virtual environment Python (`python -m venv venv`)
-- [ ] Installare dipendenze: `fastapi`, `uvicorn`, `sqlalchemy`, `alembic`, `pydantic`, `python-jose`, `passlib`, `celery`, `redis`, `yfinance`, `httpx`
-- [ ] Configurare `main.py` con CORS, middleware, e router
-- [ ] Configurare connessione PostgreSQL via SQLAlchemy async
-- [ ] Creare primo migration Alembic (tabelle `users`, `accounts`)
-- [ ] Implementare autenticazione JWT (register, login, refresh token)
-- [ ] Aggiungere endpoint `/health` e `/api/v1/auth/*`
+- [x] Creare virtual environment Python (`python -m venv venv`)
+- [x] Installare dipendenze: `fastapi`, `uvicorn`, `sqlalchemy`, `alembic`, `pydantic`, `python-jose`, `passlib`, `celery`, `redis`, `yfinance`, `httpx`
+- [x] Configurare `main.py` con CORS, middleware, e router
+- [x] Configurare connessione PostgreSQL via SQLAlchemy async
+- [x] Creare primo migration Alembic (tabelle `users`, `accounts`)
+- [x] Implementare autenticazione JWT (register, login, refresh token)
+- [x] Aggiungere endpoint `/health` e `/api/v1/auth/*`
 
 ### 1.3 Frontend — React scaffold
 
-- [ ] `npm create vite@latest frontend -- --template react-ts`
-- [ ] Installare: `tailwindcss`, `react-router-dom`, `@tanstack/react-query`, `axios`, `recharts`, `react-hook-form`, `zod`
-- [ ] Configurare Tailwind CSS e design system base
-- [ ] Creare layout principale (Sidebar, TopBar, MainContent)
-- [ ] Implementare pagine Login e Register
-- [ ] Configurare React Query client e Axios interceptors (JWT)
-- [ ] Proteggere le route con `PrivateRoute`
+- [x] Scaffold Vite + React + TypeScript (creato manualmente, npm non disponibile nell'ambiente)
+- [x] Installare: `tailwindcss`, `react-router-dom`, `@tanstack/react-query`, `axios`, `recharts`, `react-hook-form`, `zod`
+- [x] Configurare Tailwind CSS e design system base
+- [x] Creare layout principale (Sidebar, TopBar, MainContent)
+- [x] Implementare pagine Login e Register
+- [x] Configurare React Query client e Axios interceptors (JWT auto-refresh)
+- [x] Proteggere le route con `PrivateRoute`
 
 ### 1.4 Schema database iniziale
 
 ```sql
--- Tabelle da creare nella FASE 1
-users           (id, email, password_hash, name, currency, created_at)
+-- Tabelle create nella FASE 1 (migration 0001)
+users           (id, email, password_hash, name, currency, is_active, created_at)
 accounts        (id, user_id, name, type, broker, currency, created_at)
 ```
 
 ---
 
-## FASE 2 — Asset e transazioni
+## FASE 2 — Asset e transazioni ✅
 **Durata stimata: 2–3 settimane**
 **Obiettivo: inserire e gestire transazioni su tutti i tipi di asset**
 
 ### 2.1 Modello dati asset italiani
 
-- [ ] Tabella `assets` con supporto ISIN italiano
-- [ ] Tipi supportati: `STOCK`, `ETF`, `BOND`, `CRYPTO`, `COMMODITY`, `REIT`
-- [ ] Campi specifici IT: ISIN, mercato (`MIL`, `EuroTLX`, `MOT`), valuta EUR
-- [ ] Tabella `transactions` (BUY, SELL, DIVIDEND, COUPON, FEE, INTEREST)
-- [ ] Tabella `price_history` per storico prezzi
+- [x] Tabella `assets` con supporto ISIN italiano
+- [x] Tipi supportati: `STOCK`, `ETF`, `BOND`, `CRYPTO`, `COMMODITY`, `REIT`
+- [x] Campi specifici IT: ISIN, mercato (`MIL`, `EuroTLX`, `MOT`), valuta EUR
+- [x] Tabella `transactions` (BUY, SELL, DIVIDEND, COUPON, FEE, INTEREST)
+- [x] Tabella `price_history` per storico prezzi
 
 ```sql
--- Schema FASE 2
+-- Schema FASE 2 (migration 0002)
 assets          (id, isin, symbol, name, type, exchange, currency, sector)
 transactions    (id, account_id, asset_id, type, date, quantity, price, fee, currency, notes)
 price_history   (id, asset_id, date, open, high, low, close, volume)
@@ -120,12 +120,12 @@ price_history   (id, asset_id, date, open, high, low, close, volume)
 
 ### 2.2 Backend — API transazioni
 
-- [ ] `GET/POST /api/v1/transactions` — lista e creazione
-- [ ] `PUT/DELETE /api/v1/transactions/{id}` — modifica e cancellazione
-- [ ] `GET /api/v1/assets/search?q=` — ricerca asset per nome/ISIN/ticker
-- [ ] `GET /api/v1/accounts` — gestione conti multi-broker
-- [ ] Validazione ISIN italiano (regex + checksum)
-- [ ] Import CSV da broker italiani (Fineco, Directa Plus, Degiro)
+- [x] `GET/POST /api/v1/transactions` — lista e creazione
+- [x] `PUT/DELETE /api/v1/transactions/{id}` — modifica e cancellazione
+- [x] `GET /api/v1/assets/search?q=` — ricerca asset per nome/ISIN/ticker
+- [x] `GET /api/v1/accounts` — gestione conti multi-broker
+- [x] Validazione ISIN italiano (checksum Luhn ISO 6166 completo)
+- [x] Import CSV da broker italiani (Fineco, Directa Plus, Degiro)
 
 **Formato CSV Fineco da supportare:**
 ```
@@ -135,95 +135,164 @@ Data,Descrizione,Divisa,Importo,Tipo
 
 ### 2.3 Frontend — Pagine transazioni
 
-- [ ] Pagina "Portafoglio" con tabella posizioni aperte
-- [ ] Form aggiunta transazione con autocomplete asset (ISIN/ticker)
-- [ ] Pagina "Transazioni" con filtri per data, tipo, account
-- [ ] Upload CSV con preview e mappatura colonne
-- [ ] Componente `AssetBadge` con logo broker/borsa
+- [x] Pagina "Portafoglio" con tabella posizioni aperte (in Dashboard)
+- [x] Form aggiunta transazione con autocomplete asset (ISIN/ticker) e debounce
+- [x] Pagina "Transazioni" con tabella filtrata per data, tipo, account
+- [x] Upload CSV con selezione broker e feedback errori
+- [x] Componente `AssetBadge` con tipo e borsa colorati
+
+### 2.X Gestione cambio valuta ✅ *(aggiunta extra)*
+
+- [x] Campi `price_currency` e `exchange_rate` sulla transazione (migration 0003)
+- [x] Campo `fee_currency` per commissioni in valuta diversa
+- [x] `GET /api/v1/fx/rate?from_currency=USD&on_date=2024-03-15` — tasso storico BCE via Frankfurter API
+- [x] Form transazione: pannello tasso di cambio visibile solo se asset non è in EUR
+- [x] Tasso precompilato dal BCE alla data selezionata, modificabile manualmente
+- [x] Riepilogo mostra controvalore in valuta estera + totale in EUR
+- [x] Tabella transazioni: colonne "Totale EUR" (calcolato server-side) e "Cambio"
 
 ---
 
-## FASE 3 — Market data e prezzi
+## FASE 3 — Market data e prezzi ✅
 **Durata stimata: 2 settimane**
 **Obiettivo: prezzi aggiornati automaticamente per tutti gli asset**
 
 ### 3.1 Integrazione fonti dati
 
-- [ ] **Yahoo Finance** (`yfinance`) — azioni Borsa Italiana (suffix `.MI`), ETF
-- [ ] **CoinGecko API** — criptovalute (free tier sufficiente)
-- [ ] **Metals-API / Open Metals** — oro, argento, commodity
-- [ ] **MTS / Borsa Italiana** — BTP e obbligazioni (scraping o API pubblica)
-- [ ] Fallback logic: se fonte primaria fallisce, prova fonte secondaria
+- [x] **Yahoo Finance** (`yfinance`) — azioni Borsa Italiana (suffix `.MI`), ETF, mercati esteri
+- [x] **CoinGecko API** — criptovalute (free tier, bulk fetch, storico)
+- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato a Fase 6)*
+- [x] **Borsa Italiana API** (`grafici.borsaitaliana.it`) — fonte primaria per asset italiani con ISIN: azioni XMIL, ETF EuroTLX, BTP/obbligazioni MOT *(aggiunta extra — ispirata da ghostfolio-feeder)*
+- [x] Fallback logic: Borsa Italiana → Yahoo Finance → errore gestito
+
+**Logica selezione fonte:**
+```
+Asset con ISIN su MIL / EuroTLX / MOT  →  Borsa Italiana API (JWT anonimo)
+Asset NYSE / NASDAQ / XETRA            →  Yahoo Finance
+Crypto                                 →  CoinGecko
+```
 
 **Ticker italiani principali:**
 ```python
-# Esempi suffissi Yahoo Finance per Borsa Italiana
-"ENI.MI"     # ENI
-"ISP.MI"     # Intesa Sanpaolo  
-"ENEL.MI"    # Enel
-"FCA.MI"     # Stellantis
-# ETF su Borsa Italiana
-"SWRD.MI"    # SPDR MSCI World
-"VWCE.MI"    # Vanguard FTSE All-World
+# Yahoo Finance — suffisso .MI per Borsa Italiana
+"ENI.MI", "ISP.MI", "ENEL.MI"
+# Borsa Italiana API — via ISIN (più affidabile per BTP e obbligazioni)
+"IT0005413171:XMIL"   # BTP
+"IE00B3RBWM25:ETLX"   # VWCE su EuroTLX
 ```
 
 ### 3.2 Task asincroni con Celery
 
-- [ ] Task `update_prices_realtime` — ogni 15 min durante orari di borsa
-- [ ] Task `update_prices_eod` — prezzi di chiusura ogni sera
-- [ ] Task `update_crypto_prices` — ogni 5 min (mercato 24/7)
-- [ ] Task `cleanup_old_prices` — pulizia dati oltre 5 anni
-- [ ] Celery Beat per scheduling automatico
-- [ ] Flower dashboard per monitoraggio task
+- [x] Task `update_stock_prices` — ogni 15 min lun-ven 9:00-17:00 (timezone Europe/Rome)
+- [x] Task `update_prices_eod` — prezzi di chiusura ogni sera alle 18:30
+- [x] Task `update_crypto_prices` — ogni 5 min (mercato 24/7)
+- [x] Task `cleanup_old_prices` — pulizia dati oltre 5 anni (ogni domenica)
+- [x] Task `backfill_asset_history` — backfill on-demand via API
+- [x] Celery Beat per scheduling automatico
+- [ ] Flower dashboard per monitoraggio task *(facoltativo — aggiungere container in docker-compose)*
 
 ### 3.3 API prezzi e WebSocket
 
-- [ ] `GET /api/v1/assets/{id}/price` — prezzo corrente + variazione %
-- [ ] `GET /api/v1/assets/{id}/history?period=1y` — storico prezzi
-- [ ] WebSocket `/ws/prices` — aggiornamenti live per asset nel portafoglio
-- [ ] Cache Redis con TTL: 5 min per azioni, 1 min per crypto
+- [x] `GET /api/v1/assets/{id}/price` — prezzo corrente da cache Redis, fallback live
+- [x] `GET /api/v1/assets/{id}/history?period=1y&source=db|live` — storico dal DB o live
+- [x] `POST /api/v1/assets/{id}/backfill` — avvia backfill storico (Celery, async 202)
+- [x] WebSocket `/ws/prices?token=…&asset_ids=1,2,3` — stream live filtrato, sottoscrizione dinamica
+- [x] Cache Redis con TTL: 5 min per azioni, 1 min per crypto
+- [x] Redis pub/sub per broadcast prezzi ai WebSocket connessi
+
+### 3.4 Frontend — prezzi e grafici
+
+- [x] `services/prices.ts` — client REST prezzi e storico
+- [x] `hooks/useLivePrices.ts` — hook WebSocket con subscribe/unsubscribe automatico
+- [x] `PriceChart.tsx` — grafico area Recharts con selezione periodo (1S → Max), colore dinamico verde/rosso
+- [x] `PriceTicker.tsx` — badge prezzo live con variazione % e icona trend
+- [x] Dashboard aggiornata: KPI portafoglio (valore, P&L, variazione oggi), ticker live, tabella posizioni con prezzi real-time
 
 ---
 
-## FASE 4 — Calcolo portfolio e performance
+## FASE 4 — Calcolo portfolio e performance ✅
 **Durata stimata: 2–3 settimane**
 **Obiettivo: P&L, rendimenti, allocazione**
 
 ### 4.1 Engine di calcolo performance
 
-- [ ] **Valore corrente portafoglio** — quantità × prezzo attuale
-- [ ] **P&L realizzato** — gain/loss su posizioni chiuse (FIFO/LIFO)
-- [ ] **P&L non realizzato** — gain/loss su posizioni aperte
-- [ ] **TWRR** (Time-Weighted Rate of Return) — per confronto con benchmark
-- [ ] **IRR / XIRR** — per investimenti con cash flow irregolari (es. PAC)
-- [ ] **Dividend yield** — rendimento da dividendi e cedole
-- [ ] **Performance per periodo**: 1G, 1S, 1M, 3M, YTD, 1A, 3A, Max
+- [x] **Valore corrente portafoglio** — quantità × prezzo attuale (da cache Redis)
+- [x] **P&L realizzato** — gain/loss su posizioni chiuse con metodo **FIFO**
+- [x] **P&L non realizzato** — gain/loss su posizioni aperte (vs PMC)
+- [x] **TWRR** (Time-Weighted Rate of Return) — prodotto dei sub-return giornalieri
+- [ ] **IRR / XIRR** — per investimenti con cash flow irregolari *(rimandato)*
+- [x] **Dividend yield** — reddito da dividendi e cedole (lista separata)
+- [x] **Performance per periodo**: 1S, 1M, 3M, 6M, 1A, 3A, Max
 
 ### 4.2 Analisi allocazione
 
-- [ ] Allocazione per **tipo asset** (azioni, ETF, obbligazioni, crypto, altro)
-- [ ] Allocazione per **settore** (energia, finanza, tech, healthcare...)
-- [ ] Allocazione per **area geografica** (Italia, Europa, USA, Emergenti)
-- [ ] Allocazione per **valuta** (EUR, USD, GBP...)
-- [ ] Allocazione per **broker/conto**
-- [ ] Concentrazione per singolo titolo (alert se > 10% portafoglio)
+- [x] Allocazione per **tipo asset** (azioni, ETF, obbligazioni, crypto, altro)
+- [ ] Allocazione per **settore** *(rimandato — richiede dati settore per ogni asset)*
+- [ ] Allocazione per **area geografica** *(rimandato)*
+- [x] Allocazione per **valuta** (EUR, USD, GBP...)
+- [x] Allocazione per **broker/conto**
+- [ ] Concentrazione per singolo titolo (alert se > 10%) *(rimandato a Fase 6)*
 
 ### 4.3 API performance
 
-- [ ] `GET /api/v1/portfolio/summary` — valore totale, P&L, rendimento %
-- [ ] `GET /api/v1/portfolio/performance?period=1y` — serie temporale rendimento
-- [ ] `GET /api/v1/portfolio/allocation` — breakdown per tipo/settore/geo
-- [ ] `GET /api/v1/portfolio/positions` — posizioni aperte con P&L
-- [ ] `GET /api/v1/portfolio/dividends` — storico dividendi e cedole ricevuti
+- [x] `GET /api/v1/portfolio/summary` — valore totale, P&L realizzato/non, variazione oggi
+- [x] `GET /api/v1/portfolio/performance?period=1y` — serie temporale TWRR
+- [x] `GET /api/v1/portfolio/allocation` — breakdown per tipo/valuta/conto
+- [x] `GET /api/v1/portfolio/positions` — posizioni aperte con PMC, P&L, cambio giornaliero
+- [x] `GET /api/v1/portfolio/dividends` — storico dividendi, cedole e interessi ricevuti
 
-### 4.4 Frontend — Dashboard e grafici
+### 4.4 Frontend — Pagina Performance e grafici
 
-- [ ] **Grafico a torta** — allocazione asset con Recharts `PieChart`
-- [ ] **Grafico lineare** — andamento portafoglio nel tempo vs benchmark (FTSE MIB)
-- [ ] **Bar chart** — performance mensile / annuale
-- [ ] **Tabella posizioni** — con colonne: asset, quantità, P.M.C., valore, P&L%, P&L€
-- [ ] Widget "Riepilogo oggi" — variazione giornaliera totale
-- [ ] Benchmark: FTSE MIB, MSCI World, BTP 10Y rendimento
+- [x] **Grafico a torta** — allocazione per tipo asset, valuta, conto (Recharts `PieChart`)
+- [x] **Grafico area** — andamento valore portafoglio + capitale investito nel tempo
+- [ ] **Bar chart** — performance mensile / annuale *(rimandato)*
+- [x] **Tabella posizioni** — asset, qtà, PMC, prezzo attuale, valore, P&L%, P&L€, P&L realizzato
+- [x] KPI: P&L totale, P&L non realizzato, P&L realizzato, TWRR %
+- [x] **Tabella dividendi** — storico con importo EUR, tipo (dividendo/cedola/interesse), conto
+- [ ] Benchmark FTSE MIB / MSCI World *(rimandato a Fase 6)*
+
+---
+
+## FASE 4.X — Autenticazione avanzata e gestione utenti ✅ *(aggiunta extra)*
+
+### 4.X.1 Ruoli utente
+
+- [x] Enum `UserRole` (SUPERADMIN / USER) sul modello `User`
+- [x] Primo utente registrato → SUPERADMIN automatico
+- [x] Endpoint `POST /auth/register` bloccato se esistono già utenti (HTTP 403)
+- [x] Dependency `require_superadmin` su tutte le route admin
+
+### 4.X.2 TOTP (2FA) — opzionale per tutti
+
+- [x] Libreria `pyotp` — generazione secret, URI provisioning, verifica con `valid_window=1`
+- [x] `POST /auth/2fa/setup` — genera secret + URI, li salva sul DB (non ancora attivo)
+- [x] `POST /auth/2fa/enable` — verifica codice TOTP, attiva 2FA
+- [x] `POST /auth/2fa/disable` — verifica codice TOTP, disattiva 2FA e rimuove secret
+- [x] **Login con 2FA**: se attivo, `/auth/login` restituisce `{requires_2fa: true, session_token: "..."}`; il client chiama poi `POST /auth/2fa/verify` con il session_token (JWT 5 min, tipo `2fa_session`) e il codice TOTP → token normali
+- [x] Frontend: pagina Login a due step (credentials → TOTP) con transizione animata
+- [x] Frontend: sezione 2FA in Impostazioni — QR code (`react-qr-code`), codice segreto testuale, attivazione/disattivazione
+
+### 4.X.3 Pannello Amministrazione (solo Superadmin)
+
+- [x] `GET /admin/users` — lista utenti con ruolo, stato, 2FA
+- [x] `POST /admin/users` — crea utente con email, password, nome, ruolo
+- [x] `PATCH /admin/users/{id}` — modifica ruolo, stato attivo, reset 2FA (`reset_2fa: true`)
+- [x] `DELETE /admin/users/{id}` — elimina utente (non se stesso)
+- [x] Frontend: pagina `/admin` con tabella utenti, modal crea, modal modifica, elimina con conferma
+- [x] Sidebar: link "Amministrazione" visibile solo ai Superadmin
+
+### 4.X.4 Impostazioni personali (tutti gli utenti)
+
+- [x] Tabella `user_settings` (user_id FK, theme, display_currency, updated_at)
+- [x] `GET /me/settings` — legge preferenze dell'utente corrente
+- [x] `PATCH /me/settings` — aggiorna tema e valuta di visualizzazione
+- [x] Frontend: sezione Preferenze in Impostazioni (valuta display + tema)
+
+```sql
+-- Aggiunte da migration 0004
+users           + role (SUPERADMIN|USER), two_factor_secret, two_factor_enabled
+user_settings   (id, user_id, theme, display_currency, updated_at)
+```
 
 ---
 
@@ -281,12 +350,13 @@ Data,Descrizione,Divisa,Importo,Tipo
 
 ### 6.3 Import/Export avanzato
 
-- [ ] Import da **Fineco** (CSV estratto conto)
-- [ ] Import da **Directa Plus** (CSV movimenti)
-- [ ] Import da **Degiro** (CSV transazioni)
+- [x] Import da **Fineco** (CSV estratto conto) *(completato in Fase 2)*
+- [x] Import da **Directa Plus** (CSV movimenti) *(completato in Fase 2)*
+- [x] Import da **Degiro** (CSV transazioni) *(completato in Fase 2)*
 - [ ] Import da **Interactive Brokers** (formato Flex Query)
 - [ ] Export portafoglio in formato Ghostfolio (compatibilità)
 - [ ] Export Excel con tutti i dati per uso personale
+- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato da Fase 3)*
 
 ### 6.4 PWA e mobile
 
@@ -311,11 +381,15 @@ Data,Descrizione,Divisa,Importo,Tipo
 
 ### 7.2 Sicurezza
 
-- [ ] Rate limiting sulle API (`slowapi`)
-- [ ] Validazione input con Pydantic (nessun SQL injection possibile)
+- [x] Rate limiting sulle API (`slowapi`) *(completato in Fase 1)*
+- [x] Validazione input con Pydantic (nessun SQL injection possibile) *(completato in Fase 1)*
 - [ ] HTTPS obbligatorio in produzione
-- [ ] Refresh token rotation
-- [ ] CORS configurato per soli domini trusted
+- [x] Refresh token rotation *(completato in Fase 1)*
+- [x] CORS configurato per soli domini trusted *(completato in Fase 1)*
+- [x] 2FA TOTP opzionale (`pyotp`) con session_token separato per il challenge *(completato in Fase 4.X)*
+- [x] Ruoli SUPERADMIN/USER con dependency FastAPI `require_superadmin` *(completato in Fase 4.X)*
+- [x] Registrazione pubblica bloccata dopo il primo utente *(completato in Fase 4.X)*
+- [x] `bcrypt<4.0` per compatibilità con `passlib` *(fix applicato in Fase 4.X)*
 - [ ] Audit log per operazioni sensibili (cancellazione transazioni)
 
 ### 7.3 Docker e deploy
@@ -323,7 +397,7 @@ Data,Descrizione,Divisa,Importo,Tipo
 - [ ] `Dockerfile` per frontend (nginx multi-stage build)
 - [ ] `Dockerfile` per backend (Python slim)
 - [ ] `docker-compose.yml` production con tutti i servizi
-- [ ] Variabili d'ambiente documentate in `.env.example`
+- [x] Variabili d'ambiente documentate in `.env.example` *(completato in Fase 1)*
 - [ ] Script di backup PostgreSQL automatico
 
 ---
@@ -347,11 +421,11 @@ yfinance>=0.2.36
 httpx>=0.26.0
 pandas>=2.0.0
 numpy>=1.26.0
-fastapi-mail>=1.4.0
 slowapi>=0.1.9
+python-multipart>=0.0.9
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
-httpx>=0.26.0
+pytest-cov>=4.1.0
 ```
 
 ### Frontend (`package.json` dependencies)
@@ -368,7 +442,8 @@ httpx>=0.26.0
     "zod": "^3.22.0",
     "@hookform/resolvers": "^3.3.0",
     "date-fns": "^3.3.0",
-    "lucide-react": "^0.344.0"
+    "lucide-react": "^0.344.0",
+    "react-qr-code": "^2.0.21"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
@@ -403,10 +478,10 @@ cd backend && alembic upgrade head
 cd backend && alembic revision --autogenerate -m "nome_migration"
 
 # Avviare Celery worker
-cd backend && celery -A app.tasks worker --loglevel=info
+cd backend && celery -A app.tasks.celery_app:celery_app worker --loglevel=info
 
-# Avviare Celery Beat (scheduler)
-cd backend && celery -A app.tasks beat --loglevel=info
+# Avviare Celery Beat (scheduler prezzi)
+cd backend && celery -A app.tasks.celery_app:celery_app beat --loglevel=info
 
 # Eseguire test backend
 cd backend && pytest -v --cov=app
@@ -423,19 +498,43 @@ docker compose build
 
 ## Milestone e priorità
 
-| Fase | Descrizione | Priorità | Stima |
-|------|-------------|----------|-------|
-| 1 | Setup + auth + DB | 🔴 Critica | 1–2 sett. |
-| 2 | Asset + transazioni | 🔴 Critica | 2–3 sett. |
-| 3 | Market data + prezzi | 🔴 Critica | 2 sett. |
-| 4 | Portfolio + performance | 🟠 Alta | 2–3 sett. |
-| 5 | Tax engine italiano | 🟠 Alta | 2 sett. |
-| 6 | Features avanzate | 🟡 Media | 2–3 sett. |
-| 7 | Testing + deploy | 🟢 Normale | 1–2 sett. |
+| Fase | Descrizione | Stato | Priorità | Stima |
+|------|-------------|-------|----------|-------|
+| 1 | Setup + auth + DB | ✅ Completata | 🔴 Critica | 1–2 sett. |
+| 2 | Asset + transazioni + FX | ✅ Completata | 🔴 Critica | 2–3 sett. |
+| 3 | Market data + prezzi + WebSocket | ✅ Completata | 🔴 Critica | 2 sett. |
+| 4 | Portfolio + performance | ✅ Completata | 🟠 Alta | 2–3 sett. |
+| 4.X | 2FA TOTP + ruoli + admin utenti | ✅ Completata | 🟠 Alta | — |
+| 5 | Tax engine italiano | ⏳ In coda | 🟠 Alta | 2 sett. |
+| 6 | Features avanzate | ⏳ In coda | 🟡 Media | 2–3 sett. |
+| 7 | Testing + deploy | ⏳ In coda | 🟢 Normale | 1–2 sett. |
 
 **Tempo totale stimato: 12–18 settimane** (sviluppo part-time)
 
 ---
 
-*Generato per: Nextfolio — wealth management focalizzato sul mercato italiano*
-*Stack: React + FastAPI + PostgreSQL + Redis*
+## Note implementative
+
+### Aggiunte rispetto alla roadmap originale
+
+| Feature | Fase | Motivazione |
+|---------|------|-------------|
+| Gestione cambio valuta (`price_currency`, `exchange_rate`, `fee_currency`) | 2.X | Necessaria per ETF/azioni in USD, calcolo P.M.C. corretto in EUR |
+| Endpoint `GET /fx/rate` — tassi storici BCE (Frankfurter API) | 2.X | Tasso precompilato nel form transazione, modificabile |
+| Client Borsa Italiana API (`grafici.borsaitaliana.it`) | 3.X | Fonte ufficiale per BTP/obbligazioni MOT non coperti da Yahoo Finance |
+| `POST /assets/{id}/backfill` — backfill storico on-demand | 3.X | Permette di popolare il DB per asset già presenti senza attendere il task EOD |
+| `fill_missing_dates` nel client Borsa Italiana | 3.X | Propaga prezzi ai weekend/festivi, coerente con ghostfolio-feeder |
+| TOTP 2FA opzionale (pyotp) + login a due step | 4.X | Sicurezza account; flusso session_token per non esporre credenziali nella challenge TOTP |
+| Ruoli SUPERADMIN/USER, pannello admin utenti | 4.X | Gestione multi-utente: solo il superadmin crea account; utenti normali configurano solo preferenze personali |
+| Tabella `user_settings` (tema, valuta display) | 4.X | Personalizzazione per-utente senza toccare il profilo principale |
+
+### Decisioni architetturali
+
+- **Borsa Italiana come fonte primaria** per tutti gli asset con ISIN su MIL/EuroTLX/MOT; Yahoo Finance come fallback — copre BTP e obbligazioni che Yahoo non gestisce
+- **Exchange rate = EUR per 1 unità di valuta estera** (es. 0.9259 EUR/USD): convenzione usata per il calcolo `total_eur = qty × price × exchange_rate`
+- **Celery timezone = Europe/Rome**: gli orari di borsa (9:00-17:00) sono in ora locale italiana
+- **WebSocket filtra per asset_ids**: il client può aggiornare la sottoscrizione a runtime inviando `{"action": "subscribe", "asset_ids": [1,2,3]}`
+
+---
+
+*Stack: React + FastAPI + PostgreSQL + Redis + Celery*

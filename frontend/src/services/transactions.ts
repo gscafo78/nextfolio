@@ -23,6 +23,7 @@ export interface Account {
   type: AccountType;
   broker: string | null;
   currency: string;
+  transaction_count: number;
 }
 
 export interface Transaction {
@@ -33,8 +34,11 @@ export interface Transaction {
   date: string;
   quantity: number;
   price: number;
+  price_currency: string;
+  exchange_rate: number;
   fee: number;
-  currency: string;
+  fee_currency: string;
+  total_eur: number;
   notes: string | null;
   asset: Asset;
 }
@@ -46,9 +50,18 @@ export interface TransactionCreate {
   date: string;
   quantity: number;
   price: number;
+  price_currency?: string;
+  exchange_rate?: number;
   fee?: number;
-  currency?: string;
+  fee_currency?: string;
   notes?: string;
+}
+
+export interface ExchangeRate {
+  from_currency: string;
+  to_currency: string;
+  rate: number;
+  date: string;
 }
 
 export const transactionService = {
@@ -85,6 +98,15 @@ export const transactionService = {
   },
 };
 
+export const fxService = {
+  async getRate(fromCurrency: string, date?: string): Promise<ExchangeRate> {
+    const { data } = await api.get<ExchangeRate>("/fx/rate", {
+      params: { from_currency: fromCurrency, to_currency: "EUR", on_date: date },
+    });
+    return data;
+  },
+};
+
 export const accountService = {
   async list(): Promise<Account[]> {
     const { data } = await api.get<Account[]>("/accounts");
@@ -93,6 +115,11 @@ export const accountService = {
 
   async create(body: { name: string; type?: AccountType; broker?: string; currency?: string }): Promise<Account> {
     const { data } = await api.post<Account>("/accounts", body);
+    return data;
+  },
+
+  async update(id: number, body: { name?: string; type?: AccountType; broker?: string; currency?: string }): Promise<Account> {
+    const { data } = await api.patch<Account>(`/accounts/${id}`, body);
     return data;
   },
 

@@ -2,7 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import Account
-from app.schemas.account import AccountCreate
+from sqlalchemy import func
+from app.models.transaction import Transaction
+from app.schemas.account import AccountCreate, AccountUpdate
 
 
 async def get_accounts(db: AsyncSession, user_id: int) -> list[Account]:
@@ -23,6 +25,21 @@ async def create_account(db: AsyncSession, user_id: int, data: AccountCreate) ->
     await db.commit()
     await db.refresh(account)
     return account
+
+
+async def update_account(db: AsyncSession, account: Account, data: AccountUpdate) -> Account:
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(account, field, value)
+    await db.commit()
+    await db.refresh(account)
+    return account
+
+
+async def count_transactions(db: AsyncSession, account_id: int) -> int:
+    result = await db.execute(
+        select(func.count()).where(Transaction.account_id == account_id)
+    )
+    return result.scalar_one()
 
 
 async def delete_account(db: AsyncSession, account: Account) -> None:

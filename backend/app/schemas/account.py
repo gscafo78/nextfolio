@@ -10,6 +10,13 @@ class AccountCreate(BaseModel):
     currency: str = "EUR"
 
 
+class AccountUpdate(BaseModel):
+    name: str | None = None
+    type: AccountType | None = None
+    broker: str | None = None
+    currency: str | None = None
+
+
 class AccountOut(BaseModel):
     id: int
     name: str

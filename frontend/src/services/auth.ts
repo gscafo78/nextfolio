@@ -1,9 +1,11 @@
 import { api } from "./api";
 
 export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
+  access_token: string | null;
+  refresh_token: string | null;
   token_type: string;
+  requires_2fa: boolean;
+  session_token: string | null;
 }
 
 export interface UserOut {
@@ -11,6 +13,18 @@ export interface UserOut {
   email: string;
   name: string;
   currency: string;
+  role: "SUPERADMIN" | "USER";
+  two_factor_enabled: boolean;
+}
+
+export interface TwoFactorSetupOut {
+  secret: string;
+  uri: string;
+}
+
+export interface UserSettingsOut {
+  theme: string;
+  display_currency: string;
 }
 
 export const authService = {
@@ -24,14 +38,53 @@ export const authService = {
     return data;
   },
 
+  async verify2fa(sessionToken: string, code: string): Promise<TokenResponse> {
+    const { data } = await api.post<TokenResponse>("/auth/2fa/verify", {
+      session_token: sessionToken,
+      code,
+    });
+    return data;
+  },
+
+  async setup2fa(): Promise<TwoFactorSetupOut> {
+    const { data } = await api.post<TwoFactorSetupOut>("/auth/2fa/setup");
+    return data;
+  },
+
+  async enable2fa(sessionToken: string, code: string): Promise<UserOut> {
+    const { data } = await api.post<UserOut>("/auth/2fa/enable", {
+      session_token: sessionToken,
+      code,
+    });
+    return data;
+  },
+
+  async disable2fa(sessionToken: string, code: string): Promise<UserOut> {
+    const { data } = await api.post<UserOut>("/auth/2fa/disable", {
+      session_token: sessionToken,
+      code,
+    });
+    return data;
+  },
+
   async me(): Promise<UserOut> {
     const { data } = await api.get<UserOut>("/auth/me");
     return data;
   },
 
+  async getSettings(): Promise<UserSettingsOut> {
+    const { data } = await api.get<UserSettingsOut>("/me/settings");
+    return data;
+  },
+
+  async updateSettings(fields: Partial<UserSettingsOut>): Promise<UserSettingsOut> {
+    const { data } = await api.patch<UserSettingsOut>("/me/settings", fields);
+    return data;
+  },
+
   saveTokens(tokens: TokenResponse) {
-    localStorage.setItem("access_token", tokens.access_token);
-    localStorage.setItem("refresh_token", tokens.refresh_token);
+    if (tokens.access_token) localStorage.setItem("access_token", tokens.access_token);
+    if (tokens.refresh_token) localStorage.setItem("refresh_token", tokens.refresh_token);
   },
 
   clearTokens() {
