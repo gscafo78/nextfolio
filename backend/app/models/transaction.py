@@ -22,7 +22,7 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
     asset_id: Mapped[int] = mapped_column(ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False)
-    type: Mapped[TransactionType] = mapped_column(nullable=False)
+    type: Mapped[TransactionType] = mapped_column(String(20), nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False)
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
 

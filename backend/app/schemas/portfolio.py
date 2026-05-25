@@ -38,6 +38,7 @@ class PerformancePoint(BaseModel):
     value_eur: float
     invested_eur: float
     pnl_eur: float
+    twrr_pct: float
 
 
 class PerformanceOut(BaseModel):

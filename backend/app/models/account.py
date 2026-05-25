@@ -21,7 +21,7 @@ class Account(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    type: Mapped[AccountType] = mapped_column(default=AccountType.BROKERAGE)
+    type: Mapped[AccountType] = mapped_column(String(20), default=AccountType.BROKERAGE)
     broker: Mapped[str | None] = mapped_column(String(100))
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     created_at: Mapped[datetime] = mapped_column(

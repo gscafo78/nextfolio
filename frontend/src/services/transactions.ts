@@ -9,7 +9,9 @@ export type BrokerFormat = "fineco" | "directa" | "degiro";
 export interface Asset {
   id: number;
   isin: string | null;
+  wkn: string | null;
   symbol: string;
+  yahoo_ticker: string | null;
   name: string;
   type: AssetType;
   exchange: Exchange;
@@ -82,6 +84,11 @@ export const transactionService = {
     return data;
   },
 
+  async update(id: number, body: Partial<Omit<TransactionCreate, "account_id" | "asset_id">>): Promise<Transaction> {
+    const { data } = await api.put<Transaction>(`/transactions/${id}`, body);
+    return data;
+  },
+
   async delete(id: number): Promise<void> {
     await api.delete(`/transactions/${id}`);
   },
@@ -131,6 +138,11 @@ export const accountService = {
 export const assetService = {
   async search(q: string): Promise<Asset[]> {
     const { data } = await api.get<Asset[]>("/assets/search", { params: { q } });
+    return data;
+  },
+
+  async update(id: number, body: { yahoo_ticker?: string | null; symbol?: string; name?: string; exchange?: Exchange; isin?: string | null; wkn?: string | null }): Promise<Asset> {
+    const { data } = await api.patch<Asset>(`/assets/${id}`, body);
     return data;
   },
 };

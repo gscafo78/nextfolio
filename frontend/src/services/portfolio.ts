@@ -35,6 +35,7 @@ export interface PerformancePoint {
   value_eur: number;
   invested_eur: number;
   pnl_eur: number;
+  twrr_pct: number;
 }
 
 export interface PerformanceOut {
@@ -80,9 +81,9 @@ export const portfolioService = {
     return data;
   },
 
-  async getPerformance(period: string): Promise<PerformanceOut> {
+  async getPerformance(period: string, accountId?: number): Promise<PerformanceOut> {
     const { data } = await api.get<PerformanceOut>("/portfolio/performance", {
-      params: { period },
+      params: { period, ...(accountId != null ? { account_id: accountId } : {}) },
     });
     return data;
   },

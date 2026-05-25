@@ -1,0 +1,3350 @@
+{
+  "meta": {
+    "date": "2026-05-25T07:20:42.461Z",
+    "version": "3.5.0"
+  },
+  "accounts": [
+    {
+      "balance": 0,
+      "balances": [
+        {
+          "date": "2025-08-07T00:00:00.000Z",
+          "value": 0
+        },
+        {
+          "date": "2025-07-22T00:00:00.000Z",
+          "value": 502.35
+        },
+        {
+          "date": "2025-05-10T00:00:00.000Z",
+          "value": 700.35
+        },
+        {
+          "date": "2025-05-07T00:00:00.000Z",
+          "value": 500.35
+        },
+        {
+          "date": "2025-04-25T00:00:00.000Z",
+          "value": 1158.35
+        },
+        {
+          "date": "2025-04-14T00:00:00.000Z",
+          "value": 1233.35
+        },
+        {
+          "date": "2025-04-01T00:00:00.000Z",
+          "value": 1433.35
+        },
+        {
+          "date": "2025-02-05T00:00:00.000Z",
+          "value": 1073.35
+        }
+      ],
+      "comment": null,
+      "currency": "EUR",
+      "id": "209f9a58-d39b-4b52-b774-724412f9f6b1",
+      "isExcluded": true,
+      "name": "Conto Deposito",
+      "platformId": "02b6faca-b47f-4f34-85f1-5ded58e3ec56"
+    },
+    {
+      "balance": 67.8,
+      "balances": [
+        {
+          "date": "2025-07-22T00:00:00.000Z",
+          "value": 67.8
+        },
+        {
+          "date": "2025-05-07T00:00:00.000Z",
+          "value": 67.31
+        },
+        {
+          "date": "2025-04-25T00:00:00.000Z",
+          "value": 52.31
+        },
+        {
+          "date": "2025-04-01T00:00:00.000Z",
+          "value": 22.31
+        },
+        {
+          "date": "2025-02-25T00:00:00.000Z",
+          "value": 1.72
+        },
+        {
+          "date": "2025-02-21T00:00:00.000Z",
+          "value": 251.72
+        },
+        {
+          "date": "2025-02-07T00:00:00.000Z",
+          "value": 1.72
+        },
+        {
+          "date": "2025-02-05T00:00:00.000Z",
+          "value": 1.72
+        }
+      ],
+      "comment": null,
+      "currency": "EUR",
+      "id": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "isExcluded": false,
+      "name": "Scalable Capital",
+      "platformId": "c63a3ae8-9c0a-4600-b858-6cd4f9e13cf0"
+    },
+    {
+      "balance": 79.69,
+      "balances": [
+        {
+          "date": "2025-12-27T00:00:00.000Z",
+          "value": 79.69
+        },
+        {
+          "date": "2025-07-22T00:00:00.000Z",
+          "value": 23.36
+        },
+        {
+          "date": "2025-05-12T00:00:00.000Z",
+          "value": 0.78
+        },
+        {
+          "date": "2025-05-10T00:00:00.000Z",
+          "value": 200
+        },
+        {
+          "date": "2025-05-07T00:00:00.000Z",
+          "value": 500
+        }
+      ],
+      "comment": null,
+      "currency": "EUR",
+      "id": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "isExcluded": false,
+      "name": "Trade Republic",
+      "platformId": "a96e4547-8cc3-4f23-a431-1fb5b2d1a970"
+    }
+  ],
+  "assetProfiles": [
+    {
+      "assetClass": null,
+      "assetSubClass": null,
+      "comment": null,
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [],
+      "name": "Interessi",
+      "sectors": [],
+      "symbol": "fd54375b-a860-400a-b61f-40ccd8bda342",
+      "url": null
+    },
+    {
+      "assetClass": null,
+      "assetSubClass": null,
+      "comment": null,
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [],
+      "name": "Interessi",
+      "sectors": [],
+      "symbol": "1394993f-a2a2-4a76-9274-81a192032ebe",
+      "url": null
+    },
+    {
+      "assetClass": null,
+      "assetSubClass": null,
+      "comment": null,
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [],
+      "name": "Interessi",
+      "sectors": [],
+      "symbol": "1eb169cd-4981-4315-9f3e-0495ea9405f8",
+      "url": null
+    },
+    {
+      "assetClass": null,
+      "assetSubClass": null,
+      "comment": null,
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [],
+      "name": "Interessi",
+      "sectors": [],
+      "symbol": "b22314d0-1871-4a17-89dc-3c9c4318e0ad",
+      "url": null
+    },
+    {
+      "assetClass": "FIXED_INCOME",
+      "assetSubClass": "BOND",
+      "comment": "BTP Tf 1,65% Dc30 Eur",
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [
+        {
+          "date": "2025-01-01T00:00:00.000Z",
+          "marketPrice": 92.86
+        },
+        {
+          "date": "2025-01-02T00:00:00.000Z",
+          "marketPrice": 92.86
+        },
+        {
+          "date": "2025-01-03T00:00:00.000Z",
+          "marketPrice": 92.49
+        },
+        {
+          "date": "2025-01-04T00:00:00.000Z",
+          "marketPrice": 92.49
+        },
+        {
+          "date": "2025-01-05T00:00:00.000Z",
+          "marketPrice": 92.49
+        },
+        {
+          "date": "2025-01-06T00:00:00.000Z",
+          "marketPrice": 92.42
+        },
+        {
+          "date": "2025-01-07T00:00:00.000Z",
+          "marketPrice": 92.34
+        },
+        {
+          "date": "2025-01-08T00:00:00.000Z",
+          "marketPrice": 92.11
+        },
+        {
+          "date": "2025-01-09T00:00:00.000Z",
+          "marketPrice": 92.01
+        },
+        {
+          "date": "2025-01-10T00:00:00.000Z",
+          "marketPrice": 91.6
+        },
+        {
+          "date": "2025-01-11T00:00:00.000Z",
+          "marketPrice": 91.6
+        },
+        {
+          "date": "2025-01-12T00:00:00.000Z",
+          "marketPrice": 91.6
+        },
+        {
+          "date": "2025-01-13T00:00:00.000Z",
+          "marketPrice": 91.36
+        },
+        {
+          "date": "2025-01-14T00:00:00.000Z",
+          "marketPrice": 91.33
+        },
+        {
+          "date": "2025-01-15T00:00:00.000Z",
+          "marketPrice": 92.14
+        },
+        {
+          "date": "2025-01-16T00:00:00.000Z",
+          "marketPrice": 92.32
+        },
+        {
+          "date": "2025-01-17T00:00:00.000Z",
+          "marketPrice": 92.3
+        },
+        {
+          "date": "2025-01-18T00:00:00.000Z",
+          "marketPrice": 92.3
+        },
+        {
+          "date": "2025-01-19T00:00:00.000Z",
+          "marketPrice": 92.3
+        },
+        {
+          "date": "2025-01-20T00:00:00.000Z",
+          "marketPrice": 92.42
+        },
+        {
+          "date": "2025-01-21T00:00:00.000Z",
+          "marketPrice": 92.55
+        },
+        {
+          "date": "2025-01-22T00:00:00.000Z",
+          "marketPrice": 92.53
+        },
+        {
+          "date": "2025-01-23T00:00:00.000Z",
+          "marketPrice": 92.26
+        },
+        {
+          "date": "2025-01-24T00:00:00.000Z",
+          "marketPrice": 92.16
+        },
+        {
+          "date": "2025-01-25T00:00:00.000Z",
+          "marketPrice": 92.16
+        },
+        {
+          "date": "2025-01-26T00:00:00.000Z",
+          "marketPrice": 92.16
+        },
+        {
+          "date": "2025-01-27T00:00:00.000Z",
+          "marketPrice": 92.25
+        },
+        {
+          "date": "2025-01-28T00:00:00.000Z",
+          "marketPrice": 92.26
+        },
+        {
+          "date": "2025-01-29T00:00:00.000Z",
+          "marketPrice": 92.28
+        },
+        {
+          "date": "2025-01-30T00:00:00.000Z",
+          "marketPrice": 92.51
+        },
+        {
+          "date": "2025-01-31T00:00:00.000Z",
+          "marketPrice": 92.89
+        },
+        {
+          "date": "2025-02-01T00:00:00.000Z",
+          "marketPrice": 92.89
+        },
+        {
+          "date": "2025-02-02T00:00:00.000Z",
+          "marketPrice": 92.89
+        },
+        {
+          "date": "2025-02-03T00:00:00.000Z",
+          "marketPrice": 93.18
+        },
+        {
+          "date": "2025-02-04T00:00:00.000Z",
+          "marketPrice": 93.15
+        },
+        {
+          "date": "2025-02-05T00:00:00.000Z",
+          "marketPrice": 93.37
+        },
+        {
+          "date": "2025-02-06T00:00:00.000Z",
+          "marketPrice": 93.42
+        },
+        {
+          "date": "2025-02-07T00:00:00.000Z",
+          "marketPrice": 93.25
+        },
+        {
+          "date": "2025-02-08T00:00:00.000Z",
+          "marketPrice": 93.25
+        },
+        {
+          "date": "2025-02-09T00:00:00.000Z",
+          "marketPrice": 93.25
+        },
+        {
+          "date": "2025-02-10T00:00:00.000Z",
+          "marketPrice": 93.42
+        },
+        {
+          "date": "2025-02-11T00:00:00.000Z",
+          "marketPrice": 93.01
+        },
+        {
+          "date": "2025-02-12T00:00:00.000Z",
+          "marketPrice": 92.83
+        },
+        {
+          "date": "2025-02-13T00:00:00.000Z",
+          "marketPrice": 93.27
+        },
+        {
+          "date": "2025-02-14T00:00:00.000Z",
+          "marketPrice": 93.08
+        },
+        {
+          "date": "2025-02-15T00:00:00.000Z",
+          "marketPrice": 93.08
+        },
+        {
+          "date": "2025-02-16T00:00:00.000Z",
+          "marketPrice": 93.08
+        },
+        {
+          "date": "2025-02-17T00:00:00.000Z",
+          "marketPrice": 92.97
+        },
+        {
+          "date": "2025-02-18T00:00:00.000Z",
+          "marketPrice": 92.95
+        },
+        {
+          "date": "2025-02-19T00:00:00.000Z",
+          "marketPrice": 92.58
+        },
+        {
+          "date": "2025-02-20T00:00:00.000Z",
+          "marketPrice": 92.66
+        },
+        {
+          "date": "2025-02-21T00:00:00.000Z",
+          "marketPrice": 92.97
+        },
+        {
+          "date": "2025-02-22T00:00:00.000Z",
+          "marketPrice": 92.97
+        },
+        {
+          "date": "2025-02-23T00:00:00.000Z",
+          "marketPrice": 92.97
+        },
+        {
+          "date": "2025-02-24T00:00:00.000Z",
+          "marketPrice": 92.95
+        },
+        {
+          "date": "2025-02-25T00:00:00.000Z",
+          "marketPrice": 93.15
+        },
+        {
+          "date": "2025-02-26T00:00:00.000Z",
+          "marketPrice": 93.37
+        },
+        {
+          "date": "2025-02-27T00:00:00.000Z",
+          "marketPrice": 93.39
+        },
+        {
+          "date": "2025-02-28T00:00:00.000Z",
+          "marketPrice": 93.54
+        },
+        {
+          "date": "2025-03-01T00:00:00.000Z",
+          "marketPrice": 93.54
+        },
+        {
+          "date": "2025-03-02T00:00:00.000Z",
+          "marketPrice": 93.54
+        },
+        {
+          "date": "2025-03-03T00:00:00.000Z",
+          "marketPrice": 93.23
+        },
+        {
+          "date": "2025-03-04T00:00:00.000Z",
+          "marketPrice": 93.29
+        },
+        {
+          "date": "2025-03-05T00:00:00.000Z",
+          "marketPrice": 91.92
+        },
+        {
+          "date": "2025-03-06T00:00:00.000Z",
+          "marketPrice": 91.45
+        },
+        {
+          "date": "2025-03-07T00:00:00.000Z",
+          "marketPrice": 91.79
+        },
+        {
+          "date": "2025-03-08T00:00:00.000Z",
+          "marketPrice": 91.79
+        },
+        {
+          "date": "2025-03-09T00:00:00.000Z",
+          "marketPrice": 91.79
+        },
+        {
+          "date": "2025-03-10T00:00:00.000Z",
+          "marketPrice": 91.81
+        },
+        {
+          "date": "2025-03-11T00:00:00.000Z",
+          "marketPrice": 91.69
+        },
+        {
+          "date": "2025-03-12T00:00:00.000Z",
+          "marketPrice": 91.69
+        },
+        {
+          "date": "2025-03-13T00:00:00.000Z",
+          "marketPrice": 91.74
+        },
+        {
+          "date": "2025-03-14T00:00:00.000Z",
+          "marketPrice": 91.78
+        },
+        {
+          "date": "2025-03-15T00:00:00.000Z",
+          "marketPrice": 91.78
+        },
+        {
+          "date": "2025-03-16T00:00:00.000Z",
+          "marketPrice": 91.78
+        },
+        {
+          "date": "2025-03-17T00:00:00.000Z",
+          "marketPrice": 92.12
+        },
+        {
+          "date": "2025-03-18T00:00:00.000Z",
+          "marketPrice": 92.04
+        },
+        {
+          "date": "2025-03-19T00:00:00.000Z",
+          "marketPrice": 92.08
+        },
+        {
+          "date": "2025-03-20T00:00:00.000Z",
+          "marketPrice": 92.15
+        },
+        {
+          "date": "2025-03-21T00:00:00.000Z",
+          "marketPrice": 92.35
+        },
+        {
+          "date": "2025-03-22T00:00:00.000Z",
+          "marketPrice": 92.35
+        },
+        {
+          "date": "2025-03-23T00:00:00.000Z",
+          "marketPrice": 92.35
+        },
+        {
+          "date": "2025-03-24T00:00:00.000Z",
+          "marketPrice": 92.36
+        },
+        {
+          "date": "2025-03-25T00:00:00.000Z",
+          "marketPrice": 92.33
+        },
+        {
+          "date": "2025-03-26T00:00:00.000Z",
+          "marketPrice": 92.3
+        },
+        {
+          "date": "2025-03-27T00:00:00.000Z",
+          "marketPrice": 92.53
+        },
+        {
+          "date": "2025-03-28T00:00:00.000Z",
+          "marketPrice": 92.7
+        },
+        {
+          "date": "2025-03-29T00:00:00.000Z",
+          "marketPrice": 92.7
+        },
+        {
+          "date": "2025-03-30T00:00:00.000Z",
+          "marketPrice": 92.7
+        },
+        {
+          "date": "2025-03-31T00:00:00.000Z",
+          "marketPrice": 92.71
+        },
+        {
+          "date": "2025-04-01T00:00:00.000Z",
+          "marketPrice": 92.92
+        },
+        {
+          "date": "2025-04-02T00:00:00.000Z",
+          "marketPrice": 92.8
+        },
+        {
+          "date": "2025-04-03T00:00:00.000Z",
+          "marketPrice": 93.2
+        },
+        {
+          "date": "2025-04-04T00:00:00.000Z",
+          "marketPrice": 93.31
+        },
+        {
+          "date": "2025-04-05T00:00:00.000Z",
+          "marketPrice": 93.31
+        },
+        {
+          "date": "2025-04-06T00:00:00.000Z",
+          "marketPrice": 93.31
+        },
+        {
+          "date": "2025-04-07T00:00:00.000Z",
+          "marketPrice": 93.06
+        },
+        {
+          "date": "2025-04-08T00:00:00.000Z",
+          "marketPrice": 92.91
+        },
+        {
+          "date": "2025-04-09T00:00:00.000Z",
+          "marketPrice": 93
+        },
+        {
+          "date": "2025-04-10T00:00:00.000Z",
+          "marketPrice": 93.09
+        },
+        {
+          "date": "2025-04-11T00:00:00.000Z",
+          "marketPrice": 93.1
+        },
+        {
+          "date": "2025-04-12T00:00:00.000Z",
+          "marketPrice": 93.1
+        },
+        {
+          "date": "2025-04-13T00:00:00.000Z",
+          "marketPrice": 93.1
+        },
+        {
+          "date": "2025-04-14T00:00:00.000Z",
+          "marketPrice": 93.65
+        },
+        {
+          "date": "2025-04-15T00:00:00.000Z",
+          "marketPrice": 93.5
+        },
+        {
+          "date": "2025-04-16T00:00:00.000Z",
+          "marketPrice": 93.69
+        },
+        {
+          "date": "2025-04-17T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2025-04-18T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2025-04-19T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2025-04-20T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2025-04-21T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2025-04-22T00:00:00.000Z",
+          "marketPrice": 94.15
+        },
+        {
+          "date": "2025-04-23T00:00:00.000Z",
+          "marketPrice": 94.05
+        },
+        {
+          "date": "2025-04-24T00:00:00.000Z",
+          "marketPrice": 94.48
+        },
+        {
+          "date": "2025-04-25T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-04-26T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-04-27T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-04-28T00:00:00.000Z",
+          "marketPrice": 94.24
+        },
+        {
+          "date": "2025-04-29T00:00:00.000Z",
+          "marketPrice": 94.25
+        },
+        {
+          "date": "2025-04-30T00:00:00.000Z",
+          "marketPrice": 94.45
+        },
+        {
+          "date": "2025-05-01T00:00:00.000Z",
+          "marketPrice": 94.45
+        },
+        {
+          "date": "2025-05-02T00:00:00.000Z",
+          "marketPrice": 94.19
+        },
+        {
+          "date": "2025-05-03T00:00:00.000Z",
+          "marketPrice": 94.19
+        },
+        {
+          "date": "2025-05-04T00:00:00.000Z",
+          "marketPrice": 94.19
+        },
+        {
+          "date": "2025-05-05T00:00:00.000Z",
+          "marketPrice": 94.21
+        },
+        {
+          "date": "2025-05-06T00:00:00.000Z",
+          "marketPrice": 94.23
+        },
+        {
+          "date": "2025-05-07T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-05-08T00:00:00.000Z",
+          "marketPrice": 94.4
+        },
+        {
+          "date": "2025-05-09T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-05-10T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-05-11T00:00:00.000Z",
+          "marketPrice": 94.26
+        },
+        {
+          "date": "2025-05-12T00:00:00.000Z",
+          "marketPrice": 93.8
+        },
+        {
+          "date": "2025-05-13T00:00:00.000Z",
+          "marketPrice": 93.71
+        },
+        {
+          "date": "2025-05-14T00:00:00.000Z",
+          "marketPrice": 93.63
+        },
+        {
+          "date": "2025-05-15T00:00:00.000Z",
+          "marketPrice": 93.99
+        },
+        {
+          "date": "2025-05-16T00:00:00.000Z",
+          "marketPrice": 94.18
+        },
+        {
+          "date": "2025-05-17T00:00:00.000Z",
+          "marketPrice": 94.18
+        },
+        {
+          "date": "2025-05-18T00:00:00.000Z",
+          "marketPrice": 94.18
+        },
+        {
+          "date": "2025-05-19T00:00:00.000Z",
+          "marketPrice": 94.24
+        },
+        {
+          "date": "2025-05-20T00:00:00.000Z",
+          "marketPrice": 94.25
+        },
+        {
+          "date": "2025-05-21T00:00:00.000Z",
+          "marketPrice": 94.07
+        },
+        {
+          "date": "2025-05-22T00:00:00.000Z",
+          "marketPrice": 94.09
+        },
+        {
+          "date": "2025-05-23T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-05-24T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-05-25T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-05-26T00:00:00.000Z",
+          "marketPrice": 94.45
+        },
+        {
+          "date": "2025-05-27T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-05-28T00:00:00.000Z",
+          "marketPrice": 94.54
+        },
+        {
+          "date": "2025-05-29T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-05-30T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-05-31T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-06-01T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-06-02T00:00:00.000Z",
+          "marketPrice": 94.78
+        },
+        {
+          "date": "2025-06-03T00:00:00.000Z",
+          "marketPrice": 94.79
+        },
+        {
+          "date": "2025-06-04T00:00:00.000Z",
+          "marketPrice": 94.71
+        },
+        {
+          "date": "2025-06-05T00:00:00.000Z",
+          "marketPrice": 94.37
+        },
+        {
+          "date": "2025-06-06T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-07T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-08T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-09T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-10T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-06-11T00:00:00.000Z",
+          "marketPrice": 94.7
+        },
+        {
+          "date": "2025-06-12T00:00:00.000Z",
+          "marketPrice": 94.85
+        },
+        {
+          "date": "2025-06-13T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-14T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-15T00:00:00.000Z",
+          "marketPrice": 94.46
+        },
+        {
+          "date": "2025-06-16T00:00:00.000Z",
+          "marketPrice": 94.66
+        },
+        {
+          "date": "2025-06-17T00:00:00.000Z",
+          "marketPrice": 94.5
+        },
+        {
+          "date": "2025-06-18T00:00:00.000Z",
+          "marketPrice": 94.6
+        },
+        {
+          "date": "2025-06-19T00:00:00.000Z",
+          "marketPrice": 94.42
+        },
+        {
+          "date": "2025-06-20T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-06-21T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-06-22T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-06-23T00:00:00.000Z",
+          "marketPrice": 94.55
+        },
+        {
+          "date": "2025-06-24T00:00:00.000Z",
+          "marketPrice": 94.7
+        },
+        {
+          "date": "2025-06-25T00:00:00.000Z",
+          "marketPrice": 94.62
+        },
+        {
+          "date": "2025-06-26T00:00:00.000Z",
+          "marketPrice": 94.75
+        },
+        {
+          "date": "2025-06-27T00:00:00.000Z",
+          "marketPrice": 94.57
+        },
+        {
+          "date": "2025-06-28T00:00:00.000Z",
+          "marketPrice": 94.57
+        },
+        {
+          "date": "2025-06-29T00:00:00.000Z",
+          "marketPrice": 94.57
+        },
+        {
+          "date": "2025-06-30T00:00:00.000Z",
+          "marketPrice": 94.74
+        },
+        {
+          "date": "2025-07-01T00:00:00.000Z",
+          "marketPrice": 94.8
+        },
+        {
+          "date": "2025-07-02T00:00:00.000Z",
+          "marketPrice": 94.54
+        },
+        {
+          "date": "2025-07-03T00:00:00.000Z",
+          "marketPrice": 94.8
+        },
+        {
+          "date": "2025-07-04T00:00:00.000Z",
+          "marketPrice": 94.92
+        },
+        {
+          "date": "2025-07-05T00:00:00.000Z",
+          "marketPrice": 94.92
+        },
+        {
+          "date": "2025-07-06T00:00:00.000Z",
+          "marketPrice": 94.92
+        },
+        {
+          "date": "2025-07-07T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-07-08T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-07-09T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-07-10T00:00:00.000Z",
+          "marketPrice": 94.41
+        },
+        {
+          "date": "2025-07-11T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-07-12T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-07-13T00:00:00.000Z",
+          "marketPrice": 94.32
+        },
+        {
+          "date": "2025-07-14T00:00:00.000Z",
+          "marketPrice": 94.3
+        },
+        {
+          "date": "2025-07-15T00:00:00.000Z",
+          "marketPrice": 94.43
+        },
+        {
+          "date": "2025-07-16T00:00:00.000Z",
+          "marketPrice": 94.62
+        },
+        {
+          "date": "2025-07-17T00:00:00.000Z",
+          "marketPrice": 94.62
+        },
+        {
+          "date": "2025-07-18T00:00:00.000Z",
+          "marketPrice": 94.6
+        },
+        {
+          "date": "2025-07-19T00:00:00.000Z",
+          "marketPrice": 94.6
+        },
+        {
+          "date": "2025-07-20T00:00:00.000Z",
+          "marketPrice": 94.6
+        },
+        {
+          "date": "2025-07-21T00:00:00.000Z",
+          "marketPrice": 95.02
+        },
+        {
+          "date": "2025-07-22T00:00:00.000Z",
+          "marketPrice": 95.06
+        },
+        {
+          "date": "2025-07-23T00:00:00.000Z",
+          "marketPrice": 95.1
+        },
+        {
+          "date": "2025-07-24T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-07-25T00:00:00.000Z",
+          "marketPrice": 94.38
+        },
+        {
+          "date": "2025-07-26T00:00:00.000Z",
+          "marketPrice": 94.38
+        },
+        {
+          "date": "2025-07-27T00:00:00.000Z",
+          "marketPrice": 94.38
+        },
+        {
+          "date": "2025-07-28T00:00:00.000Z",
+          "marketPrice": 94.63
+        },
+        {
+          "date": "2025-07-29T00:00:00.000Z",
+          "marketPrice": 94.63
+        },
+        {
+          "date": "2025-07-30T00:00:00.000Z",
+          "marketPrice": 94.5
+        },
+        {
+          "date": "2025-07-31T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-08-01T00:00:00.000Z",
+          "marketPrice": 94.68
+        },
+        {
+          "date": "2025-08-02T00:00:00.000Z",
+          "marketPrice": 94.68
+        },
+        {
+          "date": "2025-08-03T00:00:00.000Z",
+          "marketPrice": 94.68
+        },
+        {
+          "date": "2025-08-04T00:00:00.000Z",
+          "marketPrice": 94.89
+        },
+        {
+          "date": "2025-08-05T00:00:00.000Z",
+          "marketPrice": 94.98
+        },
+        {
+          "date": "2025-08-06T00:00:00.000Z",
+          "marketPrice": 94.96
+        },
+        {
+          "date": "2025-08-07T00:00:00.000Z",
+          "marketPrice": 94.93
+        },
+        {
+          "date": "2025-08-08T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-08-09T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-08-10T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-08-11T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-08-12T00:00:00.000Z",
+          "marketPrice": 94.59
+        },
+        {
+          "date": "2025-08-13T00:00:00.000Z",
+          "marketPrice": 94.85
+        },
+        {
+          "date": "2025-08-14T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-08-15T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-08-16T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-08-17T00:00:00.000Z",
+          "marketPrice": 94.76
+        },
+        {
+          "date": "2025-08-18T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-08-19T00:00:00.000Z",
+          "marketPrice": 94.53
+        },
+        {
+          "date": "2025-08-20T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-08-21T00:00:00.000Z",
+          "marketPrice": 94.43
+        },
+        {
+          "date": "2025-08-22T00:00:00.000Z",
+          "marketPrice": 94.66
+        },
+        {
+          "date": "2025-08-23T00:00:00.000Z",
+          "marketPrice": 94.66
+        },
+        {
+          "date": "2025-08-24T00:00:00.000Z",
+          "marketPrice": 94.66
+        },
+        {
+          "date": "2025-08-25T00:00:00.000Z",
+          "marketPrice": 94.4
+        },
+        {
+          "date": "2025-08-26T00:00:00.000Z",
+          "marketPrice": 94.53
+        },
+        {
+          "date": "2025-08-27T00:00:00.000Z",
+          "marketPrice": 94.59
+        },
+        {
+          "date": "2025-08-28T00:00:00.000Z",
+          "marketPrice": 94.61
+        },
+        {
+          "date": "2025-08-29T00:00:00.000Z",
+          "marketPrice": 94.5
+        },
+        {
+          "date": "2025-08-30T00:00:00.000Z",
+          "marketPrice": 94.5
+        },
+        {
+          "date": "2025-08-31T00:00:00.000Z",
+          "marketPrice": 94.5
+        },
+        {
+          "date": "2025-09-01T00:00:00.000Z",
+          "marketPrice": 94.37
+        },
+        {
+          "date": "2025-09-02T00:00:00.000Z",
+          "marketPrice": 94.11
+        },
+        {
+          "date": "2025-09-03T00:00:00.000Z",
+          "marketPrice": 94.38
+        },
+        {
+          "date": "2025-09-04T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-09-05T00:00:00.000Z",
+          "marketPrice": 94.84
+        },
+        {
+          "date": "2025-09-06T00:00:00.000Z",
+          "marketPrice": 94.84
+        },
+        {
+          "date": "2025-09-07T00:00:00.000Z",
+          "marketPrice": 94.84
+        },
+        {
+          "date": "2025-09-08T00:00:00.000Z",
+          "marketPrice": 94.99
+        },
+        {
+          "date": "2025-09-09T00:00:00.000Z",
+          "marketPrice": 94.9
+        },
+        {
+          "date": "2025-09-10T00:00:00.000Z",
+          "marketPrice": 94.89
+        },
+        {
+          "date": "2025-09-11T00:00:00.000Z",
+          "marketPrice": 94.78
+        },
+        {
+          "date": "2025-09-12T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-09-13T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-09-14T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-09-15T00:00:00.000Z",
+          "marketPrice": 94.81
+        },
+        {
+          "date": "2025-09-16T00:00:00.000Z",
+          "marketPrice": 94.8
+        },
+        {
+          "date": "2025-09-17T00:00:00.000Z",
+          "marketPrice": 94.8
+        },
+        {
+          "date": "2025-09-18T00:00:00.000Z",
+          "marketPrice": 94.69
+        },
+        {
+          "date": "2025-09-19T00:00:00.000Z",
+          "marketPrice": 94.61
+        },
+        {
+          "date": "2025-09-20T00:00:00.000Z",
+          "marketPrice": 94.61
+        },
+        {
+          "date": "2025-09-21T00:00:00.000Z",
+          "marketPrice": 94.61
+        },
+        {
+          "date": "2025-09-22T00:00:00.000Z",
+          "marketPrice": 94.66
+        },
+        {
+          "date": "2025-09-23T00:00:00.000Z",
+          "marketPrice": 94.55
+        },
+        {
+          "date": "2025-09-24T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-09-25T00:00:00.000Z",
+          "marketPrice": 94.29
+        },
+        {
+          "date": "2025-09-26T00:00:00.000Z",
+          "marketPrice": 94.47
+        },
+        {
+          "date": "2025-09-27T00:00:00.000Z",
+          "marketPrice": 94.47
+        },
+        {
+          "date": "2025-09-28T00:00:00.000Z",
+          "marketPrice": 94.47
+        },
+        {
+          "date": "2025-09-29T00:00:00.000Z",
+          "marketPrice": 94.55
+        },
+        {
+          "date": "2025-09-30T00:00:00.000Z",
+          "marketPrice": 94.62
+        },
+        {
+          "date": "2025-10-01T00:00:00.000Z",
+          "marketPrice": 94.7
+        },
+        {
+          "date": "2025-10-02T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-10-03T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-10-04T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-10-05T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-10-06T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-10-07T00:00:00.000Z",
+          "marketPrice": 94.6
+        },
+        {
+          "date": "2025-10-08T00:00:00.000Z",
+          "marketPrice": 94.87
+        },
+        {
+          "date": "2025-10-09T00:00:00.000Z",
+          "marketPrice": 94.75
+        },
+        {
+          "date": "2025-10-10T00:00:00.000Z",
+          "marketPrice": 94.99
+        },
+        {
+          "date": "2025-10-11T00:00:00.000Z",
+          "marketPrice": 94.99
+        },
+        {
+          "date": "2025-10-12T00:00:00.000Z",
+          "marketPrice": 94.99
+        },
+        {
+          "date": "2025-10-13T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2025-10-14T00:00:00.000Z",
+          "marketPrice": 95.22
+        },
+        {
+          "date": "2025-10-15T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2025-10-16T00:00:00.000Z",
+          "marketPrice": 95.52
+        },
+        {
+          "date": "2025-10-17T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2025-10-18T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2025-10-19T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2025-10-20T00:00:00.000Z",
+          "marketPrice": 95.46
+        },
+        {
+          "date": "2025-10-21T00:00:00.000Z",
+          "marketPrice": 95.54
+        },
+        {
+          "date": "2025-10-22T00:00:00.000Z",
+          "marketPrice": 95.55
+        },
+        {
+          "date": "2025-10-23T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2025-10-24T00:00:00.000Z",
+          "marketPrice": 95.24
+        },
+        {
+          "date": "2025-10-25T00:00:00.000Z",
+          "marketPrice": 95.24
+        },
+        {
+          "date": "2025-10-26T00:00:00.000Z",
+          "marketPrice": 95.24
+        },
+        {
+          "date": "2025-10-27T00:00:00.000Z",
+          "marketPrice": 95.3
+        },
+        {
+          "date": "2025-10-28T00:00:00.000Z",
+          "marketPrice": 95.29
+        },
+        {
+          "date": "2025-10-29T00:00:00.000Z",
+          "marketPrice": 95.37
+        },
+        {
+          "date": "2025-10-30T00:00:00.000Z",
+          "marketPrice": 95.29
+        },
+        {
+          "date": "2025-10-31T00:00:00.000Z",
+          "marketPrice": 95.32
+        },
+        {
+          "date": "2025-11-01T00:00:00.000Z",
+          "marketPrice": 95.32
+        },
+        {
+          "date": "2025-11-02T00:00:00.000Z",
+          "marketPrice": 95.32
+        },
+        {
+          "date": "2025-11-03T00:00:00.000Z",
+          "marketPrice": 95.27
+        },
+        {
+          "date": "2025-11-04T00:00:00.000Z",
+          "marketPrice": 95.3
+        },
+        {
+          "date": "2025-11-05T00:00:00.000Z",
+          "marketPrice": 95.18
+        },
+        {
+          "date": "2025-11-06T00:00:00.000Z",
+          "marketPrice": 95.2
+        },
+        {
+          "date": "2025-11-07T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2025-11-08T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2025-11-09T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2025-11-10T00:00:00.000Z",
+          "marketPrice": 95.26
+        },
+        {
+          "date": "2025-11-11T00:00:00.000Z",
+          "marketPrice": 95.29
+        },
+        {
+          "date": "2025-11-12T00:00:00.000Z",
+          "marketPrice": 95.37
+        },
+        {
+          "date": "2025-11-13T00:00:00.000Z",
+          "marketPrice": 95.14
+        },
+        {
+          "date": "2025-11-14T00:00:00.000Z",
+          "marketPrice": 95.04
+        },
+        {
+          "date": "2025-11-15T00:00:00.000Z",
+          "marketPrice": 95.04
+        },
+        {
+          "date": "2025-11-16T00:00:00.000Z",
+          "marketPrice": 95.04
+        },
+        {
+          "date": "2025-11-17T00:00:00.000Z",
+          "marketPrice": 95.31
+        },
+        {
+          "date": "2025-11-18T00:00:00.000Z",
+          "marketPrice": 95.08
+        },
+        {
+          "date": "2025-11-19T00:00:00.000Z",
+          "marketPrice": 95.11
+        },
+        {
+          "date": "2025-11-20T00:00:00.000Z",
+          "marketPrice": 95.11
+        },
+        {
+          "date": "2025-11-21T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2025-11-22T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2025-11-23T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2025-11-24T00:00:00.000Z",
+          "marketPrice": 95.13
+        },
+        {
+          "date": "2025-11-25T00:00:00.000Z",
+          "marketPrice": 95.28
+        },
+        {
+          "date": "2025-11-26T00:00:00.000Z",
+          "marketPrice": 95.34
+        },
+        {
+          "date": "2025-11-27T00:00:00.000Z",
+          "marketPrice": 95.29
+        },
+        {
+          "date": "2025-11-28T00:00:00.000Z",
+          "marketPrice": 95.27
+        },
+        {
+          "date": "2025-11-29T00:00:00.000Z",
+          "marketPrice": 95.27
+        },
+        {
+          "date": "2025-11-30T00:00:00.000Z",
+          "marketPrice": 95.27
+        },
+        {
+          "date": "2025-12-01T00:00:00.000Z",
+          "marketPrice": 95.05
+        },
+        {
+          "date": "2025-12-02T00:00:00.000Z",
+          "marketPrice": 95.01
+        },
+        {
+          "date": "2025-12-03T00:00:00.000Z",
+          "marketPrice": 95.14
+        },
+        {
+          "date": "2025-12-04T00:00:00.000Z",
+          "marketPrice": 94.98
+        },
+        {
+          "date": "2025-12-05T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2025-12-06T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2025-12-07T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2025-12-08T00:00:00.000Z",
+          "marketPrice": 94.49
+        },
+        {
+          "date": "2025-12-09T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-12-10T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2025-12-11T00:00:00.000Z",
+          "marketPrice": 94.62
+        },
+        {
+          "date": "2025-12-12T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-12-13T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-12-14T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-12-15T00:00:00.000Z",
+          "marketPrice": 94.64
+        },
+        {
+          "date": "2025-12-16T00:00:00.000Z",
+          "marketPrice": 94.74
+        },
+        {
+          "date": "2025-12-17T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-12-18T00:00:00.000Z",
+          "marketPrice": 94.82
+        },
+        {
+          "date": "2025-12-19T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-12-20T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-12-21T00:00:00.000Z",
+          "marketPrice": 94.67
+        },
+        {
+          "date": "2025-12-22T00:00:00.000Z",
+          "marketPrice": 94.56
+        },
+        {
+          "date": "2025-12-23T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-24T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-25T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-26T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-27T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-28T00:00:00.000Z",
+          "marketPrice": 94.72
+        },
+        {
+          "date": "2025-12-29T00:00:00.000Z",
+          "marketPrice": 94.99
+        },
+        {
+          "date": "2025-12-30T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2025-12-31T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2026-01-01T00:00:00.000Z",
+          "marketPrice": 94.91
+        },
+        {
+          "date": "2026-01-02T00:00:00.000Z",
+          "marketPrice": 94.71
+        },
+        {
+          "date": "2026-01-03T00:00:00.000Z",
+          "marketPrice": 94.71
+        },
+        {
+          "date": "2026-01-04T00:00:00.000Z",
+          "marketPrice": 94.71
+        },
+        {
+          "date": "2026-01-05T00:00:00.000Z",
+          "marketPrice": 94.84
+        },
+        {
+          "date": "2026-01-06T00:00:00.000Z",
+          "marketPrice": 94.96
+        },
+        {
+          "date": "2026-01-07T00:00:00.000Z",
+          "marketPrice": 95.06
+        },
+        {
+          "date": "2026-01-08T00:00:00.000Z",
+          "marketPrice": 95.04
+        },
+        {
+          "date": "2026-01-09T00:00:00.000Z",
+          "marketPrice": 95.1
+        },
+        {
+          "date": "2026-01-10T00:00:00.000Z",
+          "marketPrice": 95.1
+        },
+        {
+          "date": "2026-01-11T00:00:00.000Z",
+          "marketPrice": 95.1
+        },
+        {
+          "date": "2026-01-12T00:00:00.000Z",
+          "marketPrice": 95.16
+        },
+        {
+          "date": "2026-01-13T00:00:00.000Z",
+          "marketPrice": 95.13
+        },
+        {
+          "date": "2026-01-14T00:00:00.000Z",
+          "marketPrice": 95.22
+        },
+        {
+          "date": "2026-01-15T00:00:00.000Z",
+          "marketPrice": 95.3
+        },
+        {
+          "date": "2026-01-16T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2026-01-17T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2026-01-18T00:00:00.000Z",
+          "marketPrice": 95.15
+        },
+        {
+          "date": "2026-01-19T00:00:00.000Z",
+          "marketPrice": 95.27
+        },
+        {
+          "date": "2026-01-20T00:00:00.000Z",
+          "marketPrice": 95.18
+        },
+        {
+          "date": "2026-01-21T00:00:00.000Z",
+          "marketPrice": 95.09
+        },
+        {
+          "date": "2026-01-22T00:00:00.000Z",
+          "marketPrice": 95.11
+        },
+        {
+          "date": "2026-01-23T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2026-01-24T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2026-01-25T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2026-01-26T00:00:00.000Z",
+          "marketPrice": 95.28
+        },
+        {
+          "date": "2026-01-27T00:00:00.000Z",
+          "marketPrice": 95.3
+        },
+        {
+          "date": "2026-01-28T00:00:00.000Z",
+          "marketPrice": 95.38
+        },
+        {
+          "date": "2026-01-29T00:00:00.000Z",
+          "marketPrice": 95.47
+        },
+        {
+          "date": "2026-01-30T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-01-31T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-02-01T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-02-02T00:00:00.000Z",
+          "marketPrice": 95.29
+        },
+        {
+          "date": "2026-02-03T00:00:00.000Z",
+          "marketPrice": 95.25
+        },
+        {
+          "date": "2026-02-04T00:00:00.000Z",
+          "marketPrice": 95.36
+        },
+        {
+          "date": "2026-02-05T00:00:00.000Z",
+          "marketPrice": 95.36
+        },
+        {
+          "date": "2026-02-06T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-02-07T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-02-08T00:00:00.000Z",
+          "marketPrice": 95.4
+        },
+        {
+          "date": "2026-02-09T00:00:00.000Z",
+          "marketPrice": 95.51
+        },
+        {
+          "date": "2026-02-10T00:00:00.000Z",
+          "marketPrice": 95.63
+        },
+        {
+          "date": "2026-02-11T00:00:00.000Z",
+          "marketPrice": 95.66
+        },
+        {
+          "date": "2026-02-12T00:00:00.000Z",
+          "marketPrice": 95.71
+        },
+        {
+          "date": "2026-02-13T00:00:00.000Z",
+          "marketPrice": 95.81
+        },
+        {
+          "date": "2026-02-14T00:00:00.000Z",
+          "marketPrice": 95.81
+        },
+        {
+          "date": "2026-02-15T00:00:00.000Z",
+          "marketPrice": 95.81
+        },
+        {
+          "date": "2026-02-16T00:00:00.000Z",
+          "marketPrice": 95.79
+        },
+        {
+          "date": "2026-02-17T00:00:00.000Z",
+          "marketPrice": 95.81
+        },
+        {
+          "date": "2026-02-18T00:00:00.000Z",
+          "marketPrice": 95.85
+        },
+        {
+          "date": "2026-02-19T00:00:00.000Z",
+          "marketPrice": 95.81
+        },
+        {
+          "date": "2026-02-20T00:00:00.000Z",
+          "marketPrice": 95.79
+        },
+        {
+          "date": "2026-02-21T00:00:00.000Z",
+          "marketPrice": 95.79
+        },
+        {
+          "date": "2026-02-22T00:00:00.000Z",
+          "marketPrice": 95.79
+        },
+        {
+          "date": "2026-02-23T00:00:00.000Z",
+          "marketPrice": 95.91
+        },
+        {
+          "date": "2026-02-24T00:00:00.000Z",
+          "marketPrice": 95.94
+        },
+        {
+          "date": "2026-02-25T00:00:00.000Z",
+          "marketPrice": 95.98
+        },
+        {
+          "date": "2026-02-26T00:00:00.000Z",
+          "marketPrice": 95.98
+        },
+        {
+          "date": "2026-02-27T00:00:00.000Z",
+          "marketPrice": 96.1
+        },
+        {
+          "date": "2026-02-28T00:00:00.000Z",
+          "marketPrice": 96.1
+        },
+        {
+          "date": "2026-03-01T00:00:00.000Z",
+          "marketPrice": 96.1
+        },
+        {
+          "date": "2026-03-02T00:00:00.000Z",
+          "marketPrice": 95.75
+        },
+        {
+          "date": "2026-03-03T00:00:00.000Z",
+          "marketPrice": 95.12
+        },
+        {
+          "date": "2026-03-04T00:00:00.000Z",
+          "marketPrice": 95.45
+        },
+        {
+          "date": "2026-03-05T00:00:00.000Z",
+          "marketPrice": 94.8
+        },
+        {
+          "date": "2026-03-06T00:00:00.000Z",
+          "marketPrice": 94.41
+        },
+        {
+          "date": "2026-03-07T00:00:00.000Z",
+          "marketPrice": 94.41
+        },
+        {
+          "date": "2026-03-08T00:00:00.000Z",
+          "marketPrice": 94.41
+        },
+        {
+          "date": "2026-03-09T00:00:00.000Z",
+          "marketPrice": 94.42
+        },
+        {
+          "date": "2026-03-10T00:00:00.000Z",
+          "marketPrice": 94.95
+        },
+        {
+          "date": "2026-03-11T00:00:00.000Z",
+          "marketPrice": 94.31
+        },
+        {
+          "date": "2026-03-12T00:00:00.000Z",
+          "marketPrice": 94.1
+        },
+        {
+          "date": "2026-03-13T00:00:00.000Z",
+          "marketPrice": 93.89
+        },
+        {
+          "date": "2026-03-14T00:00:00.000Z",
+          "marketPrice": 93.89
+        },
+        {
+          "date": "2026-03-15T00:00:00.000Z",
+          "marketPrice": 93.89
+        },
+        {
+          "date": "2026-03-16T00:00:00.000Z",
+          "marketPrice": 94.14
+        },
+        {
+          "date": "2026-03-17T00:00:00.000Z",
+          "marketPrice": 94.27
+        },
+        {
+          "date": "2026-03-18T00:00:00.000Z",
+          "marketPrice": 94.02
+        },
+        {
+          "date": "2026-03-19T00:00:00.000Z",
+          "marketPrice": 93.78
+        },
+        {
+          "date": "2026-03-20T00:00:00.000Z",
+          "marketPrice": 93.12
+        },
+        {
+          "date": "2026-03-21T00:00:00.000Z",
+          "marketPrice": 93.12
+        },
+        {
+          "date": "2026-03-22T00:00:00.000Z",
+          "marketPrice": 93.12
+        },
+        {
+          "date": "2026-03-23T00:00:00.000Z",
+          "marketPrice": 93.36
+        },
+        {
+          "date": "2026-03-24T00:00:00.000Z",
+          "marketPrice": 93.12
+        },
+        {
+          "date": "2026-03-25T00:00:00.000Z",
+          "marketPrice": 93.45
+        },
+        {
+          "date": "2026-03-26T00:00:00.000Z",
+          "marketPrice": 92.86
+        },
+        {
+          "date": "2026-03-27T00:00:00.000Z",
+          "marketPrice": 93.01
+        },
+        {
+          "date": "2026-03-28T00:00:00.000Z",
+          "marketPrice": 93.01
+        },
+        {
+          "date": "2026-03-29T00:00:00.000Z",
+          "marketPrice": 93.01
+        },
+        {
+          "date": "2026-03-30T00:00:00.000Z",
+          "marketPrice": 93.02
+        },
+        {
+          "date": "2026-03-31T00:00:00.000Z",
+          "marketPrice": 93.23
+        },
+        {
+          "date": "2026-04-01T00:00:00.000Z",
+          "marketPrice": 93.5
+        },
+        {
+          "date": "2026-04-02T00:00:00.000Z",
+          "marketPrice": 93.52
+        },
+        {
+          "date": "2026-04-03T00:00:00.000Z",
+          "marketPrice": 93.52
+        },
+        {
+          "date": "2026-04-04T00:00:00.000Z",
+          "marketPrice": 93.52
+        },
+        {
+          "date": "2026-04-05T00:00:00.000Z",
+          "marketPrice": 93.52
+        },
+        {
+          "date": "2026-04-06T00:00:00.000Z",
+          "marketPrice": 93.52
+        },
+        {
+          "date": "2026-04-07T00:00:00.000Z",
+          "marketPrice": 92.94
+        },
+        {
+          "date": "2026-04-08T00:00:00.000Z",
+          "marketPrice": 94.16
+        },
+        {
+          "date": "2026-04-09T00:00:00.000Z",
+          "marketPrice": 93.83
+        },
+        {
+          "date": "2026-04-10T00:00:00.000Z",
+          "marketPrice": 93.74
+        },
+        {
+          "date": "2026-04-11T00:00:00.000Z",
+          "marketPrice": 93.74
+        },
+        {
+          "date": "2026-04-12T00:00:00.000Z",
+          "marketPrice": 93.74
+        },
+        {
+          "date": "2026-04-13T00:00:00.000Z",
+          "marketPrice": 93.5
+        },
+        {
+          "date": "2026-04-14T00:00:00.000Z",
+          "marketPrice": 93.93
+        },
+        {
+          "date": "2026-04-15T00:00:00.000Z",
+          "marketPrice": 93.91
+        },
+        {
+          "date": "2026-04-16T00:00:00.000Z",
+          "marketPrice": 93.9
+        },
+        {
+          "date": "2026-04-17T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2026-04-18T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2026-04-19T00:00:00.000Z",
+          "marketPrice": 94.51
+        },
+        {
+          "date": "2026-04-20T00:00:00.000Z",
+          "marketPrice": 94.22
+        },
+        {
+          "date": "2026-04-21T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2026-04-22T00:00:00.000Z",
+          "marketPrice": 93.96
+        },
+        {
+          "date": "2026-04-23T00:00:00.000Z",
+          "marketPrice": 93.94
+        },
+        {
+          "date": "2026-04-24T00:00:00.000Z",
+          "marketPrice": 93.87
+        },
+        {
+          "date": "2026-04-25T00:00:00.000Z",
+          "marketPrice": 93.87
+        },
+        {
+          "date": "2026-04-26T00:00:00.000Z",
+          "marketPrice": 93.87
+        },
+        {
+          "date": "2026-04-27T00:00:00.000Z",
+          "marketPrice": 93.76
+        },
+        {
+          "date": "2026-04-28T00:00:00.000Z",
+          "marketPrice": 93.59
+        },
+        {
+          "date": "2026-04-29T00:00:00.000Z",
+          "marketPrice": 93.27
+        },
+        {
+          "date": "2026-04-30T00:00:00.000Z",
+          "marketPrice": 93.69
+        },
+        {
+          "date": "2026-05-01T00:00:00.000Z",
+          "marketPrice": 93.69
+        },
+        {
+          "date": "2026-05-02T00:00:00.000Z",
+          "marketPrice": 93.69
+        },
+        {
+          "date": "2026-05-03T00:00:00.000Z",
+          "marketPrice": 93.69
+        },
+        {
+          "date": "2026-05-04T00:00:00.000Z",
+          "marketPrice": 93.53
+        },
+        {
+          "date": "2026-05-05T00:00:00.000Z",
+          "marketPrice": 93.57
+        },
+        {
+          "date": "2026-05-06T00:00:00.000Z",
+          "marketPrice": 94.15
+        },
+        {
+          "date": "2026-05-07T00:00:00.000Z",
+          "marketPrice": 94.21
+        },
+        {
+          "date": "2026-05-08T00:00:00.000Z",
+          "marketPrice": 94.13
+        },
+        {
+          "date": "2026-05-09T00:00:00.000Z",
+          "marketPrice": 94.13
+        },
+        {
+          "date": "2026-05-10T00:00:00.000Z",
+          "marketPrice": 94.13
+        },
+        {
+          "date": "2026-05-11T00:00:00.000Z",
+          "marketPrice": 93.93
+        },
+        {
+          "date": "2026-05-12T00:00:00.000Z",
+          "marketPrice": 93.61
+        },
+        {
+          "date": "2026-05-13T00:00:00.000Z",
+          "marketPrice": 93.6
+        },
+        {
+          "date": "2026-05-14T00:00:00.000Z",
+          "marketPrice": 93.92
+        },
+        {
+          "date": "2026-05-15T00:00:00.000Z",
+          "marketPrice": 93.45
+        },
+        {
+          "date": "2026-05-16T00:00:00.000Z",
+          "marketPrice": 93.45
+        },
+        {
+          "date": "2026-05-17T00:00:00.000Z",
+          "marketPrice": 93.45
+        },
+        {
+          "date": "2026-05-18T00:00:00.000Z",
+          "marketPrice": 93.44
+        },
+        {
+          "date": "2026-05-19T00:00:00.000Z",
+          "marketPrice": 93.31
+        },
+        {
+          "date": "2026-05-20T00:00:00.000Z",
+          "marketPrice": 93.86
+        },
+        {
+          "date": "2026-05-21T00:00:00.000Z",
+          "marketPrice": 93.72
+        },
+        {
+          "date": "2026-05-22T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2026-05-23T00:00:00.000Z",
+          "marketPrice": 94
+        },
+        {
+          "date": "2026-05-24T00:00:00.000Z",
+          "marketPrice": 94
+        }
+      ],
+      "name": "BTP Tf 1,65% Dc30 Eur",
+      "sectors": [],
+      "symbol": "ec46f226-35b1-4c80-a10e-8ed117139d4a",
+      "url": null
+    },
+    {
+      "assetClass": null,
+      "assetSubClass": null,
+      "comment": null,
+      "countries": [],
+      "currency": "EUR",
+      "cusip": null,
+      "dataSource": "MANUAL",
+      "figi": null,
+      "figiComposite": null,
+      "figiShareClass": null,
+      "holdings": [],
+      "isActive": true,
+      "isin": null,
+      "marketData": [],
+      "name": "Interessi",
+      "sectors": [],
+      "symbol": "cf98a63c-1fcb-4d85-ae04-c751df5f9a29",
+      "url": null
+    }
+  ],
+  "platforms": [
+    {
+      "id": "02b6faca-b47f-4f34-85f1-5ded58e3ec56",
+      "name": "MediabancaPremier",
+      "url": "https://www.mediobancapremier.com/"
+    },
+    {
+      "id": "c63a3ae8-9c0a-4600-b858-6cd4f9e13cf0",
+      "name": "Scalable Capital ",
+      "url": "https://it.scalable.capital/"
+    },
+    {
+      "id": "a96e4547-8cc3-4f23-a431-1fb5b2d1a970",
+      "name": "Trade Republic",
+      "url": "https://app.traderepublic.com"
+    }
+  ],
+  "tags": [],
+  "activities": [
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 9,
+      "type": "BUY",
+      "unitPrice": 103.995,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-01-14T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 1.017461276216049,
+      "quantity": 10,
+      "type": "BUY",
+      "unitPrice": 6.082157406713717,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-01-19T23:00:00.000Z",
+      "symbol": "DHYA.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 64,
+      "type": "BUY",
+      "unitPrice": 6.077066284713321,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-01-21T23:00:00.000Z",
+      "symbol": "DHYA.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "BUY",
+      "unitPrice": 106.74,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-01-21T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 76,
+      "type": "BUY",
+      "unitPrice": 5.3564,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-01-25T23:00:00.000Z",
+      "symbol": "CBU2.DE",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 1.036291109098217,
+      "quantity": 74,
+      "type": "SELL",
+      "unitPrice": 6.009441674073599,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-01-26T23:00:00.000Z",
+      "symbol": "DHYA.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 2.389143,
+      "type": "BUY",
+      "unitPrice": 104.64,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-01-26T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0.99,
+      "quantity": 3,
+      "type": "BUY",
+      "unitPrice": 5.3818,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-01-29T23:00:00.000Z",
+      "symbol": "CBU2.DE",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 6.851851,
+      "type": "BUY",
+      "unitPrice": 5.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-02-24T23:00:00.000Z",
+      "symbol": "CBU2.DE",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.88577,
+      "type": "BUY",
+      "unitPrice": 59.22778302381702,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-02-25T12:19:49.221Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.16478,
+      "type": "BUY",
+      "unitPrice": 230.61,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-02-25T12:31:37.412Z",
+      "symbol": "X57E.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.192233,
+      "type": "BUY",
+      "unitPrice": 260.1,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-02-25T12:38:58.110Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.707146,
+      "type": "BUY",
+      "unitPrice": 106.06,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-02-25T14:08:16.725Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 6.969833,
+      "type": "BUY",
+      "unitPrice": 5.3172,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-03-24T23:00:00.000Z",
+      "symbol": "CBU2.DE",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.385505,
+      "type": "BUY",
+      "unitPrice": 259.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-03-25T12:02:24.131Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.354083,
+      "type": "BUY",
+      "unitPrice": 59.93075091971434,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-03-25T12:03:38.756Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.16679,
+      "type": "BUY",
+      "unitPrice": 228.19,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-03-25T12:04:51.182Z",
+      "symbol": "X57E.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "INTEREST",
+      "unitPrice": 0.59,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-03-31T22:00:00.000Z",
+      "symbol": "fd54375b-a860-400a-b61f-40ccd8bda342",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.407,
+      "type": "BUY",
+      "unitPrice": 246.2,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-04-25T14:04:21.762Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.465,
+      "type": "BUY",
+      "unitPrice": 58.19936421435059,
+      "currency": "USD",
+      "dataSource": "YAHOO",
+      "date": "2025-04-25T14:05:57.025Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.325,
+      "type": "BUY",
+      "unitPrice": 233.76,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-04-25T14:07:14.931Z",
+      "symbol": "X57E.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 1,
+      "quantity": 2,
+      "type": "BUY",
+      "unitPrice": 99.11,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-05-12T07:12:29.956Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.569476,
+      "type": "BUY",
+      "unitPrice": 263.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-05-26T11:07:29.735Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.862809,
+      "type": "BUY",
+      "unitPrice": 54.756,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-05-26T11:09:04.844Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "INTEREST",
+      "unitPrice": 0.01,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-06-05T22:00:00.000Z",
+      "symbol": "1394993f-a2a2-4a76-9274-81a192032ebe",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "INTEREST",
+      "unitPrice": 0.49,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-06-30T22:00:00.000Z",
+      "symbol": "1eb169cd-4981-4315-9f3e-0495ea9405f8",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "INTEREST",
+      "unitPrice": 0.16,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-06-30T22:00:00.000Z",
+      "symbol": "b22314d0-1871-4a17-89dc-3c9c4318e0ad",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 2.514217,
+      "type": "BUY",
+      "unitPrice": 100.23,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-07-02T17:00:25.959Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 10.348141,
+      "type": "BUY",
+      "unitPrice": 5.41,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-07-15T22:00:00.000Z",
+      "symbol": "CBU2.DE",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.287307,
+      "type": "BUY",
+      "unitPrice": 233.2,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-07-16T08:27:03.497Z",
+      "symbol": "X57E.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.276444,
+      "type": "BUY",
+      "unitPrice": 260.45,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-07-16T08:37:53.511Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 2.137613,
+      "type": "BUY",
+      "unitPrice": 57.07,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-07-16T15:18:49.644Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": null,
+      "comment": null,
+      "fee": 1,
+      "quantity": 10,
+      "type": "BUY",
+      "unitPrice": 94.822,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-07-18T00:00:00.000Z",
+      "symbol": "ec46f226-35b1-4c80-a10e-8ed117139d4a",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1,
+      "type": "INTEREST",
+      "unitPrice": 0.21,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-07-31T22:00:00.000Z",
+      "symbol": "cf98a63c-1fcb-4d85-ae04-c751df5f9a29",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.562535,
+      "type": "BUY",
+      "unitPrice": 266.65,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T12:03:50.488Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.47,
+      "type": "BUY",
+      "unitPrice": 106.44,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T12:08:56.873Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.563,
+      "type": "BUY",
+      "unitPrice": 266.6,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T12:11:02.657Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.821,
+      "type": "BUY",
+      "unitPrice": 60.92,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T12:11:35.505Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.822557,
+      "type": "BUY",
+      "unitPrice": 60.79,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T13:57:28.474Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.472031,
+      "type": "BUY",
+      "unitPrice": 105.93,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-09-16T18:58:32.556Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.785842,
+      "type": "BUY",
+      "unitPrice": 63.626,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:09:16.218Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.378043,
+      "type": "BUY",
+      "unitPrice": 108.85,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:11:12.590Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.182381,
+      "type": "BUY",
+      "unitPrice": 274.15,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:11:54.976Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.183385,
+      "type": "BUY",
+      "unitPrice": 272.65,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:18:18.408Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.786336,
+      "type": "BUY",
+      "unitPrice": 63.59,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:19:01.583Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.378106,
+      "type": "BUY",
+      "unitPrice": 108.85,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-10-16T17:19:41.792Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.180707,
+      "type": "BUY",
+      "unitPrice": 276.7,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T13:45:45.154Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.181554,
+      "type": "BUY",
+      "unitPrice": 275.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T13:47:51.337Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.778185,
+      "type": "BUY",
+      "unitPrice": 64.25,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T13:48:53.830Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.362521,
+      "type": "BUY",
+      "unitPrice": 110.09,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T13:49:40.450Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.774689,
+      "type": "BUY",
+      "unitPrice": 64.54,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T18:34:43.835Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.363388,
+      "type": "BUY",
+      "unitPrice": 110.02,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-11-17T18:35:30.418Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.17838,
+      "type": "BUY",
+      "unitPrice": 280.3,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:17:32.257Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.362583,
+      "type": "BUY",
+      "unitPrice": 110.09,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:18:34.012Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.801821,
+      "type": "BUY",
+      "unitPrice": 62.36,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:19:18.295Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.366,
+      "type": "BUY",
+      "unitPrice": 109.8096,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:23:48.136Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.803238,
+      "type": "BUY",
+      "unitPrice": 62.248,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:24:57.020Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.178316,
+      "type": "BUY",
+      "unitPrice": 280.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2025-12-16T18:25:50.570Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": null,
+      "comment": null,
+      "fee": 1,
+      "quantity": 10,
+      "type": "BUY",
+      "unitPrice": 94.999,
+      "currency": "EUR",
+      "dataSource": "MANUAL",
+      "date": "2025-12-23T00:00:00.000Z",
+      "symbol": "ec46f226-35b1-4c80-a10e-8ed117139d4a",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.168833,
+      "type": "BUY",
+      "unitPrice": 296.15,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T20:58:06.391Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.305937,
+      "type": "BUY",
+      "unitPrice": 114.86,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T21:00:12.938Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.723861,
+      "type": "BUY",
+      "unitPrice": 69.07,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T21:01:17.951Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.16909,
+      "type": "BUY",
+      "unitPrice": 295.7,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T21:08:36.919Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.725942,
+      "type": "BUY",
+      "unitPrice": 68.88,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T21:09:54.329Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.310043,
+      "type": "BUY",
+      "unitPrice": 114.5,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-01-16T21:10:37.417Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.700299,
+      "type": "BUY",
+      "unitPrice": 71.4,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.335291,
+      "type": "BUY",
+      "unitPrice": 112.335,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.338307,
+      "type": "BUY",
+      "unitPrice": 112.08,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.167448,
+      "type": "BUY",
+      "unitPrice": 298.6,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.167588,
+      "type": "BUY",
+      "unitPrice": 298.35,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.699555,
+      "type": "BUY",
+      "unitPrice": 71.474,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-02-15T23:00:00.000Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.721146,
+      "type": "BUY",
+      "unitPrice": 69.33,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-03-15T23:00:00.000Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.340542,
+      "type": "BUY",
+      "unitPrice": 111.9,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-03-15T23:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.173852,
+      "type": "BUY",
+      "unitPrice": 287.6,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-03-15T23:00:00.000Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.1665,
+      "type": "BUY",
+      "unitPrice": 300.3,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.166223,
+      "type": "BUY",
+      "unitPrice": 300.8,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "MEUD.PA",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.683116,
+      "type": "BUY",
+      "unitPrice": 73.194,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "XMME.L",
+      "tags": []
+    },
+    {
+      "accountId": "ab804fa3-478b-401a-97c6-abe2a508e9d3",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.303894,
+      "type": "BUY",
+      "unitPrice": 115.04,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 1.300108,
+      "type": "BUY",
+      "unitPrice": 115.375,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "SWDA.MI",
+      "tags": []
+    },
+    {
+      "accountId": "c8be407e-bbbe-4956-a836-149c9bb17c8c",
+      "comment": null,
+      "fee": 0,
+      "quantity": 0.680179,
+      "type": "BUY",
+      "unitPrice": 73.51,
+      "currency": "EUR",
+      "dataSource": "YAHOO",
+      "date": "2026-04-15T22:00:00.000Z",
+      "symbol": "XMME.L",
+      "tags": []
+    }
+  ],
+  "user": {
+    "settings": {
+      "currency": "EUR",
+      "performanceCalculationType": "ROAI"
+    }
+  }
+}

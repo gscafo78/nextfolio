@@ -14,6 +14,7 @@ class AssetType(str, Enum):
     CRYPTO = "CRYPTO"
     COMMODITY = "COMMODITY"
     REIT = "REIT"
+    OTHER = "OTHER"  # asset manuali/virtuali (es. liquidità, interessi)
 
 
 class Exchange(str, Enum):
@@ -33,10 +34,12 @@ class Asset(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     isin: Mapped[str | None] = mapped_column(String(12), nullable=True)
-    symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    wkn: Mapped[str | None] = mapped_column(String(6), nullable=True)
+    symbol: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    yahoo_ticker: Mapped[str | None] = mapped_column(String(30), nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    type: Mapped[AssetType] = mapped_column(nullable=False)
-    exchange: Mapped[Exchange] = mapped_column(default=Exchange.OTHER)
+    type: Mapped[AssetType] = mapped_column(String(20), nullable=False)
+    exchange: Mapped[Exchange] = mapped_column(String(20), default=Exchange.OTHER)
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     sector: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(

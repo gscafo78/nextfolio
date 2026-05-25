@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload, Trash2, Filter } from "lucide-react";
+import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { TopBar } from "@/components/layout/TopBar";
@@ -8,7 +8,8 @@ import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { CsvImport } from "@/components/transactions/CsvImport";
 import { AssetBadge } from "@/components/transactions/AssetBadge";
 import { Button } from "@/components/ui/Button";
-import { accountService, transactionService, type TransactionType } from "@/services/transactions";
+import { Input } from "@/components/ui/Input";
+import { accountService, assetService, transactionService, type Transaction, type TransactionType } from "@/services/transactions";
 
 const TX_LABELS: Record<TransactionType, string> = {
   BUY: "Acquisto",
@@ -30,8 +31,185 @@ const TX_COLORS: Record<TransactionType, string> = {
 
 type Modal = null | "add" | "import";
 
+// ── Edit Transaction Modal ───────────────────────────────────────────────────
+
+const TX_TYPES_LIST = ["BUY", "SELL", "DIVIDEND", "COUPON", "FEE", "INTEREST"] as const;
+
+function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    account_id: tx.account_id,
+    type: tx.type,
+    date: tx.date,
+    quantity: tx.quantity,
+    price: tx.price,
+    exchange_rate: tx.exchange_rate,
+    fee: tx.fee,
+    notes: tx.notes ?? "",
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: accountService.list,
+  });
+
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: () => transactionService.update(tx.id, {
+      account_id: Number(form.account_id),
+      type: form.type,
+      date: form.date,
+      quantity: Number(form.quantity),
+      price: Number(form.price),
+      exchange_rate: Number(form.exchange_rate),
+      fee: Number(form.fee),
+      notes: form.notes || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      onClose();
+    },
+  });
+
+  const set = (k: string, v: unknown) => setForm((p) => ({ ...p, [k]: v }));
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Modifica transazione</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{tx.asset.name} · #{tx.id}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-600 block mb-1">Conto</label>
+          <select
+            value={form.account_id}
+            onChange={(e) => set("account_id", Number(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}{a.broker ? ` (${a.broker})` : ""}</option>)}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Tipo</label>
+            <select
+              value={form.type}
+              onChange={(e) => set("type", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {TX_TYPES_LIST.map((t) => <option key={t} value={t}>{TX_LABELS[t]}</option>)}
+            </select>
+          </div>
+          <Input label="Data" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Input label="Quantità" type="number" step="any" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} />
+          <Input label={`Prezzo (${tx.price_currency})`} type="number" step="any" value={form.price} onChange={(e) => set("price", e.target.value)} />
+          <Input label="Commissioni (EUR)" type="number" step="any" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
+        </div>
+
+        {tx.price_currency !== "EUR" && (
+          <Input
+            label={`Tasso cambio ${tx.price_currency}/EUR`}
+            type="number"
+            step="any"
+            value={form.exchange_rate}
+            onChange={(e) => set("exchange_rate", e.target.value)}
+          />
+        )}
+
+        <Input label="Note" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+
+        {error && (
+          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? "Errore durante il salvataggio"}</p>
+        )}
+
+        <div className="flex gap-3 pt-1">
+          <Button variant="secondary" onClick={onClose} className="flex-1">Annulla</Button>
+          <Button onClick={() => mutate()} loading={isPending} className="flex-1">Salva</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Asset Ticker Modal ──────────────────────────────────────────────────
+
+function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker, onClose }: {
+  assetId: number;
+  assetName: string;
+  currentSymbol: string;
+  currentYahooTicker: string | null;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [symbol, setSymbol] = useState(currentSymbol);
+  const [yahooTicker, setYahooTicker] = useState(currentYahooTicker ?? "");
+
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: () => assetService.update(assetId, {
+      symbol: symbol.trim() || currentSymbol,
+      yahoo_ticker: yahooTicker.trim() || null,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      onClose();
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Ticker asset</h2>
+            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[240px]">{assetName}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+
+        <Input
+          label="Simbolo (usato come identificativo)"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value)}
+          placeholder="es. IT0005413171"
+        />
+        <div>
+          <Input
+            label="Yahoo Finance ticker (override prezzi)"
+            value={yahooTicker}
+            onChange={(e) => setYahooTicker(e.target.value)}
+            placeholder="es. SWDA.MI, BTPITALY.MI"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Lascia vuoto per usare il simbolo. Usa il ticker Yahoo Finance esatto (es. <em>SWDA.MI</em> per Borsa IT, <em>SWDA.DE</em> per Xetra).
+          </p>
+        </div>
+
+        {error && (
+          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? "Errore"}</p>
+        )}
+
+        <div className="flex gap-3 pt-1">
+          <Button variant="secondary" onClick={onClose} className="flex-1">Annulla</Button>
+          <Button onClick={() => mutate()} loading={isPending} className="flex-1">Salva</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Transazioni() {
   const [modal, setModal] = useState<Modal>(null);
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [editAsset, setEditAsset] = useState<{ id: number; name: string; symbol: string; yahoo_ticker: string | null } | null>(null);
   const [filterAccountId, setFilterAccountId] = useState<number | "">("");
   const [filterType, setFilterType] = useState<TransactionType | "">("");
   const qc = useQueryClient();
@@ -190,7 +368,18 @@ export function Transazioni() {
                         <span className={`font-medium ${TX_COLORS[tx.type]}`}>{TX_LABELS[tx.type]}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{tx.asset.symbol}</div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-gray-900 truncate max-w-[120px]">
+                            {tx.asset.yahoo_ticker ?? tx.asset.symbol}
+                          </span>
+                          <button
+                            onClick={() => setEditAsset({ id: tx.asset.id, name: tx.asset.name, symbol: tx.asset.symbol, yahoo_ticker: tx.asset.yahoo_ticker })}
+                            className="text-gray-300 hover:text-brand-500 transition-colors flex-shrink-0"
+                            title="Modifica ticker"
+                          >
+                            <Tag className="w-3 h-3" />
+                          </button>
+                        </div>
                         <div className="text-xs text-gray-400 truncate max-w-[160px]">{tx.asset.name}</div>
                         <AssetBadge type={tx.asset.type} exchange={tx.asset.exchange} />
                       </td>
@@ -224,12 +413,22 @@ export function Transazioni() {
                         {tx.fee > 0 ? `€ ${tx.fee.toFixed(2)}` : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => { if (confirm("Eliminare la transazione?")) deleteTx(tx.id); }}
-                          className="text-gray-300 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setEditTx(tx)}
+                            className="text-gray-300 hover:text-brand-500 transition-colors"
+                            title="Modifica"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { if (confirm("Eliminare la transazione?")) deleteTx(tx.id); }}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                            title="Elimina"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -278,6 +477,20 @@ export function Transazioni() {
             <CsvImport onSuccess={() => setModal(null)} />
           </div>
         </div>
+      )}
+
+      {/* Modal Modifica Transazione */}
+      {editTx && <EditTxModal tx={editTx} onClose={() => setEditTx(null)} />}
+
+      {/* Modal Modifica Ticker Asset */}
+      {editAsset && (
+        <EditTickerModal
+          assetId={editAsset.id}
+          assetName={editAsset.name}
+          currentSymbol={editAsset.symbol}
+          currentYahooTicker={editAsset.yahoo_ticker}
+          onClose={() => setEditAsset(null)}
+        />
       )}
     </>
   );

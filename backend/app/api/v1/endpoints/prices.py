@@ -54,9 +54,28 @@ async def get_price(
 
     data = await refresh_asset_price(db, asset)
     if not data:
+        # Fallback: ultimo record in price_history
+        result = await db.execute(
+            select(PriceHistory)
+            .where(PriceHistory.asset_id == asset_id)
+            .order_by(PriceHistory.date.desc())
+            .limit(2)
+        )
+        rows = list(result.scalars())
+        if rows:
+            last, prev = rows[0], rows[1] if len(rows) >= 2 else rows[0]
+            change_pct = round((last.close - prev.close) / prev.close * 100, 4) if prev.close else 0.0
+            return PriceOut(
+                asset_id=asset_id,
+                symbol=asset.yahoo_ticker or asset.symbol,
+                price=last.close,
+                prev_close=prev.close,
+                change_pct=change_pct,
+                currency=asset.currency,
+            )
         raise HTTPException(503, f"Prezzo non disponibile per {asset.symbol}")
 
-    return PriceOut(asset_id=asset_id, symbol=asset.symbol, **data)
+    return PriceOut(asset_id=asset_id, symbol=asset.yahoo_ticker or asset.symbol, **data)
 
 
 @router.get("/{asset_id}/history", response_model=list[OHLCVOut])

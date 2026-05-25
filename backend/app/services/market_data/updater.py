@@ -25,6 +25,7 @@ from app.services.market_data import borsa_italiana as bi
 from app.services.market_data.coingecko import get_bulk_crypto_prices, get_crypto_price
 from app.services.market_data.yahoo import get_current_price as yf_price
 from app.services.market_data.yahoo import get_price_history as yf_history
+from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin
 
 logger = logging.getLogger(__name__)
 
@@ -81,10 +82,25 @@ async def _fetch_current_price(asset: Asset) -> dict | None:
             logger.warning(f"[BI] {asset.symbol} fallito ({e}), fallback Yahoo")
 
     # Fallback / asset esteri: Yahoo Finance
-    data = yf_price(asset.symbol, asset.exchange)
+    # yahoo_ticker sovrascrive il symbol se impostato dall'utente
+    yf_symbol = asset.yahoo_ticker or asset.symbol
+    data = yf_price(yf_symbol, asset.exchange)
     if data:
-        logger.debug(f"[YF] {asset.symbol}: {data['price']}")
-    return data
+        logger.debug(f"[YF] {yf_symbol}: {data['price']}")
+        return data
+
+    # Se il symbol è un ISIN e il prezzo non è stato trovato, cerca il ticker via Yahoo Search
+    lookup = asset.yahoo_ticker or asset.symbol
+    if _is_isin(lookup) or (asset.isin and not data):
+        isin_to_search = asset.isin or lookup
+        found_ticker = await resolve_ticker_by_isin(isin_to_search)
+        if found_ticker:
+            logger.info(f"[YF-SEARCH] {isin_to_search} → {found_ticker}")
+            data = yf_price(found_ticker, Exchange.OTHER)  # il ticker trovato ha già il suffisso
+            if data:
+                return data
+
+    return None
 
 
 async def _fetch_history(
@@ -114,7 +130,20 @@ async def _fetch_history(
         except Exception as e:
             logger.warning(f"[BI] storico {asset.symbol} fallito ({e}), fallback Yahoo")
 
-    return yf_history(asset.symbol, asset.exchange, period=period)
+    yf_symbol = asset.yahoo_ticker or asset.symbol
+    records = yf_history(yf_symbol, asset.exchange, period=period, start_date=start_date, end_date=end_date)
+    if records:
+        return records
+
+    # Fallback ISIN search
+    isin_to_search = asset.isin or (yf_symbol if _is_isin(yf_symbol) else None)
+    if isin_to_search:
+        found_ticker = await resolve_ticker_by_isin(isin_to_search)
+        if found_ticker:
+            logger.info(f"[YF-SEARCH history] {isin_to_search} → {found_ticker}")
+            return yf_history(found_ticker, Exchange.OTHER, period=period, start_date=start_date, end_date=end_date)
+
+    return []
 
 
 # ── Aggiornamento singolo asset ─────────────────────────────────────────────
@@ -217,4 +246,4 @@ async def fetch_asset_history(
     end_date: date | None = None,
 ) -> list[dict]:
     """Entry point pubblico per scaricare lo storico di un asset."""
-    return await _fetch_history(asset, period, start_date, end_date)
+    return await _fetch_history(asset, period=period, start_date=start_date, end_date=end_date)

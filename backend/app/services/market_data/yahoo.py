@@ -9,8 +9,10 @@ Logica ticker italiani:
 - Azioni NYSE/NASDAQ:    nessun suffisso
 """
 
+import re
 from datetime import date, timedelta
 
+import httpx
 import pandas as pd
 import yfinance as yf
 
@@ -26,6 +28,54 @@ _EXCHANGE_SUFFIX: dict[Exchange, str] = {
     Exchange.CRYPTO: "-USD",  # fallback, usare CoinGecko per crypto
     Exchange.OTHER: "",
 }
+
+_ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{10}$")
+
+# Cache in-memory: ISIN → ticker Yahoo trovato via search
+_isin_ticker_cache: dict[str, str | None] = {}
+
+
+def _is_isin(s: str) -> bool:
+    return bool(_ISIN_RE.match(s))
+
+
+async def resolve_ticker_by_isin(isin: str) -> str | None:
+    """
+    Cerca il ticker Yahoo Finance per un ISIN tramite l'API di ricerca.
+    Restituisce il primo risultato di tipo ETF/BOND/EQUITY, o None.
+    Risultati memorizzati in cache per la durata del processo.
+    """
+    if isin in _isin_ticker_cache:
+        return _isin_ticker_cache[isin]
+
+    url = "https://query1.finance.yahoo.com/v1/finance/search"
+    params = {"q": isin, "quotesCount": 5, "newsCount": 0, "listsCount": 0}
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            quotes = resp.json().get("quotes", [])
+    except Exception:
+        _isin_ticker_cache[isin] = None
+        return None
+
+    # Preferisce quote equity/etf/mutualfund/bond rispetto a indici o currency
+    preferred_types = {"EQUITY", "ETF", "MUTUALFUND", "BOND"}
+    ticker = None
+    for q in quotes:
+        qt = (q.get("quoteType") or "").upper()
+        sym = q.get("symbol", "")
+        if qt in preferred_types and sym:
+            ticker = sym
+            break
+    # Fallback al primo risultato qualunque
+    if not ticker and quotes:
+        ticker = quotes[0].get("symbol")
+
+    _isin_ticker_cache[isin] = ticker
+    return ticker
 
 
 def _ticker(symbol: str, exchange: Exchange) -> str:
@@ -59,9 +109,12 @@ def get_price_history(
     symbol: str,
     exchange: Exchange,
     period: str = "1y",
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> list[dict]:
     """
     Restituisce storico OHLCV.
+    Se start_date è fornito usa range di date, altrimenti usa period.
     period: '1w' '1mo' '3mo' '6mo' '1y' '3y' '5y' 'max'
     """
     period_map = {
@@ -74,10 +127,18 @@ def get_price_history(
         "5y": "5y",
         "max": "max",
     }
-    yf_period = period_map.get(period, "1y")
     t = yf.Ticker(_ticker(symbol, exchange))
     try:
-        df: pd.DataFrame = t.history(period=yf_period, auto_adjust=True)
+        if start_date:
+            today = date.today()
+            df: pd.DataFrame = t.history(
+                start=start_date.isoformat(),
+                end=(end_date or today).isoformat(),
+                auto_adjust=True,
+            )
+        else:
+            yf_period = period_map.get(period, "1y")
+            df: pd.DataFrame = t.history(period=yf_period, auto_adjust=True)
         if df.empty:
             return []
         df.index = pd.to_datetime(df.index)

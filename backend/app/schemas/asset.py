@@ -35,7 +35,8 @@ def validate_isin(isin: str) -> str:
 
 class AssetCreate(BaseModel):
     isin: str | None = None
-    symbol: str
+    wkn: str | None = None
+    symbol: str = ""
     name: str
     type: AssetType
     exchange: Exchange = Exchange.OTHER
@@ -55,10 +56,24 @@ class AssetCreate(BaseModel):
         return v.upper()
 
 
+class AssetUpdate(BaseModel):
+    symbol: str | None = None
+    name: str | None = None
+    type: AssetType | None = None
+    exchange: Exchange | None = None
+    currency: str | None = None
+    isin: str | None = None
+    wkn: str | None = None
+    yahoo_ticker: str | None = None
+    sector: str | None = None
+
+
 class AssetOut(BaseModel):
     id: int
     isin: str | None
+    wkn: str | None
     symbol: str
+    yahoo_ticker: str | None
     name: str
     type: AssetType
     exchange: Exchange
@@ -71,7 +86,9 @@ class AssetOut(BaseModel):
 class AssetSearch(BaseModel):
     id: int
     isin: str | None
+    wkn: str | None
     symbol: str
+    yahoo_ticker: str | None
     name: str
     type: AssetType
     exchange: Exchange

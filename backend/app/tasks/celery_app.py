@@ -7,7 +7,7 @@ celery_app = Celery(
     "nextfolio",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.prices"],
+    include=["app.tasks.prices", "app.tasks.alerts"],
 )
 
 celery_app.conf.update(
@@ -39,5 +39,10 @@ celery_app.conf.beat_schedule = {
     "cleanup-old-prices": {
         "task": "app.tasks.prices.cleanup_old_prices",
         "schedule": crontab(hour=0, minute=0, day_of_week="sun"),
+    },
+    # Alert di prezzo: ogni 5 minuti
+    "check-price-alerts": {
+        "task": "app.tasks.alerts.check_price_alerts",
+        "schedule": crontab(minute="*/5"),
     },
 }

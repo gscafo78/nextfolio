@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.account import Account
-from app.models.asset import Asset
+from app.models.asset import Asset, PriceHistory
 from app.models.transaction import TransactionType
 from app.models.user import User
 from app.schemas.portfolio import (
@@ -31,14 +31,38 @@ async def _load_all_transactions(db: AsyncSession, user_id: int):
 
 
 async def _price_data(db: AsyncSession, asset: Asset) -> dict | None:
-    """Legge il prezzo dalla cache Redis; se manca, lo scarica live."""
+    """Legge il prezzo dalla cache Redis; se manca, lo scarica live; fallback a price_history."""
     cached = await get_cached_price(asset.id)
     if cached is None:
         try:
             cached = await refresh_asset_price(db, asset)
         except Exception:
             pass
-    return cached
+
+    if cached is not None:
+        return cached
+
+    # Fallback: ultimi 2 record da price_history
+    result = await db.execute(
+        select(PriceHistory)
+        .where(PriceHistory.asset_id == asset.id)
+        .order_by(PriceHistory.date.desc())
+        .limit(2)
+    )
+    rows = list(result.scalars())
+    if rows:
+        last = rows[0]
+        prev = rows[1] if len(rows) >= 2 else rows[0]
+        change_pct = round((last.close - prev.close) / prev.close * 100, 4) if prev.close else 0.0
+        return {
+            "price": last.close,
+            "prev_close": prev.close,
+            "change_pct": change_pct,
+            "currency": asset.currency,
+            "exchange_rate": 1.0,
+        }
+
+    return None
 
 
 # ── Posizioni aperte ─────────────────────────────────────────────────────────
@@ -84,9 +108,9 @@ async def get_positions(
             asset_id=asset.id,
             symbol=asset.symbol,
             name=asset.name,
-            asset_type=asset.type.value,
+            asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
             currency=asset.currency,
-            exchange=asset.exchange.value,
+            exchange=asset.exchange if isinstance(asset.exchange, str) else asset.exchange.value,
             quantity=pos.quantity,
             pmc_eur=round(pos.pmc_eur, 6),
             total_invested_eur=round(pos.total_invested_eur, 2),
@@ -166,11 +190,14 @@ async def get_summary(
 
 @router.get("/performance", response_model=PerformanceOut)
 async def get_performance(
-    period: str = Query("1y", pattern="^(1w|1m|3m|6m|1y|3y|max)$"),
+    period: str = Query("1y", pattern=r"^(today|wtd|mtd|ytd|1w|1m|3m|6m|1y|3y|max|\d{4})$"),
+    account_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     transactions = await _load_all_transactions(db, current_user.id)
+    if account_id is not None:
+        transactions = [tx for tx in transactions if tx.account_id == account_id]
     return await get_portfolio_performance(db, transactions, period)
 
 
@@ -261,3 +288,13 @@ async def get_dividends(
         ))
 
     return sorted(dividends, key=lambda d: d.date, reverse=True)
+
+
+@router.post("/backfill-history", status_code=202)
+async def backfill_history(
+    current_user: User = Depends(get_current_user),
+):
+    """Avvia in background il download storico prezzi per tutti gli asset detenuti."""
+    from app.tasks.prices import backfill_portfolio_history
+    backfill_portfolio_history.delay(current_user.id)
+    return {"detail": "Backfill avviato in background"}

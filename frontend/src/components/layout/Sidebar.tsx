@@ -5,6 +5,7 @@ import {
   TrendingUp,
   Calculator,
   Bell,
+  Upload,
   Settings,
   LogOut,
   ShieldCheck,
@@ -17,6 +18,7 @@ const navItems = [
   { to: "/performance", label: "Performance", icon: TrendingUp },
   { to: "/fiscale", label: "Fiscale", icon: Calculator },
   { to: "/alert", label: "Alert", icon: Bell },
+  { to: "/import", label: "Importa", icon: Upload },
   { to: "/impostazioni", label: "Impostazioni", icon: Settings },
 ];
 

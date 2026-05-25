@@ -2,7 +2,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.schemas.asset import AssetCreate
+from app.schemas.asset import AssetCreate, AssetUpdate
 
 
 async def search_assets(db: AsyncSession, q: str, limit: int = 20) -> list[Asset]:
@@ -28,6 +28,14 @@ async def get_asset_by_isin(db: AsyncSession, isin: str) -> Asset | None:
 async def create_asset(db: AsyncSession, data: AssetCreate) -> Asset:
     asset = Asset(**data.model_dump())
     db.add(asset)
+    await db.commit()
+    await db.refresh(asset)
+    return asset
+
+
+async def update_asset(db: AsyncSession, asset: Asset, data: AssetUpdate) -> Asset:
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(asset, field, value)
     await db.commit()
     await db.refresh(asset)
     return asset

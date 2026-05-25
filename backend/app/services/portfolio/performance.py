@@ -30,6 +30,32 @@ _PERIOD_DAYS: dict[str, int | None] = {
 }
 
 
+def _resolve_period(period: str, earliest_tx: date) -> tuple[date, date]:
+    """Returns (start_date, end_date) for the given period string."""
+    today = date.today()
+    end = today
+
+    if period == "today":
+        return today, today
+    if period == "wtd":
+        return today - timedelta(days=today.weekday()), today
+    if period == "mtd":
+        return today.replace(day=1), today
+    if period == "ytd":
+        return today.replace(month=1, day=1), today
+    if period == "max":
+        return earliest_tx, today
+    if period.isdigit() and len(period) == 4:
+        year = int(period)
+        start = date(year, 1, 1)
+        end = date(year, 12, 31) if year < today.year else today
+        return max(start, earliest_tx), end
+
+    days = _PERIOD_DAYS.get(period)
+    start = (today - timedelta(days=days)) if days else earliest_tx
+    return max(start, earliest_tx), today
+
+
 def _last_price_on_or_before(price_dict: dict[date, float], d: date) -> float | None:
     past = [(k, v) for k, v in price_dict.items() if k <= d]
     if not past:
@@ -46,21 +72,20 @@ async def get_portfolio_performance(
         return PerformanceOut(period=period, twrr_pct=0.0, series=[])
 
     today = date.today()
-    days = _PERIOD_DAYS.get(period)
     earliest_tx = min(tx.date for tx in transactions)
-    start_date = max(
-        (today - timedelta(days=days)) if days else date.min,
-        earliest_tx,
-    )
+    start_date, end_date = _resolve_period(period, earliest_tx)
 
     asset_ids = list({tx.asset_id for tx in transactions})
 
+    # Fetch a 30-day lookback so _last_price_on_or_before can fill in assets
+    # whose price history starts a few days after the period start.
+    fetch_from = start_date - timedelta(days=30)
     result = await db.execute(
         select(PriceHistory)
         .where(
             PriceHistory.asset_id.in_(asset_ids),
-            PriceHistory.date >= start_date,
-            PriceHistory.date <= today,
+            PriceHistory.date >= fetch_from,
+            PriceHistory.date <= end_date,
         )
         .order_by(PriceHistory.date)
     )
@@ -81,36 +106,63 @@ async def get_portfolio_performance(
         for aid, rates in fx_map.items()
     }
 
-    # Serie di date dalla price_history (solo giorni con almeno un prezzo)
-    all_dates = sorted({row.date for row in history_rows})
+    # Serie di date dalla price_history (solo giorni nel periodo richiesto con almeno un prezzo)
+    all_dates = sorted({row.date for row in history_rows if row.date >= start_date})
     if not all_dates:
         return PerformanceOut(period=period, twrr_pct=0.0, series=[])
 
+    # Cash flow per asset per giorno — usato nel loop per calcolare TWRR
+    # (filtrato per asset_id così possiamo escludere gli asset senza prezzo in quel giorno)
+    daily_cf_by_asset: dict[int, dict[date, float]] = {}
+    for tx in transactions:
+        if tx.type == TransactionType.BUY:
+            cf = tx.quantity * tx.price * tx.exchange_rate + tx.fee
+        elif tx.type == TransactionType.SELL:
+            cf = -(tx.quantity * tx.price * tx.exchange_rate - tx.fee)
+        else:
+            continue
+        daily_cf_by_asset.setdefault(tx.asset_id, {})
+        daily_cf_by_asset[tx.asset_id][tx.date] = (
+            daily_cf_by_asset[tx.asset_id].get(tx.date, 0.0) + cf
+        )
+
     series: list[PerformancePoint] = []
-    prev_value: float | None = None
-    sub_returns: list[float] = []
+    prev_value: float = 0.0
+    running_twrr: float = 1.0
 
     for d in all_dates:
         txs_up_to = [tx for tx in transactions if tx.date <= d]
         positions = calculate_positions(txs_up_to)
 
         value = 0.0
+        priced_ids: set[int] = set()
         for asset_id, pos in positions.items():
             close = _last_price_on_or_before(price_map.get(asset_id, {}), d)
             if close is None:
                 continue
             fx = avg_fx.get(asset_id, 1.0)
             value += pos.quantity * close * fx
+            priced_ids.add(asset_id)
 
-        # Capitale investito netto fino a questo giorno
+        # TWRR: solo il cash flow degli asset priced oggi, coerente con value
+        cf_today = sum(
+            daily_cf_by_asset.get(aid, {}).get(d, 0.0) for aid in priced_ids
+        )
+        start_value = prev_value + cf_today
+        if start_value > 0:
+            running_twrr *= value / start_value
+        prev_value = value
+
+        # Capitale investito netto: conta solo gli asset per cui abbiamo il prezzo,
+        # così pnl_eur è sempre coerente con value_eur (nessun asset "invisibile" gonfia invested).
         invested = sum(
             tx.quantity * tx.price * tx.exchange_rate + tx.fee
             for tx in txs_up_to
-            if tx.type == TransactionType.BUY
+            if tx.type == TransactionType.BUY and tx.asset_id in priced_ids
         ) - sum(
             tx.quantity * tx.price * tx.exchange_rate - tx.fee
             for tx in txs_up_to
-            if tx.type == TransactionType.SELL
+            if tx.type == TransactionType.SELL and tx.asset_id in priced_ids
         )
 
         series.append(PerformancePoint(
@@ -118,16 +170,9 @@ async def get_portfolio_performance(
             value_eur=round(value, 2),
             invested_eur=round(max(invested, 0.0), 2),
             pnl_eur=round(value - max(invested, 0.0), 2),
+            twrr_pct=round((running_twrr - 1.0) * 100, 4),
         ))
 
-        if prev_value is not None and prev_value > 0:
-            sub_returns.append(value / prev_value)
-        prev_value = value if value > 0 else prev_value
-
-    # TWRR = prodotto dei sub-return giornalieri - 1
-    twrr = 1.0
-    for r in sub_returns:
-        twrr *= r
-    twrr_pct = (twrr - 1.0) * 100 if sub_returns else 0.0
+    twrr_pct = (running_twrr - 1.0) * 100
 
     return PerformanceOut(period=period, twrr_pct=round(twrr_pct, 2), series=series)

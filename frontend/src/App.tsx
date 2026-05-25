@@ -8,6 +8,9 @@ import { Transazioni } from "@/pages/Transazioni";
 import { Impostazioni } from "@/pages/Impostazioni";
 import { Performance } from "@/pages/Performance";
 import { Admin } from "@/pages/Admin";
+import { Fiscale } from "@/pages/Fiscale";
+import { Alert } from "@/pages/Alert";
+import { Import } from "@/pages/Import";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,8 +29,9 @@ export function App() {
               <Route index element={<Dashboard />} />
               <Route path="transazioni" element={<Transazioni />} />
               <Route path="performance" element={<Performance />} />
-              <Route path="fiscale" element={<div>Fiscale — prossimamente</div>} />
-              <Route path="alert" element={<div>Alert — prossimamente</div>} />
+              <Route path="fiscale" element={<Fiscale />} />
+              <Route path="alert" element={<Alert />} />
+              <Route path="import" element={<Import />} />
               <Route path="impostazioni" element={<Impostazioni />} />
               <Route path="admin" element={<Admin />} />
             </Route>

@@ -296,35 +296,38 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
-## FASE 5 — Tax engine italiano 🇮🇹
+## FASE 5 — Tax engine italiano 🇮🇹 ✅
 **Durata stimata: 2 settimane**
 **Obiettivo: calcolo automatico imposte secondo normativa italiana**
 
 ### 5.1 Regole fiscali da implementare
 
-- [ ] **Capital gain tassabili** — aliquota 26% su plusvalenze
-- [ ] **Titoli di Stato** (BTP, BOT, CCT) — aliquota agevolata **12,5%**
-- [ ] **Minusvalenze** — compensabili con plusvalenze entro **4 anni**
-- [ ] **Zainetto fiscale** — calcolo minusvalenze residue disponibili
-- [ ] **Dividendi** — ritenuta 26% (già alla fonte per azioni italiane)
-- [ ] **Cedole BTP** — ritenuta 12,5%
-- [ ] **Crypto** — tassazione 26% su gain > 2.000€/anno (dal 2023)
-- [ ] **PIR** — esenzione fiscale se mantenuto 5 anni (flag apposito)
-- [ ] **IVAFE** — imposta 0,2% su attività finanziarie estere
+- [x] **Capital gain tassabili** — aliquota 26% su plusvalenze
+- [x] **Titoli di Stato** (BTP, BOT, CCT) — aliquota agevolata **12,5%** *(identificati via type=BOND + exchange=MOT)*
+- [x] **Minusvalenze** — compensabili con plusvalenze entro **4 anni**
+- [x] **Zainetto fiscale** — due zainetti separati: standard (26%) e titoli di Stato (12.5%)
+- [x] **Dividendi** — mostrati come reddito informativo (aliquota 26%, spesso ritenuta alla fonte)
+- [x] **Cedole BTP** — mostrate come reddito informativo (aliquota 12.5%)
+- [x] **Crypto** — trattate come bracket standard 26% (normativa post-2023)
+- [ ] **PIR** — esenzione fiscale se mantenuto 5 anni *(rimandato — richiede flag su asset/account)*
+- [ ] **IVAFE** — imposta 0,2% su attività finanziarie estere *(rimandato — richiede classificazione conti)*
 
-### 5.2 Calcolo LIFO / FIFO
+### 5.2 Calcolo FIFO
 
-- [ ] Metodo **LIFO** (obbligatorio per regime dichiarativo in Italia)
-- [ ] Calcolo del **PMC** (Prezzo Medio di Carico) per regime amministrato
-- [ ] Report "vendite" con gain/loss per singola operazione
-- [ ] Simulatore "cosa succede se vendo ora?"
+- [x] Metodo **FIFO** per il calcolo del costo base *(semplificazione MVP — broker italiani usano PMC in regime amministrato)*
+- [x] Report per singola operazione con gain/loss dettagliato
+- [x] Simulatore "cosa succede se vendo ora?" (`GET /tax/simulate?asset_id=X&quantity=Y`)
+- [ ] Metodo **LIFO** *(regime dichiarativo — rimandato)*
+- [ ] **PMC** *(regime amministrato — rimandato)*
 
-### 5.3 Report fiscali
+### 5.3 API e report fiscali
 
-- [ ] **Riepilogo annuale** — totale plusvalenze, minusvalenze, imposte dovute
-- [ ] **Export per dichiarazione** — dati pronti per Quadro RT (Unico/730)
-- [ ] **Storico minusvalenze** — per anno, con scadenza (4 anni)
-- [ ] Export PDF/Excel del report fiscale
+- [x] `GET /api/v1/tax/years` — anni con eventi fiscali
+- [x] `GET /api/v1/tax/report?year=2024` — report annuale con zainetto cumulativo
+- [x] `GET /api/v1/tax/simulate?asset_id=1&quantity=10` — simulazione vendita
+- [x] Frontend: pagina Fiscale con selettore anno, KPI, due bracket, tabella eventi collassabile
+- [ ] **Export PDF/Excel** *(rimandato a Fase 6)*
+- [ ] **Storico minusvalenze multi-anno** *(vista dedicata — rimandato)*
 
 ---
 
@@ -332,13 +335,17 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 **Durata stimata: 2–3 settimane**
 **Obiettivo: funzionalità premium e UX avanzata**
 
-### 6.1 Alert e notifiche
+### 6.1 Alert e notifiche ✅
 
-- [ ] Alert prezzo (sopra/sotto soglia per un asset)
-- [ ] Alert variazione % giornaliera (es. > 5%)
-- [ ] Alert dividendo in arrivo
-- [ ] Notifiche email via `fastapi-mail`
-- [ ] Notifiche push via PWA (Service Worker)
+- [x] Alert prezzo sopra/sotto soglia (`PRICE_ABOVE`, `PRICE_BELOW`)
+- [x] Alert variazione % giornaliera (`CHANGE_PCT_UP`, `CHANGE_PCT_DOWN`)
+- [x] Tabella `price_alerts` (migration 0005) con cooldown 4h per evitare spam
+- [x] Task Celery `check_price_alerts` — ogni 5 min, confronta prezzo Redis con soglia
+- [x] CRUD REST: `GET/POST /alerts`, `PATCH/DELETE /alerts/{id}`
+- [x] Frontend: pagina Alert con autocomplete asset, sezioni attivi/disabilitati, badge "scattato"
+- [ ] Alert dividendo in arrivo *(rimandato)*
+- [ ] Notifiche email via `fastapi-mail` *(rimandato — richiede SMTP)*
+- [ ] Notifiche push via PWA *(rimandato a Fase 6.4)*
 
 ### 6.2 Strumenti di analisi
 
@@ -505,8 +512,8 @@ docker compose build
 | 3 | Market data + prezzi + WebSocket | ✅ Completata | 🔴 Critica | 2 sett. |
 | 4 | Portfolio + performance | ✅ Completata | 🟠 Alta | 2–3 sett. |
 | 4.X | 2FA TOTP + ruoli + admin utenti | ✅ Completata | 🟠 Alta | — |
-| 5 | Tax engine italiano | ⏳ In coda | 🟠 Alta | 2 sett. |
-| 6 | Features avanzate | ⏳ In coda | 🟡 Media | 2–3 sett. |
+| 5 | Tax engine italiano | ✅ Completata | 🟠 Alta | 2 sett. |
+| 6 | Features avanzate | 🔄 In corso | 🟡 Media | 2–3 sett. |
 | 7 | Testing + deploy | ⏳ In coda | 🟢 Normale | 1–2 sett. |
 
 **Tempo totale stimato: 12–18 settimane** (sviluppo part-time)

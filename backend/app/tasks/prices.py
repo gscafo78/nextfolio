@@ -7,11 +7,12 @@ import asyncio
 from datetime import date, timedelta
 
 from celery.utils.log import get_task_logger
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset, AssetType, PriceHistory
+from app.models.transaction import Transaction, TransactionType
 from app.services.market_data.updater import (
     fetch_asset_history,
     refresh_all_crypto_prices,
@@ -103,6 +104,59 @@ def cleanup_old_prices():
             logger.info(f"cleanup_old_prices: eliminate {deleted} righe prima di {cutoff}")
             return deleted
     return _run(_inner())
+
+
+@celery_app.task(name="app.tasks.prices.backfill_portfolio_history", bind=True, max_retries=1)
+def backfill_portfolio_history(self, user_id: int):
+    """
+    Per ogni asset detenuto (quantità netta > 0) dall'utente:
+    scarica i prezzi di chiusura giornalieri dalla data del primo acquisto a oggi
+    e li salva in price_history.
+    """
+    async def _inner():
+        async with AsyncSessionLocal() as db:
+            # Prendi tutte le transazioni dell'utente
+            res = await db.execute(
+                select(Transaction)
+                .join(Transaction.account)
+                .where(Transaction.account.has(user_id=user_id))
+            )
+            txs = list(res.scalars())
+
+            # Calcola quantità netta e prima data acquisto per asset
+            net_qty: dict[int, float] = {}
+            first_buy: dict[int, date] = {}
+            for tx in txs:
+                if tx.type == TransactionType.BUY:
+                    net_qty[tx.asset_id] = net_qty.get(tx.asset_id, 0) + tx.quantity
+                    if tx.asset_id not in first_buy or tx.date < first_buy[tx.asset_id]:
+                        first_buy[tx.asset_id] = tx.date
+                elif tx.type == TransactionType.SELL:
+                    net_qty[tx.asset_id] = net_qty.get(tx.asset_id, 0) - tx.quantity
+
+            held_ids = [aid for aid, qty in net_qty.items() if qty > 0.000001]
+            if not held_ids:
+                return 0
+
+            total = 0
+            today = date.today()
+            for asset_id in held_ids:
+                res2 = await db.execute(select(Asset).where(Asset.id == asset_id))
+                asset = res2.scalar_one_or_none()
+                if not asset:
+                    continue
+                start = first_buy.get(asset_id, today)
+                records = await fetch_asset_history(asset, start_date=start, end_date=today)
+                written = await upsert_price_history(db, asset.id, records)
+                total += written
+                logger.info(f"backfill_portfolio [{asset.symbol}] from {start}: {written} righe")
+            return total
+
+    try:
+        return _run(_inner())
+    except Exception as exc:
+        logger.error(f"backfill_portfolio_history fallito: {exc}")
+        raise self.retry(exc=exc, countdown=60)
 
 
 @celery_app.task(name="app.tasks.prices.backfill_asset_history")

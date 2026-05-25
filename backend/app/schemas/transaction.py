@@ -54,6 +54,7 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
+    account_id: int | None = None
     type: TransactionType | None = None
     date: datetime.date | None = None
     quantity: float | None = None
