@@ -108,7 +108,7 @@ export function PriceChart({ assetId, symbol, currency = "EUR" }: PriceChartProp
               width={55}
             />
             <Tooltip
-              formatter={(v: number) => [`${v.toFixed(4)} ${currency}`, "Prezzo"]}
+              formatter={(v: number) => [`${v.toFixed(2)} ${currency}`, "Prezzo"]}
               labelFormatter={(l) => format(new Date(l), "d MMM yyyy", { locale: it })}
               contentStyle={{ fontSize: 12, borderRadius: 8 }}
             />

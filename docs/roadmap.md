@@ -227,8 +227,8 @@ Crypto                                 →  CoinGecko
 ### 4.2 Analisi allocazione
 
 - [x] Allocazione per **tipo asset** (azioni, ETF, obbligazioni, crypto, altro)
-- [ ] Allocazione per **settore** *(rimandato — richiede dati settore per ogni asset)*
-- [ ] Allocazione per **area geografica** *(rimandato)*
+- [ ] Allocazione per **settore** *(richiede enrichment TrackInsight — vedi Fase 4.Z)*
+- [ ] Allocazione per **area geografica / paese** *(richiede enrichment TrackInsight — vedi Fase 4.Z)*
 - [x] Allocazione per **valuta** (EUR, USD, GBP...)
 - [x] Allocazione per **broker/conto**
 - [ ] Concentrazione per singolo titolo (alert se > 10%) *(rimandato a Fase 6)*
@@ -250,6 +250,16 @@ Crypto                                 →  CoinGecko
 - [x] KPI: P&L totale, P&L non realizzato, P&L realizzato, TWRR %
 - [x] **Tabella dividendi** — storico con importo EUR, tipo (dividendo/cedola/interesse), conto
 - [ ] Benchmark FTSE MIB / MSCI World *(rimandato a Fase 6)*
+
+### 4.5 Frontend — Pagina Allocazioni ✅ *(aggiunta extra)*
+
+- [x] Rotta `/allocazione` con link sidebar (icona PieChart)
+- [x] Barra **Quota del patrimonio netto** (100% del portafoglio, totale EUR)
+- [x] Donut **Per Piattaforma** — ripartizione per conto/broker (`by_account`)
+- [x] Donut **Per Valuta** — ripartizione per valuta (`by_currency`)
+- [x] Donut **Per Classe di Asset** — ripartizione per tipo ETF/Obbligazioni/... (`by_type`)
+- [x] Donut grande **Per Holding** — ogni singola posizione con etichette esterne e legenda
+- [x] Donut **Per Borsa** — ripartizione per exchange (MIL, XETRA, MOT...)
 
 ---
 
@@ -293,6 +303,139 @@ Crypto                                 →  CoinGecko
 users           + role (SUPERADMIN|USER), two_factor_secret, two_factor_enabled
 user_settings   (id, user_id, theme, display_currency, updated_at)
 ```
+
+---
+
+## FASE 4.Z — Asset enrichment (Ghostfolio-style) ⏳
+**Obiettivo: arricchire gli asset con dati settoriali, geografici e holdings degli ETF**
+
+> Ispirato all'architettura di Ghostfolio, che usa **TrackInsight** (NASDAQ ETF Database)
+> come fonte principale per paese, settore e sottostanti degli ETF.
+
+### Come funziona in Ghostfolio (riferimento)
+
+1. Per ogni asset viene salvato un `symbol_mapping` es. `{"TRACKINSIGHT": "IE00B4L5Y983"}`
+2. Un job "Gather Profile Data" chiama l'API TrackInsight con l'ISIN
+3. I risultati vengono salvati come JSON sul profilo dell'asset:
+   ```json
+   {
+     "countries":  [{"code": "US", "weight": 0.65}, {"code": "JP", "weight": 0.07}],
+     "sectors":    [{"name": "Technology", "weight": 0.24}, {"name": "Financials", "weight": 0.14}],
+     "holdings":   [{"symbol": "AAPL", "name": "Apple Inc", "weight": 0.04}]
+   }
+   ```
+4. Il portfolio engine fa il "look-through": `position_weight × etf_holding_weight`
+5. Un modello `SymbolProfileOverride` permette correzioni manuali per ETF non coperti
+
+### 4.Z.1 Database
+
+- [ ] Migration 0006: aggiungere campi JSON su `assets`:
+  - `countries JSONB` — `[{"code": "US", "weight": 0.65}, ...]`
+  - `sectors JSONB` — `[{"name": "Technology", "weight": 0.24}, ...]`
+  - `holdings JSONB` — `[{"symbol": "AAPL", "name": "Apple Inc", "weight": 0.04}, ...]`
+  - `data_provider_map JSONB` — `{"TRACKINSIGHT": "IE00B4L5Y983", "YAHOO": "SWDA.MI"}`
+- [ ] Tabella `asset_profile_overrides` (asset_id FK, countries, sectors, holdings, updated_at)
+
+### 4.Z.2 Backend — Enrichment service
+
+- [ ] `TrackInsightEnricher` — client HTTP per `https://www.trackinsight.com/data-api/`
+  - `fetch_profile(isin)` → paesi, settori, top holdings con pesi
+  - Fallback su Yahoo Finance per `sector` dei singoli titoli (`Sector` nel `info` dict)
+- [ ] `GET /api/v1/assets/{id}/enrich` — trigger manuale enrichment singolo asset (admin)
+- [ ] Task Celery `enrich_all_assets` — enrichment bulk su tutti gli asset (on-demand)
+- [ ] API `PATCH /api/v1/assets/{id}/profile` — override manuale paesi/settori/holdings (admin)
+
+### 4.Z.3 Backend — Calcolo look-through
+
+- [ ] Aggiornare `calculate_allocation()` per gestire `by_sector`, `by_country`, `by_continent`
+  - Per ogni posizione ETF: iterare su `holdings` e moltiplicare per `position_weight`
+  - Aggregare per settore e paese attraverso tutti gli ETF del portafoglio
+- [ ] Tabella ISO paese → continente (mapping statico, ~250 righe)
+- [ ] `AllocationOut` esteso: aggiungere `by_sector`, `by_country`, `by_continent`, `etf_holdings`
+
+### 4.Z.4 Frontend — Grafici aggiuntivi su pagina Allocazioni
+
+- [ ] Donut **Per Settore** (Technology, Financials, Healthcare...)
+- [ ] Donut **Per Continente** (Nord America, Europa, Asia-Pacifico, Mercati Emergenti)
+- [ ] Donut **Per Mercato** (Developed Markets, Emerging Markets, Other)
+- [ ] **Mappa Regioni** — world map SVG colorata per peso geografico
+- [ ] Donut **Per Paese** (US, JP, UK, FR, DE...)
+- [ ] Tabella **By ETF Holding** — top sottostanti con valore e % look-through
+- [ ] Sezione admin per editare manualmente `countries/sectors/holdings` di un asset
+
+---
+
+## FASE 4.W — Performance & ottimizzazioni backend
+
+> Obiettivo: ridurre la latenza degli endpoint `/portfolio/*` percepita al refresh della Dashboard.
+
+### Diagnosi bottleneck (analizzati il 25/05/2026)
+
+| # | Problema | Impatto | Endpoint coinvolti |
+|---|----------|---------|-------------------|
+| A | Loop `await _price_data(db, asset)` **sequenziale** per N asset | 🔴 Alto — O(N × latenza Redis) | `/positions`, `/summary`, `/allocation` |
+| B | Una nuova connessione TCP a Redis per ogni asset (`async with _redis()`) | 🟠 Medio — N handshake inutili | tutti |
+| C | `/performance` ricalcolato da zero ad ogni request (TWRR su ~365 punti) | 🟠 Medio — CPU + N query DB | `/performance` |
+| D | Dashboard fa 4+ chiamate HTTP separate al caricamento | 🟡 Bonus UX | frontend |
+
+### 4.W.1 Fix A — `asyncio.gather` sui lookup prezzi ✅
+
+- [x] Aggiunta `_fetch_prices_parallel(db, asset_map)`: fase 1 tutti i lookup Redis in parallelo con `asyncio.gather`, fase 2 fallback DB sequenziale solo per cache miss
+- [x] `/positions` — rimosso loop sequenziale, usa `_fetch_prices_parallel`
+- [x] `/summary` — idem
+- [x] `/allocation` — idem
+- **Risultato atteso**: con cache Redis calda (caso normale), latenza scende da O(N×1ms) a O(1ms)
+
+### 4.W.2 Fix B — `MGET` bulk Redis + fallback non-bloccante ✅
+
+- [x] `get_cached_prices_bulk(asset_ids)` in `updater.py` con `r.mget(*keys)` → 1 connessione TCP invece di N
+- [x] Cache miss → fallback istantaneo su `price_history` DB (nessun fetch live nel path della request)
+- [x] `BackgroundTasks` FastAPI lancia un singolo task parallelo (`asyncio.gather`) per warm-up cache post-risposta
+- [x] TTL dinamico: 5 min durante orario di borsa (9:00–17:30), **4 ore** fuori orario/weekend
+- [x] Celery Beat: aggiunto `update-stock-prices-premarket` (8:45) e `update-stock-prices-postmarket` (18:05)
+- [x] Fix `yahoo_ticker` esplicito: quando impostato dall'utente usa `Exchange.OTHER` (nessun suffisso)
+- [x] `yfinance` wrappato in `run_in_executor` → non blocca più l'event loop asyncio durante fetch in background
+- **Risultato misurato (25/05/2026)**:
+  - Cache fredda: ~90–150ms (era ~2s)
+  - Cache calda: ~25ms (era invariata ma ora garantita anche fuori orario)
+
+### 4.W.3 Fix C — Cache Redis per `/performance` ✅
+
+- [x] Serializzare `PerformanceOut` come JSON in Redis con chiave `perf:{user_id}:{period}:{account_id}`
+- [x] TTL 5 minuti (allineato al task `update_prices_eod`)
+- [x] Invalidare la cache quando Celery pubblica nuovi prezzi (`update_prices_eod` chiama `invalidate_perf_cache(user_id)`)
+- **Risultato**: `period=1y` 224ms cold → 7ms warm (32×); `period=3y` 377ms cold → 7ms warm (54×)
+
+### 4.W.4 Fix D — Endpoint aggregato `/portfolio/dashboard` ✅
+
+- [x] `GET /portfolio/dashboard` — risponde con `{summary, positions, allocation}` in una sola chiamata (1 DB session, 1 Redis MGET)
+- [x] Dashboard page: `getPositions()` → `getDashboard()` (1 query invece di 1)
+- [x] Performance page: `getSummary() + getPositions() + getAllocation()` → `getDashboard()` (3 query → 1)
+- [x] Allocation page: `getAllocation() + getPositions()` → `getDashboard()` (2 query → 1)
+- **Risultato**: ~15ms warm (vs ~65ms×N separati); 1 DB session, 1 Redis MGET, 0 round-trip extra
+
+### 4.W.5 Fix E — Arrotondamento valute a 2 decimali in visualizzazione ✅
+
+> **Obiettivo**: uniformare tutti i valori monetari visualizzati a 2 cifre decimali su ogni pagina.
+> Gli input (inserimento transazioni) continuano ad accettare fino a 6 cifre decimali per la quantità e il prezzo unitario.
+
+**Scope frontend (display-only):**
+- [x] Performance — tabella posizioni: PMC e prezzo corrente `fmt(v, 4)` → `fmt(v, 2)`
+- [x] HoldingDetailModal — StatCards PMC, prezzo mercato, min/max: `fmt(v, 4)` → `fmt(v, 2)`
+- [x] HoldingDetailModal — tab Attività: `fmt(a.price, 4)` → `fmt(a.price, 2)`
+- [x] HoldingDetailModal — tooltip grafico: `fmt(v, 4)` → `fmt(v, 2)`
+- [x] PriceTicker — live price: `maximumFractionDigits: 4` → `2`
+- [x] PriceChart — tooltip: `toFixed(4)` → `toFixed(2)`
+
+**Invariati (4 decimali giustificati):**
+- Tasso di cambio in Transazioni (`exchange_rate`) — necessita precisione
+- Quantità asset in Dashboard — crypto/frazioni richiedono max 6 decimali
+- Soglie alert in Alert.tsx — precisione richiesta dall'utente
+
+**Regola da applicare:**
+- Visualizzazione prezzi singoli (prezzo per unità): **2 decimali**
+- Quantità asset: **max 6 decimali** (crypto/frazioni), mantenere come da standard attuale
+- Tutti gli importi EUR: **2 decimali** (invariato, già corretto nella maggior parte dei componenti)
 
 ---
 
@@ -365,12 +508,29 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [ ] Export Excel con tutti i dati per uso personale
 - [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato da Fase 3)*
 
-### 6.4 PWA e mobile
+### 6.4 Mobile — Layout responsive e PWA
 
-- [ ] Configurare `vite-plugin-pwa` per Progressive Web App
-- [ ] Manifesto e icone per installazione su smartphone
-- [ ] Ottimizzazione mobile (layout responsive, touch gestures)
-- [ ] Modalità offline con cache delle ultime posizioni
+> **Obiettivo**: Nextfolio deve essere pienamente usabile da smartphone, sia come web app nel browser che installata tramite PWA.
+
+#### Responsive design (priorità alta)
+
+- [ ] **Breakpoint mobile-first** — revisione generale del layout per schermi < 640px
+- [ ] **Sidebar** → sostituita da bottom navigation bar su mobile (icone: Dashboard, Performance, Allocazioni, Transazioni, Impostazioni)
+- [ ] **Dashboard** — grafico full-width, KPI cards in colonna singola, holdings in card verticali invece di tabella orizzontale
+- [ ] **Holdings table** — su mobile mostra solo Nome + Valore + Performance; colonne secondarie accessibili con swipe o drawer
+- [ ] **HoldingDetailModal** — già a pannello laterale, adattarlo a bottom sheet su mobile (full height, drag to dismiss)
+- [ ] **Transazioni** — tabella → lista card su mobile
+- [ ] **Grafici Recharts** — verificare leggibilità assi e tooltip su touch screen (tooltip on tap invece di hover)
+- [ ] **Allocazione** — donut chart ridimensionato, legenda sotto il grafico su mobile
+- [ ] **Form inserimento transazione** — input ottimizzati per tastiera numerica mobile (`inputMode="decimal"`)
+
+#### PWA (priorità media)
+
+- [ ] Configurare `vite-plugin-pwa` con Service Worker
+- [ ] `manifest.webmanifest`: nome, icone (192px, 512px), colori brand, `display: standalone`
+- [ ] Installazione su home screen iOS (Safari) e Android (Chrome)
+- [ ] Modalità offline: cache delle ultime posizioni e prezzi con Workbox (`StaleWhileRevalidate`)
+- [ ] Notifiche push per price alert (richiede backend endpoint VAPID)
 
 ---
 
@@ -510,8 +670,11 @@ docker compose build
 | 1 | Setup + auth + DB | ✅ Completata | 🔴 Critica | 1–2 sett. |
 | 2 | Asset + transazioni + FX | ✅ Completata | 🔴 Critica | 2–3 sett. |
 | 3 | Market data + prezzi + WebSocket | ✅ Completata | 🔴 Critica | 2 sett. |
-| 4 | Portfolio + performance | ✅ Completata | 🟠 Alta | 2–3 sett. |
+| 4 | Portfolio + performance | ✅ Completata | 🔴 Critica | 2–3 sett. |
 | 4.X | 2FA TOTP + ruoli + admin utenti | ✅ Completata | 🟠 Alta | — |
+| 4.5 | Pagina Allocazioni (frontend) | ✅ Completata | 🟠 Alta | — |
+| 4.W | Performance backend (gather, MGET, cache perf, dashboard) | ✅ Completata (Fix A ✅ Fix B ✅ Fix C ✅ Fix D ✅ Fix E ✅) | 🟠 Alta | 1 sett. |
+| 4.Z | Asset enrichment (settori, paesi, ETF holdings) | ⏳ In coda | 🟠 Alta | 2–3 sett. |
 | 5 | Tax engine italiano | ✅ Completata | 🟠 Alta | 2 sett. |
 | 6 | Features avanzate | 🔄 In corso | 🟡 Media | 2–3 sett. |
 | 7 | Testing + deploy | ⏳ In coda | 🟢 Normale | 1–2 sett. |
@@ -534,6 +697,8 @@ docker compose build
 | TOTP 2FA opzionale (pyotp) + login a due step | 4.X | Sicurezza account; flusso session_token per non esporre credenziali nella challenge TOTP |
 | Ruoli SUPERADMIN/USER, pannello admin utenti | 4.X | Gestione multi-utente: solo il superadmin crea account; utenti normali configurano solo preferenze personali |
 | Tabella `user_settings` (tema, valuta display) | 4.X | Personalizzazione per-utente senza toccare il profilo principale |
+| Pagina `/allocazione` con 5 donut chart (holding, piattaforma, valuta, asset class, borsa) | 4.5 | Dashboard allocazione dedicata, ispirata a Ghostfolio; usa dati già disponibili senza enrichment |
+| Asset enrichment via TrackInsight (paesi, settori, holdings ETF) | 4.Z | Ghostfolio usa TrackInsight + JSON blob su `SymbolProfile`; stessa architettura adattata a FastAPI/SQLAlchemy |
 
 ### Decisioni architetturali
 

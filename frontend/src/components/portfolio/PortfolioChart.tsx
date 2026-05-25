@@ -33,6 +33,13 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
     pnlEur: pt.pnl_eur - pnlAtStart,
   }));
 
+  const yearTicks = chartData
+    .filter((pt, i) =>
+      i === 0 ||
+      new Date(pt.date).getFullYear() !== new Date(chartData[i - 1].date).getFullYear()
+    )
+    .map((pt) => pt.date);
+
   const lastPct = chartData[chartData.length - 1]?.pct ?? 0;
   const isPositive = lastPct >= 0;
   const color      = isPositive ? "#16a34a" : "#dc2626";
@@ -92,7 +99,14 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
             </linearGradient>
           </defs>
 
-          <XAxis dataKey="date" hide />
+          <XAxis
+            dataKey="date"
+            ticks={yearTicks}
+            tickFormatter={(d) => new Date(d).getFullYear().toString()}
+            tick={{ fontSize: 10, fill: "#94a3b8" }}
+            tickLine={false}
+            axisLine={false}
+          />
 
           <YAxis
             tickFormatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(0)} %`}

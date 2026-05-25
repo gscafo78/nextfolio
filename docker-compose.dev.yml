@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: nextfolio
       POSTGRES_DB: nextfolio
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     container_name: nextfolio_redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: nextfolio_backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://nextfolio:nextfolio@postgres:5432/nextfolio
       DATABASE_URL_SYNC: postgresql://nextfolio:nextfolio@postgres:5432/nextfolio
@@ -94,7 +94,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: nextfolio_frontend
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
       VITE_BACKEND_HOST: backend:8000
     volumes:

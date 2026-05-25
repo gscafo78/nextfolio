@@ -11,10 +11,12 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
+from app.models.account import Account
 from app.models.asset import Asset, AssetType, PriceHistory
 from app.models.transaction import Transaction, TransactionType
 from app.services.market_data.updater import (
     fetch_asset_history,
+    invalidate_perf_cache,
     refresh_all_crypto_prices,
     refresh_all_stock_prices,
     upsert_price_history,
@@ -82,6 +84,13 @@ def update_prices_eod(self):
                 total += written
                 src = "BI" if asset.isin else "YF"
                 logger.info(f"EOD [{src}] {asset.symbol}: {written} righe scritte")
+
+            # Invalida cache performance per tutti gli utenti con transazioni
+            user_rows = await db.execute(select(Account.user_id).distinct())
+            user_ids = [r for (r,) in user_rows.all()]
+            for uid in user_ids:
+                await invalidate_perf_cache(uid)
+            logger.info(f"Invalidata cache perf per {len(user_ids)} utenti")
             return total
     try:
         return _run(_inner())

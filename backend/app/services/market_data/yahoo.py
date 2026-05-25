@@ -9,6 +9,7 @@ Logica ticker italiani:
 - Azioni NYSE/NASDAQ:    nessun suffisso
 """
 
+import asyncio
 import re
 from datetime import date, timedelta
 
@@ -155,6 +156,24 @@ def get_price_history(
         return records
     except Exception:
         return []
+
+
+async def get_current_price_async(symbol: str, exchange: Exchange) -> dict | None:
+    """Async wrapper: runs blocking yfinance call in thread pool."""
+    return await asyncio.get_event_loop().run_in_executor(None, get_current_price, symbol, exchange)
+
+
+async def get_price_history_async(
+    symbol: str,
+    exchange: Exchange,
+    period: str = "1y",
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[dict]:
+    """Async wrapper: runs blocking yfinance call in thread pool."""
+    return await asyncio.get_event_loop().run_in_executor(
+        None, get_price_history, symbol, exchange, period, start_date, end_date
+    )
 
 
 def get_bulk_prices(symbols_exchanges: list[tuple[str, Exchange]]) -> dict[str, dict | None]:

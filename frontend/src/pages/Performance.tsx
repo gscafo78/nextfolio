@@ -8,7 +8,7 @@ import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ArrowDownLeft } from
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { TopBar } from "@/components/layout/TopBar";
-import { portfolioService, type PositionOut, type AllocationItem } from "@/services/portfolio";
+import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut } from "@/services/portfolio";
 
 // ── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -108,24 +108,19 @@ function AllocationPie({ title, items }: { title: string; items: AllocationItem[
 export function Performance() {
   const [period, setPeriod] = useState("1y");
 
-  const { data: summary, isLoading: loadingSum } = useQuery({
-    queryKey: ["portfolio-summary"],
-    queryFn: portfolioService.getSummary,
+  const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
+    queryKey: ["portfolio-dashboard"],
+    queryFn: portfolioService.getDashboard,
+    staleTime: 5 * 60 * 1000,
   });
-
-  const { data: positions = [], isLoading: loadingPos } = useQuery({
-    queryKey: ["portfolio-positions"],
-    queryFn: portfolioService.getPositions,
-  });
+  const summary: PortfolioSummaryOut | undefined = dashboardData?.summary;
+  const positions: PositionOut[] = dashboardData?.positions ?? [];
+  const allocation: AllocationOut | undefined = dashboardData?.allocation;
+  const loadingPos = loadingDashboard;
 
   const { data: perf, isLoading: loadingPerf } = useQuery({
     queryKey: ["portfolio-performance", period],
     queryFn: () => portfolioService.getPerformance(period),
-  });
-
-  const { data: allocation } = useQuery({
-    queryKey: ["portfolio-allocation"],
-    queryFn: portfolioService.getAllocation,
   });
 
   const { data: dividends = [] } = useQuery({
@@ -139,11 +134,14 @@ export function Performance() {
     ? true
     : series[series.length - 1].pnl_eur >= 0;
 
-  // Formatta le date per il tooltip del grafico
-  const chartData = series.map((p) => ({
-    ...p,
-    dateLabel: format(parseISO(p.date), "d MMM yy", { locale: it }),
-  }));
+  const chartData = series.map((p) => ({ ...p }));
+
+  const yearTicks = chartData
+    .filter((p, i) =>
+      i === 0 ||
+      parseISO(p.date).getFullYear() !== parseISO(chartData[i - 1].date).getFullYear()
+    )
+    .map((p) => p.date);
 
   return (
     <>
@@ -233,11 +231,12 @@ export function Performance() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
-                      dataKey="dateLabel"
+                      dataKey="date"
+                      ticks={yearTicks}
+                      tickFormatter={(d) => new Date(d).getFullYear().toString()}
                       tick={{ fontSize: 11, fill: "#94a3b8" }}
                       tickLine={false}
                       axisLine={false}
-                      interval="preserveStartEnd"
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -252,7 +251,7 @@ export function Performance() {
                         `€ ${fmt(v)}`,
                         name === "value_eur" ? "Valore" : "Investito",
                       ]}
-                      labelFormatter={(l) => l}
+                      labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: it })}
                     />
                     <Area
                       type="monotone"
@@ -405,14 +404,14 @@ function PositionRow({ pos }: { pos: PositionOut }) {
         {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
       </td>
       <td className="px-5 py-3 text-right text-gray-600 font-mono text-xs">
-        € {fmt(pos.pmc_eur, 4)}
+        € {fmt(pos.pmc_eur, 2)}
       </td>
       <td className="px-5 py-3 text-right">
         {hasPrices ? (
           <div>
             <div className="text-gray-700 font-mono text-xs">
               {pos.current_price !== null
-                ? `${pos.current_price.toFixed(4)} ${pos.currency}`
+                ? `${pos.current_price.toFixed(2)} ${pos.currency}`
                 : "—"}
             </div>
             {pos.change_pct !== null && (

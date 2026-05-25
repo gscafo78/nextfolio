@@ -25,6 +25,16 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.prices.update_stock_prices",
         "schedule": crontab(minute="*/15", hour="9-17", day_of_week="mon-fri"),
     },
+    # Pre-apertura: warm-up cache alle 8:45 (TTL 4h se mercato ancora chiuso)
+    "update-stock-prices-premarket": {
+        "task": "app.tasks.prices.update_stock_prices",
+        "schedule": crontab(hour=8, minute=45, day_of_week="mon-fri"),
+    },
+    # Post-chiusura: cache prezzi di chiusura (TTL 4h per la serata/notte)
+    "update-stock-prices-postmarket": {
+        "task": "app.tasks.prices.update_stock_prices",
+        "schedule": crontab(hour=18, minute=5, day_of_week="mon-fri"),
+    },
     # Crypto: ogni 5 minuti, sempre (mercato 24/7)
     "update-crypto-prices": {
         "task": "app.tasks.prices.update_crypto_prices",

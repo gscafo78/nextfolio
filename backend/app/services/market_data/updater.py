@@ -11,6 +11,7 @@ Logica di selezione della fonte dati:
        → CoinGecko
 """
 
+import datetime as _dt
 import json
 import logging
 from datetime import date
@@ -23,14 +24,25 @@ from app.core.config import settings
 from app.models.asset import Asset, AssetType, Exchange, PriceHistory
 from app.services.market_data import borsa_italiana as bi
 from app.services.market_data.coingecko import get_bulk_crypto_prices, get_crypto_price
-from app.services.market_data.yahoo import get_current_price as yf_price
-from app.services.market_data.yahoo import get_price_history as yf_history
+from app.services.market_data.yahoo import get_current_price_async as yf_price
+from app.services.market_data.yahoo import get_price_history_async as yf_history
 from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin
 
 logger = logging.getLogger(__name__)
 
-_CACHE_TTL_STOCK = 5 * 60   # 5 minuti
-_CACHE_TTL_CRYPTO = 60       # 1 minuto
+_CACHE_TTL_STOCK = 5 * 60        # 5 min during market hours
+_CACHE_TTL_STOCK_EOD = 4 * 3600  # 4 h after market close / weekends
+_CACHE_TTL_CRYPTO = 60           # 1 min (crypto always live)
+
+
+def _stock_ttl() -> int:
+    """5 min during Borsa Italiana trading hours, 4 h otherwise."""
+    now = _dt.datetime.now(_dt.timezone.utc).astimezone(
+        _dt.timezone(_dt.timedelta(hours=2))  # CET/CEST approx
+    )
+    if now.weekday() < 5 and _dt.time(9, 0) <= now.time() <= _dt.time(17, 30):
+        return _CACHE_TTL_STOCK
+    return _CACHE_TTL_STOCK_EOD
 
 
 def _redis() -> aioredis.Redis:
@@ -49,6 +61,43 @@ async def get_cached_price(asset_id: int) -> dict | None:
     async with _redis() as r:
         raw = await r.get(f"price:{asset_id}")
         return json.loads(raw) if raw else None
+
+
+async def get_cached_prices_bulk(asset_ids: list[int]) -> list[dict | None]:
+    """Single MGET round-trip for multiple assets."""
+    if not asset_ids:
+        return []
+    async with _redis() as r:
+        values = await r.mget(*[f"price:{aid}" for aid in asset_ids])
+    return [json.loads(v) if v else None for v in values]
+
+
+# ── Cache performance ────────────────────────────────────────────────────────
+
+_CACHE_TTL_PERF = 5 * 60  # 5 min — si aggiorna con i prezzi EOD
+
+
+def _perf_key(user_id: int, period: str, account_id: int | None) -> str:
+    return f"perf:{user_id}:{period}:{account_id or 'all'}"
+
+
+async def get_cached_perf(user_id: int, period: str, account_id: int | None) -> dict | None:
+    async with _redis() as r:
+        raw = await r.get(_perf_key(user_id, period, account_id))
+        return json.loads(raw) if raw else None
+
+
+async def set_cached_perf(user_id: int, period: str, account_id: int | None, data: dict) -> None:
+    async with _redis() as r:
+        await r.setex(_perf_key(user_id, period, account_id), _CACHE_TTL_PERF, json.dumps(data))
+
+
+async def invalidate_perf_cache(user_id: int) -> None:
+    """Elimina tutte le chiavi perf:{user_id}:* — chiamato dopo update_prices_eod."""
+    async with _redis() as r:
+        keys = await r.keys(f"perf:{user_id}:*")
+        if keys:
+            await r.delete(*keys)
 
 
 async def publish_price_update(asset_id: int, data: dict) -> None:
@@ -82,9 +131,11 @@ async def _fetch_current_price(asset: Asset) -> dict | None:
             logger.warning(f"[BI] {asset.symbol} fallito ({e}), fallback Yahoo")
 
     # Fallback / asset esteri: Yahoo Finance
-    # yahoo_ticker sovrascrive il symbol se impostato dall'utente
+    # yahoo_ticker sovrascrive il symbol se impostato dall'utente.
+    # Se yahoo_ticker è esplicito, è già un ticker completo → Exchange.OTHER (nessun suffisso).
     yf_symbol = asset.yahoo_ticker or asset.symbol
-    data = yf_price(yf_symbol, asset.exchange)
+    yf_exchange = Exchange.OTHER if asset.yahoo_ticker else asset.exchange
+    data = await yf_price(yf_symbol, yf_exchange)
     if data:
         logger.debug(f"[YF] {yf_symbol}: {data['price']}")
         return data
@@ -96,7 +147,7 @@ async def _fetch_current_price(asset: Asset) -> dict | None:
         found_ticker = await resolve_ticker_by_isin(isin_to_search)
         if found_ticker:
             logger.info(f"[YF-SEARCH] {isin_to_search} → {found_ticker}")
-            data = yf_price(found_ticker, Exchange.OTHER)  # il ticker trovato ha già il suffisso
+            data = await yf_price(found_ticker, Exchange.OTHER)
             if data:
                 return data
 
@@ -131,7 +182,8 @@ async def _fetch_history(
             logger.warning(f"[BI] storico {asset.symbol} fallito ({e}), fallback Yahoo")
 
     yf_symbol = asset.yahoo_ticker or asset.symbol
-    records = yf_history(yf_symbol, asset.exchange, period=period, start_date=start_date, end_date=end_date)
+    yf_exchange = Exchange.OTHER if asset.yahoo_ticker else asset.exchange
+    records = await yf_history(yf_symbol, yf_exchange, period=period, start_date=start_date, end_date=end_date)
     if records:
         return records
 
@@ -141,7 +193,7 @@ async def _fetch_history(
         found_ticker = await resolve_ticker_by_isin(isin_to_search)
         if found_ticker:
             logger.info(f"[YF-SEARCH history] {isin_to_search} → {found_ticker}")
-            return yf_history(found_ticker, Exchange.OTHER, period=period, start_date=start_date, end_date=end_date)
+            return await yf_history(found_ticker, Exchange.OTHER, period=period, start_date=start_date, end_date=end_date)
 
     return []
 
@@ -154,7 +206,7 @@ async def refresh_asset_price(db: AsyncSession, asset: Asset) -> dict | None:
     if not data or data.get("price") is None:
         return None
 
-    ttl = _CACHE_TTL_CRYPTO if asset.type == AssetType.CRYPTO else _CACHE_TTL_STOCK
+    ttl = _CACHE_TTL_CRYPTO if asset.type == AssetType.CRYPTO else _stock_ttl()
     await cache_price(asset.id, data, ttl)
     await publish_price_update(asset.id, data)
     return data

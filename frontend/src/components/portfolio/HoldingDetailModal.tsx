@@ -1,0 +1,364 @@
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from "recharts";
+import { X, TrendingUp, TrendingDown } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { it } from "date-fns/locale";
+import { portfolioService } from "@/services/portfolio";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(v: number, d = 2) {
+  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtSign(v: number, d = 2) {
+  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d, signDisplay: "always" });
+}
+function color(v: number | null) {
+  if (v === null) return "text-gray-400";
+  return v >= 0 ? "text-green-600" : "text-red-600";
+}
+
+const TX_LABELS: Record<string, string> = {
+  BUY: "Acquisto", SELL: "Vendita", DIVIDEND: "Dividendo",
+  COUPON: "Cedola", FEE: "Commissione", INTEREST: "Interesse",
+};
+const TX_BADGE: Record<string, string> = {
+  BUY: "bg-green-50 text-green-700",
+  SELL: "bg-red-50 text-red-700",
+  DIVIDEND: "bg-blue-50 text-blue-700",
+  COUPON: "bg-blue-50 text-blue-700",
+  FEE: "bg-gray-100 text-gray-600",
+  INTEREST: "bg-blue-50 text-blue-700",
+};
+
+type Tab = "overview" | "activities" | "accounts";
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onClose: () => void }) {
+  const [tab, setTab] = useState<Tab>("overview");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["holding-detail", assetId],
+    queryFn: () => portfolioService.getHoldingDetail(assetId),
+    staleTime: 60_000,
+  });
+
+  const chartData = (data?.price_history ?? []).map((p) => ({
+    ...p,
+    dateLabel: format(parseISO(String(p.date)), "MMM yy", { locale: it }),
+  }));
+  const isPositive = (data?.unrealized_pnl_eur ?? 0) >= 0;
+  const chartColor = isPositive ? "#10b981" : "#ef4444";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-end">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative z-10 h-full w-full max-w-[440px] bg-white flex flex-col shadow-2xl border-l border-gray-200 overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              {data && (
+                <span className="inline-block text-xs font-medium text-brand-600 bg-brand-50 rounded px-2 py-0.5 mb-1">
+                  {data.asset_type} · {data.exchange}
+                </span>
+              )}
+              <h2 className="text-base font-bold text-gray-900 leading-tight truncate">
+                {data?.name ?? "Caricamento..."}
+              </h2>
+              {data?.isin && <p className="text-xs text-gray-400 mt-0.5">{data.isin}</p>}
+            </div>
+            <button
+              onClick={onClose}
+              className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Valore corrente */}
+          {data?.current_value_eur != null && (
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className="text-3xl font-bold text-gray-900">
+                € {fmt(data.current_value_eur)}
+              </span>
+              {data.change_pct != null && (
+                <span className={`flex items-center gap-1 text-sm font-semibold ${color(data.change_pct)}`}>
+                  {data.change_pct >= 0
+                    ? <TrendingUp className="w-3.5 h-3.5" />
+                    : <TrendingDown className="w-3.5 h-3.5" />}
+                  {fmtSign(data.change_pct)}%
+                </span>
+              )}
+            </div>
+          )}
+          {isLoading && <div className="mt-3 h-9 w-40 bg-gray-100 rounded-lg animate-pulse" />}
+        </div>
+
+        {isError && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-red-500">Errore nel caricamento dei dati.</p>
+          </div>
+        )}
+
+        {data && (
+          <>
+            {/* Chart */}
+            <div className="flex-shrink-0 px-0 py-0 border-b border-gray-100" style={{ height: 180 }}>
+              {chartData.length >= 2 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="hd-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.12} />
+                        <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="dateLabel"
+                      tick={{ fontSize: 10, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "#94a3b8" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={42}
+                      domain={["auto", "auto"]}
+                    />
+                    {data.pmc_eur > 0 && (
+                      <ReferenceLine
+                        y={data.pmc_eur}
+                        stroke="#3b82f6"
+                        strokeDasharray="4 4"
+                        strokeWidth={1.5}
+                        label={{ value: "PMC", position: "right", fontSize: 10, fill: "#3b82f6" }}
+                      />
+                    )}
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                      formatter={(v: number) => [`${fmt(v, 2)} ${data.currency}`, "Prezzo"]}
+                      labelFormatter={(l) => l}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="price"
+                      stroke={chartColor}
+                      strokeWidth={2}
+                      fill="url(#hd-grad)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-xs text-gray-400 px-6 text-center">
+                  Nessuno storico prezzi. Avvia un backfill dalla Dashboard.
+                </div>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 flex-shrink-0 px-2">
+              {(["overview", "activities", "accounts"] as Tab[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                    tab === t
+                      ? "border-brand-600 text-brand-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {t === "overview" ? "Overview" : t === "activities" ? "Attività" : "Conti"}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto">
+
+              {/* ── Overview ── */}
+              {tab === "overview" && (
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard
+                      label="Variazione (P&L)"
+                      value={data.unrealized_pnl_eur != null ? `€ ${fmtSign(data.unrealized_pnl_eur)}` : "—"}
+                      positive={data.unrealized_pnl_eur != null ? data.unrealized_pnl_eur >= 0 : undefined}
+                    />
+                    <StatCard
+                      label="Performance"
+                      value={data.unrealized_pnl_pct != null ? `${fmtSign(data.unrealized_pnl_pct)} %` : "—"}
+                      positive={data.unrealized_pnl_pct != null ? data.unrealized_pnl_pct >= 0 : undefined}
+                    />
+                    <StatCard
+                      label="Prezzo medio (PMC)"
+                      value={`${fmt(data.pmc_eur, 4)} ${data.currency}`}
+                    />
+                    <StatCard
+                      label="Prezzo di mercato"
+                      value={data.current_price != null ? `${fmt(data.current_price, 4)} ${data.currency}` : "—"}
+                    />
+                    <StatCard
+                      label="Prezzo minimo"
+                      value={data.min_price != null ? `${fmt(data.min_price, 4)} ${data.currency}` : "—"}
+                    />
+                    <StatCard
+                      label="Prezzo massimo"
+                      value={data.max_price != null ? `${fmt(data.max_price, 4)} ${data.currency}` : "—"}
+                      positive={data.max_price != null && data.current_price != null && data.current_price >= data.max_price * 0.99 ? true : undefined}
+                    />
+                    <StatCard
+                      label="Quantità"
+                      value={data.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
+                    />
+                    <StatCard
+                      label="Totale investito"
+                      value={`€ ${fmt(data.total_invested_eur)}`}
+                    />
+                    <StatCard
+                      label="Commissioni totali"
+                      value={`€ ${fmt(data.total_fees)}`}
+                    />
+                    <StatCard
+                      label="Attività"
+                      value={String(data.activities_count)}
+                    />
+                    {data.realized_pnl_eur !== 0 && (
+                      <StatCard
+                        label="P&L realizzato"
+                        value={`€ ${fmtSign(data.realized_pnl_eur)}`}
+                        positive={data.realized_pnl_eur >= 0}
+                      />
+                    )}
+                    {data.first_buy_date && (
+                      <StatCard
+                        label="Prima attività"
+                        value={format(parseISO(String(data.first_buy_date)), "dd MMM yyyy", { locale: it })}
+                      />
+                    )}
+                    <StatCard label="Classe asset" value={data.asset_type} />
+                    <StatCard label="Borsa" value={data.exchange} />
+                  </div>
+
+                  {/* Settori e Paesi — placeholder fino a enrichment */}
+                  <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center space-y-1">
+                    <p className="text-xs font-medium text-gray-400">Settori e Paesi</p>
+                    <p className="text-xs text-gray-300">
+                      Disponibili dopo l'enrichment TrackInsight (Fase 4.Z)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Activities ── */}
+              {tab === "activities" && (
+                <div className="divide-y divide-gray-50">
+                  {data.activities.length === 0 ? (
+                    <p className="p-8 text-sm text-gray-400 text-center">Nessuna attività.</p>
+                  ) : data.activities.map((a) => (
+                    <div key={a.id} className="px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-gray-50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TX_BADGE[a.type] ?? "bg-gray-100 text-gray-600"}`}>
+                            {TX_LABELS[a.type] ?? a.type}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {format(parseISO(String(a.date)), "dd MMM yyyy", { locale: it })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {a.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} ×{" "}
+                          {fmt(a.price, 4)} {a.price_currency}
+                          {a.fee > 0 && <span className="text-gray-400"> · fee € {fmt(a.fee)}</span>}
+                        </p>
+                        <p className="text-xs text-gray-400">{a.account_name}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                        € {fmt(a.total_eur)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Accounts ── */}
+              {tab === "accounts" && (
+                <div className="p-5 space-y-3">
+                  {data.accounts.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-8">Nessun conto.</p>
+                  ) : data.accounts.map((acc) => (
+                    <div key={acc.account_id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm font-semibold text-gray-800">{acc.account_name}</span>
+                        {acc.value_eur != null && (
+                          <span className="text-sm font-bold text-gray-900">€ {fmt(acc.value_eur)}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-gray-500">
+                          {acc.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} unità
+                        </span>
+                        {acc.pct != null && (
+                          <span className="text-xs text-gray-400">{acc.pct}%</span>
+                        )}
+                      </div>
+                      {acc.pct != null && (
+                        <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-500 rounded-full"
+                            style={{ width: `${Math.min(acc.pct, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {isLoading && !data && (
+          <div className="flex-1 p-5 space-y-3 animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-14 bg-gray-100 rounded-xl" />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-componenti ────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
+  return (
+    <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
+      <p className="text-xs text-gray-400 truncate">{label}</p>
+      <p className={`text-sm font-semibold mt-0.5 ${
+        positive === undefined ? "text-gray-900" : positive ? "text-green-600" : "text-red-600"
+      }`}>
+        {value}
+      </p>
+    </div>
+  );
+}

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";
+import { HoldingDetailModal } from "@/components/portfolio/HoldingDetailModal";
 
 type SortField = "allocation" | "value" | "change" | "performance" | "name";
 type SortDir   = "asc" | "desc";
@@ -92,6 +93,7 @@ export function Dashboard() {
   const [sortField, setSortField] = useState<SortField>("allocation");
   const [sortDir,   setSortDir]   = useState<SortDir>("desc");
   const [backfillDone, setBackfillDone] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
 
   const { mutate: runBackfill, isPending: backfillPending } = useMutation({
     mutationFn: () => api.post("/portfolio/backfill-history"),
@@ -108,11 +110,12 @@ export function Dashboard() {
     queryKey: ["accounts"],
     queryFn:  accountService.list,
   });
-  const { data: positions = [], isLoading: positionsLoading } = useQuery({
-    queryKey: ["portfolio-positions"],
-    queryFn:  portfolioService.getPositions,
+  const { data: dashboard, isLoading: positionsLoading } = useQuery({
+    queryKey: ["portfolio-dashboard"],
+    queryFn:  portfolioService.getDashboard,
     staleTime: 5 * 60 * 1000,
   });
+  const positions: PositionOut[] = dashboard?.positions ?? [];
   const { data: perfData, isLoading: perfLoading } = useQuery({
     queryKey: ["portfolio-performance", period],
     queryFn:  () => portfolioService.getPerformance(period),
@@ -323,34 +326,37 @@ export function Dashboard() {
           <PeriodSelector period={period} options={periodOptions} onChange={(p) => { setPeriod(p); localStorage.setItem("dashboard_period", p); }} />
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KpiCard
-            label="Valore portafoglio"
-            value={hasPrices ? `€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : "—"}
-            sub={hasPrices ? `Investito: € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : undefined}
-          />
-          <KpiCard
-            label={`Performance ${periodLabel}`}
-            value={periodPnl != null
-              ? `€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`
-              : "—"}
-            sub={periodPnlPct != null ? `${periodPnlPct >= 0 ? "+" : ""}${periodPnlPct.toFixed(2)}%` : undefined}
-            positive={periodPnl != null ? periodPnl >= 0 : undefined}
-          />
-          <KpiCard
-            label="Variazione oggi"
-            value={hasPrices ? `€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}` : "—"}
-            positive={hasPrices ? dailyChange >= 0 : undefined}
-          />
-        </div>
-
         {positions.length === 0 && !positionsLoading ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
             <p className="text-sm">Aggiungi le prime transazioni per vedere prezzi e performance.</p>
           </div>
         ) : (
           <>
+            {/* Performance chart */}
+            <PortfolioChart series={chartSeries} isLoading={perfLoading && chartSeries.length === 0} />
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KpiCard
+                label="Valore portafoglio"
+                value={hasPrices ? `€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : "—"}
+                sub={hasPrices ? `Investito: € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : undefined}
+              />
+              <KpiCard
+                label={`Performance ${periodLabel}`}
+                value={periodPnl != null
+                  ? `€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`
+                  : "—"}
+                sub={periodPnlPct != null ? `${periodPnlPct >= 0 ? "+" : ""}${periodPnlPct.toFixed(2)}%` : undefined}
+                positive={periodPnl != null ? periodPnl >= 0 : undefined}
+              />
+              <KpiCard
+                label="Variazione oggi"
+                value={hasPrices ? `€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}` : "—"}
+                positive={hasPrices ? dailyChange >= 0 : undefined}
+              />
+            </div>
+
             {/* Per-account breakdown */}
             {accountBreakdown.length > 1 && (
               <div>
@@ -403,9 +409,6 @@ export function Dashboard() {
               </div>
             )}
 
-            {/* Performance chart — reacts to period */}
-            <PortfolioChart series={chartSeries} isLoading={perfLoading && chartSeries.length === 0} />
-
             {/* Holdings table */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -455,7 +458,12 @@ export function Dashboard() {
                             ? (pos.current_value_eur / totalValue) * 100 : null;
                           const dateStr = firstBuyDate[pos.asset_id];
                           return (
-                            <tr key={pos.asset_id} className="hover:bg-gray-50/70 transition-colors">
+                            <tr
+                              key={pos.asset_id}
+                              className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                              onDoubleClick={() => setSelectedAssetId(pos.asset_id)}
+                              title="Doppio click per i dettagli"
+                            >
                               <td className="pl-5 pr-4 py-3.5">
                                 <div className="font-medium text-gray-900 truncate max-w-[220px]">{pos.name}</div>
                                 <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
@@ -558,6 +566,13 @@ export function Dashboard() {
           </>
         )}
       </main>
+
+      {selectedAssetId != null && (
+        <HoldingDetailModal
+          assetId={selectedAssetId}
+          onClose={() => setSelectedAssetId(null)}
+        />
+      )}
     </>
   );
 }

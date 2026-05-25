@@ -10,6 +10,7 @@ import { AssetBadge } from "@/components/transactions/AssetBadge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { accountService, assetService, transactionService, type Transaction, type TransactionType } from "@/services/transactions";
+import { HoldingDetailModal } from "@/components/portfolio/HoldingDetailModal";
 
 const TX_LABELS: Record<TransactionType, string> = {
   BUY: "Acquisto",
@@ -210,6 +211,7 @@ export function Transazioni() {
   const [modal, setModal] = useState<Modal>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [editAsset, setEditAsset] = useState<{ id: number; name: string; symbol: string; yahoo_ticker: string | null } | null>(null);
+  const [holdingAssetId, setHoldingAssetId] = useState<number | null>(null);
   const [filterAccountId, setFilterAccountId] = useState<number | "">("");
   const [filterType, setFilterType] = useState<TransactionType | "">("");
   const qc = useQueryClient();
@@ -369,9 +371,13 @@ export function Transazioni() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <span className="font-medium text-gray-900 truncate max-w-[120px]">
+                          <button
+                            onClick={() => setHoldingAssetId(tx.asset.id)}
+                            className="font-medium text-gray-900 truncate max-w-[120px] hover:text-brand-600 hover:underline transition-colors text-left"
+                            title="Apri dettagli holding"
+                          >
                             {tx.asset.yahoo_ticker ?? tx.asset.symbol}
-                          </span>
+                          </button>
                           <button
                             onClick={() => setEditAsset({ id: tx.asset.id, name: tx.asset.name, symbol: tx.asset.symbol, yahoo_ticker: tx.asset.yahoo_ticker })}
                             className="text-gray-300 hover:text-brand-500 transition-colors flex-shrink-0"
@@ -481,6 +487,14 @@ export function Transazioni() {
 
       {/* Modal Modifica Transazione */}
       {editTx && <EditTxModal tx={editTx} onClose={() => setEditTx(null)} />}
+
+      {/* Modal Dettaglio Holding */}
+      {holdingAssetId != null && (
+        <HoldingDetailModal
+          assetId={holdingAssetId}
+          onClose={() => setHoldingAssetId(null)}
+        />
+      )}
 
       {/* Modal Modifica Ticker Asset */}
       {editAsset && (

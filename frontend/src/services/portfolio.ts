@@ -58,6 +58,12 @@ export interface AllocationOut {
   total_value_eur: number;
 }
 
+export interface DashboardOut {
+  summary: PortfolioSummaryOut;
+  positions: PositionOut[];
+  allocation: AllocationOut;
+}
+
 export interface DividendOut {
   id: number;
   date: string;
@@ -70,7 +76,66 @@ export interface DividendOut {
   account_id: number;
 }
 
+export interface HoldingPricePoint {
+  date: string;
+  price: number;
+}
+
+export interface HoldingActivityOut {
+  id: number;
+  type: string;
+  date: string;
+  quantity: number;
+  price: number;
+  price_currency: string;
+  total_eur: number;
+  fee: number;
+  account_name: string;
+  account_id: number;
+}
+
+export interface HoldingAccountOut {
+  account_id: number;
+  account_name: string;
+  quantity: number;
+  value_eur: number | null;
+  pct: number | null;
+}
+
+export interface HoldingDetailOut {
+  asset_id: number;
+  symbol: string;
+  name: string;
+  asset_type: string;
+  currency: string;
+  exchange: string;
+  isin: string | null;
+  quantity: number;
+  pmc_eur: number;
+  total_invested_eur: number;
+  realized_pnl_eur: number;
+  current_price: number | null;
+  current_price_eur: number | null;
+  current_value_eur: number | null;
+  unrealized_pnl_eur: number | null;
+  unrealized_pnl_pct: number | null;
+  change_pct: number | null;
+  min_price: number | null;
+  max_price: number | null;
+  total_fees: number;
+  activities_count: number;
+  first_buy_date: string | null;
+  price_history: HoldingPricePoint[];
+  activities: HoldingActivityOut[];
+  accounts: HoldingAccountOut[];
+}
+
 export const portfolioService = {
+  async getDashboard(): Promise<DashboardOut> {
+    const { data } = await api.get<DashboardOut>("/portfolio/dashboard");
+    return data;
+  },
+
   async getSummary(): Promise<PortfolioSummaryOut> {
     const { data } = await api.get<PortfolioSummaryOut>("/portfolio/summary");
     return data;
@@ -95,6 +160,11 @@ export const portfolioService = {
 
   async getDividends(): Promise<DividendOut[]> {
     const { data } = await api.get<DividendOut[]>("/portfolio/dividends");
+    return data;
+  },
+
+  async getHoldingDetail(assetId: number): Promise<HoldingDetailOut> {
+    const { data } = await api.get<HoldingDetailOut>(`/portfolio/holding/${assetId}`);
     return data;
   },
 };
