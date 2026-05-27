@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nextfolio — Offline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 1.5rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1.25rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 2.5rem 2rem;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      background: #eff6ff;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: .5rem; }
+    p  { font-size: .875rem; color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; }
+    button {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: .625rem;
+      padding: .625rem 1.5rem;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover { background: #1e40af; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e2e8f0; }
+      .card { background: #1e293b; box-shadow: 0 4px 24px rgba(0,0,0,.4); }
+      .icon { background: #1e3a8a; }
+      p { color: #94a3b8; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+    <h1>Sei offline</h1>
+    <p>Non è possibile connettersi a Nextfolio.<br>Controlla la connessione e riprova.</p>
+    <button onclick="location.reload()">Riprova</button>
+  </div>
+</body>
+</html>

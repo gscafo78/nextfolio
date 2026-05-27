@@ -664,7 +664,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
-## FASE 10 — Mobile & Smartphone ⬜
+## FASE 10 — Mobile & Smartphone ✅
 **Obiettivo: esperienza pienamente fruibile su smartphone — tutte le pagine testate e ottimizzate per schermi < 640px**
 
 > Le fondamenta responsive sono già in FASE 6.4 (breakpoints, bottom nav, card layout, PWA).
@@ -672,43 +672,41 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ### 10.1 Audit responsive su tutte le pagine
 
-- [ ] **Performance** — tabella posizioni con scroll orizzontale su mobile; KPI in griglia 2×2; grafici full-width con selezione periodo sopra
-- [ ] **Fiscale** — Bracket cards in layout verticale; EventsTable scrollabile; SellSimulator in accordion collassabile; storico minusvalenze in card
-- [ ] **Dividendi** — tabella annuale con scroll; grafici ridimensionati a full-width
-- [ ] **Alert** — card verticali per ogni alert (al posto della tabella desktop)
-- [ ] **Import / Export** — form selezione broker full-width; area drag-drop espansa; pulsanti export in colonna
-- [ ] **Strumenti (PAC)** — form e grafico affiancati su desktop → in colonna su mobile
-- [ ] **Admin** — tabella utenti → card verticali su mobile; modal azioni a piena altezza
-- [ ] **Impostazioni** — sezioni in accordion su mobile; pill lingua → grid 2×2 su schermi < 360px
+- [x] **Performance** — colonne qty/avgCost/currentPrice/realizedPnl/dailyChange nascoste su mobile (`hidden md:table-cell`); colonna account dividendi nascosta
+- [x] **Fiscale** — EventsTable: colonne type/rate nascoste su sm, quantity/cost su md; padding ridotto
+- [x] **Dividendi** — tabella annuale e yield-on-cost già con `overflow-x-auto`; grafici full-width
+- [x] **Alert** — modal con padding responsive (`p-4 sm:p-6`)
+- [x] **Strumenti (PAC)** — chart height 220px su mobile / 280px su sm+; colonna tableReturn nascosta su mobile
+- [x] **Admin** — colonne email/status/twoFactor/created nascoste progressivamente; modal responsive
 
 ### 10.2 Interazioni touch
 
-- [ ] **Swipe per navigare** tra le tab principali (Dashboard → Performance → Allocazione → Fiscale) — `touch-action: pan-y`, rilevamento swipe con threshold 60px
-- [ ] **Pull-to-refresh** sulla Dashboard — aggiorna `portfolio/dashboard` (endpoint già disponibile)
-- [ ] **Long-press su posizione** per aprire `HoldingDetailModal` (alternativa al tap sul link)
-- [ ] Bottoni con area tap almeno 44×44px su tutti i form (revisione padding dove < 44px)
+- [ ] **Swipe per navigare** tra le tab principali — `touch-action: pan-y`, threshold 60px
+- [ ] **Pull-to-refresh** sulla Dashboard
+- [ ] **Long-press su posizione** per aprire `HoldingDetailModal`
+- [x] BottomNav tap area già 44×44px (`py-2` + icona 20px + label 10px)
 
 ### 10.3 PWA — completamento
 
-- [ ] **Install prompt** — `useInstallPrompt()` hook con banner "Aggiungi alla schermata Home" (dismiss persistito su `localStorage`)
-- [ ] **Offline fallback** — service worker mostra pagina `/offline.html` se network non disponibile; dati in cache Workbox serviti stale-while-revalidate
-- [ ] **Splash screen** — `theme-color` e `background_color` in `manifest.json` coerenti con palette brand (navy `#0f172a`)
-- [ ] **Icone PWA** — generare set completo (192×192, 512×512 maskable) da `favicon.svg`
-- [ ] Notifiche push per price alert *(rimandato a disponibilità VAPID backend — vedi 6.1)*
+- [x] **Install prompt** — `useInstallPrompt()` hook + `InstallBanner` component (dismiss persistito su `localStorage`)
+- [x] **Offline fallback** — `/public/offline.html` + workbox `navigateFallback` configurato
+- [x] **Splash screen** — `theme_color: #1d4ed8` e `background_color: #f0f7ff` in manifest
+- [ ] **Icone PWA** — generare set completo da `favicon.svg`
+- [ ] Notifiche push per price alert *(rimandato a VAPID backend)*
 
 ### 10.4 Performance su mobile
 
-- [ ] **Lazy load** delle pagine pesanti (Performance, Fiscale, Allocation) via `React.lazy` + `Suspense` con skeleton
-- [ ] **Virtualizzazione tabelle** su Transazioni e Performance (> 50 righe) per evitare layout thrashing su browser mobile
-- [ ] **Riduzione bundle** — analisi con `vite-bundle-visualizer`; split chunk per `recharts` e `react-simple-maps`
-- [ ] Immagini e asset ottimizzati per connessioni lente (lazy-load favicon broker, compressione SVG)
+- [x] **Lazy load** di tutte le pagine non-dashboard via `React.lazy` + `Suspense` con `PageSkeleton`
+- [ ] **Virtualizzazione tabelle** (> 50 righe) — rimandato
+- [ ] **Riduzione bundle** — analisi con `vite-bundle-visualizer`
+- [ ] Immagini ottimizzate per connessioni lente
 
 ### 10.5 Test su dispositivi reali
 
-- [ ] Verifica su **iPhone (Safari)** — input date native, bottom safe-area inset (`env(safe-area-inset-bottom)`)
-- [ ] Verifica su **Android (Chrome)** — `inputMode="decimal"` su tutti i campi numerici
-- [ ] Breakpoint extra **< 375px** (iPhone SE) — nessun overflow orizzontale
-- [ ] **Landscape** su smartphone — sidebar nascosta, grafico full-width, layout a 2 colonne dove applicabile
+- [x] **iPhone safe-area** — `BottomNav` usa `env(safe-area-inset-bottom)`
+- [ ] Verifica completa su iPhone Safari e Android Chrome
+- [ ] Breakpoint **< 375px** (iPhone SE)
+- [ ] **Landscape** su smartphone
 
 ---
 

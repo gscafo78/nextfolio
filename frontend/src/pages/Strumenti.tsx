@@ -248,7 +248,7 @@ function PacCalculator() {
       {/* Chart */}
       <div>
         <p className="text-xs font-medium text-gray-500 mb-3">{t("tools.projectionTitle")}</p>
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={220} className="sm:!h-[280px]">
           <AreaChart data={result.series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradInvested" x1="0" y1="0" x2="0" y2="1">
@@ -309,7 +309,7 @@ function PacCalculator() {
                 <th className="px-4 py-2.5 font-medium text-xs">{t("tools.tableYear")}</th>
                 <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableInvested")}</th>
                 <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableValue")}</th>
-                <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableReturn")}</th>
+                <th className="px-4 py-2.5 font-medium text-xs text-right hidden sm:table-cell">{t("tools.tableReturn")}</th>
                 <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableReturnPct")}</th>
               </tr>
             </thead>
@@ -327,7 +327,7 @@ function PacCalculator() {
                         {eur(p.value)}
                       </td>
                       <td
-                        className={`px-4 py-2 text-right font-medium ${gain >= 0 ? "text-green-600" : "text-red-600"}`}
+                        className={`px-4 py-2 text-right font-medium hidden sm:table-cell ${gain >= 0 ? "text-green-600" : "text-red-600"}`}
                       >
                         {gain >= 0 ? "+" : ""}
                         {eur(gain)}
