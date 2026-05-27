@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowRight, RefreshCw, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TopBar } from "@/components/layout/TopBar";
 import { PortfolioChart } from "@/components/portfolio/PortfolioChart";
@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useZenMode } from "@/context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { getIntlLocale } from "@/utils/format";
-import i18n from "@/i18n";
 import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";

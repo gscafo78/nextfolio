@@ -43,8 +43,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallback: "/offline.html",
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//, /^\/sw\.js$/, /^\/offline\.html$/],
         // Runtime cache: API calls with stale-while-revalidate
         runtimeCaching: [
           {

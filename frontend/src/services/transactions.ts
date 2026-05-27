@@ -85,7 +85,7 @@ export const transactionService = {
     return data;
   },
 
-  async update(id: number, body: Partial<Omit<TransactionCreate, "account_id" | "asset_id">>): Promise<Transaction> {
+  async update(id: number, body: Partial<Omit<TransactionCreate, "asset_id">>): Promise<Transaction> {
     const { data } = await api.put<Transaction>(`/transactions/${id}`, body);
     return data;
   },

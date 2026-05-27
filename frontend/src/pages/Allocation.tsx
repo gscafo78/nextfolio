@@ -504,7 +504,7 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
 
 // ── World Map ─────────────────────────────────────────────────────────────────
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const GEO_URL = "/countries-110m.json";
 
 const ISO2_NUMERIC: Record<string, string> = {
   US: "840", DE: "276", FR: "250", GB: "826", JP: "392", CA: "124",
@@ -573,8 +573,8 @@ function WorldMapSection() {
           height={300}
         >
           <Geographies geography={GEO_URL}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
+            {({ geographies }: { geographies: any[] }) =>
+              geographies.map((geo: any) => {
                 const d = numericToData[String(geo.id)];
                 return (
                   <Geography
@@ -588,10 +588,10 @@ function WorldMapSection() {
                       hover: { outline: "none", opacity: 0.75 },
                       pressed: { outline: "none" },
                     }}
-                    onMouseEnter={(evt) => {
+                    onMouseEnter={(evt: unknown) => {
                       if (d) setTooltip({ name: d.name, pct: d.pct, x: (evt as unknown as MouseEvent).clientX, y: (evt as unknown as MouseEvent).clientY });
                     }}
-                    onMouseMove={(evt) => {
+                    onMouseMove={(evt: unknown) => {
                       if (d) setTooltip({ name: d.name, pct: d.pct, x: (evt as unknown as MouseEvent).clientX, y: (evt as unknown as MouseEvent).clientY });
                     }}
                     onMouseLeave={() => setTooltip(null)}

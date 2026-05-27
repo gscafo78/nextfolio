@@ -1,5 +1,4 @@
 import { api } from "./api";
-import type { UserOut } from "./auth";
 
 export interface UserAdminOut {
   id: number;

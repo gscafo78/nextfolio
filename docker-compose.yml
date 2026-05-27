@@ -136,9 +136,8 @@ services:
           memory: 256m
 
   # ── Frontend (nginx) ────────────────────────────────────────────────────────
-  # Porta attiva per HTTP diretto.
-  # Per Cloudflare Tunnel: rimuovi "ports" e avvia con COMPOSE_PROFILES=cloudflare
-  # Per HTTPS diretto:     rimuovi "ports" e usa docker-compose.https.yml
+  # Esposto su 127.0.0.1:3000 — il tunnel Cloudflare sulla VPS punta a questo
+  # indirizzo. Configurare nel dashboard: nextfolio.myhomecloud.it → http://127.0.0.1:3000
   frontend:
     build:
       context: ./frontend
@@ -147,37 +146,16 @@ services:
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
     ports:
-      - "0.0.0.0:80:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
-    networks: [proxy, backend]
+    networks: [backend]
     deploy:
       resources:
         limits:
           memory: 128m
 
-  # ── Cloudflare Tunnel (opzionale) ──────────────────────────────────────────
-  # Attiva con: COMPOSE_PROFILES=cloudflare docker compose up -d
-  # Nel dashboard Cloudflare configura il servizio come: http://frontend
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: nextfolio_cloudflared
-    restart: unless-stopped
-    security_opt: [no-new-privileges:true]
-    profiles: [cloudflare]
-    command: tunnel --no-autoupdate run
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
-    depends_on:
-      - frontend
-    networks: [proxy]
-    deploy:
-      resources:
-        limits:
-          memory: 64m
-
 networks:
-  proxy:    # cloudflared ↔ frontend
   backend:  # frontend ↔ backend
   data:     # backend, celery ↔ postgres, redis
 

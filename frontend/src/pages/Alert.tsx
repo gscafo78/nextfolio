@@ -29,7 +29,7 @@ function thresholdLabel(alert: AlertOut) {
 // ── Asset autocomplete ────────────────────────────────────────────────────────
 
 function AssetSearch({
-  value,
+  value: _value,
   onChange,
 }: {
   value: Asset | null;

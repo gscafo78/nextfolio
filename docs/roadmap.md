@@ -710,41 +710,51 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
-## FASE 11 — Messa in Produzione 🚀 ⬜
-**Prerequisiti: FASE 9 (i18n) + FASE 10 (mobile) completate**
-**Obiettivo: app live su dominio pubblico, stabile, sicura e monitorata**
+## FASE 11 — Messa in Produzione 🚀 🔄
+**Dominio: `nextfolio.myhomecloud.it` · HTTPS via Cloudflare Tunnel**
+**Obiettivo: app live, stabile, sicura e monitorata**
 
 ### 11.1 Infrastruttura server
 
-- [ ] Scegliere provider VPS (es. Hetzner CX21, DigitalOcean Droplet 2 vCPU / 4 GB RAM) — sufficiente per uso personale
-- [ ] Sistema operativo: Ubuntu 24.04 LTS, aggiornamenti automatici di sicurezza (`unattended-upgrades`)
-- [ ] Firewall UFW: aperte solo porte 22 (SSH), 80 (HTTP→redirect), 443 (HTTPS)
-- [ ] Accesso SSH solo via chiave (password auth disabilitata)
-- [ ] Utente non-root dedicato (es. `nextfolio`) per eseguire i container
+- [x] VPS disponibile (già in uso per altri servizi)
+- [x] Docker + Docker Compose installati
+- [ ] Firewall UFW: verificare che **nessuna porta pubblica** sia aperta per nextfolio (il tunnel è outbound)
+- [x] Accesso SSH solo via chiave
+- [ ] Utente non-root dedicato (es. `nextfolio`) per eseguire i container *(opzionale se già gestito)*
 
-### 11.2 Dominio e HTTPS
+### 11.2 Dominio e HTTPS — Cloudflare Tunnel (esterno)
 
-- [ ] Acquistare dominio (es. `nextfolio.app` o sottodominio personale)
-- [ ] DNS: record `A` → IP server; TTL 300s durante il deploy iniziale
-- [ ] **Nginx** come reverse proxy:
-  - Porta 80 → redirect permanente 301 a HTTPS
-  - Porta 443 → proxy pass a container frontend (`:3000`) e backend (`:8000`)
-  - Header di sicurezza: `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Content-Security-Policy`
-- [ ] **Let's Encrypt** via `certbot --nginx` — certificato gratuito, rinnovo automatico (`cron` o `systemd timer`)
-- [ ] Testare HTTPS: SSL Labs score A+
+> Approccio scelto: **Cloudflare Tunnel condiviso** già attivo sulla VPS.
+> Il tunnel è gestito separatamente (serve più webapp); nextfolio si espone solo su
+> `127.0.0.1:3000` e il tunnel instrada `nextfolio.myhomecloud.it` verso quella porta.
+> Nessuna porta 80/443 esposta pubblicamente; nessun certificato da gestire.
+
+- [x] Dominio `nextfolio.myhomecloud.it` disponibile
+- [x] Cloudflare Tunnel già attivo sulla VPS (condiviso tra più app)
+- [ ] Nel dashboard Cloudflare → Tunnel → Public Hostname:
+  - Hostname: `nextfolio.myhomecloud.it`
+  - Service: `http://127.0.0.1:3000`
+- [ ] `docker-compose.yml` aggiornato: frontend su `127.0.0.1:3000`, nessun container `cloudflared` ✅
 
 ### 11.3 Configurazione produzione
 
-- [ ] Creare `.env.production` a partire da `.env.example`:
-  - `SECRET_KEY` — generato con `openssl rand -hex 32`
-  - `DATABASE_URL` — PostgreSQL locale nel container
-  - `REDIS_URL` — Redis locale nel container
-  - `ALLOWED_ORIGINS` — solo il dominio produzione
-  - `SMTP_*` — credenziali provider email produzione (es. Brevo/Mailgun free tier)
-  - `OPENFIGI_API_KEY` — se usato
-- [ ] `docker-compose.yml` production: porte esposte solo su `127.0.0.1` (nginx fa da proxy), no volume di codice sorgente
-- [ ] `DEBUG=false`, `RELOAD=false` nel backend
-- [ ] Variabile `APP_URL` impostata al dominio pubblico (usata nei link email reset password)
+- [ ] Creare `.env` di produzione (mai committare nel repo):
+  ```env
+  POSTGRES_PASSWORD=<password lunga e casuale>
+  REDIS_PASSWORD=<password lunga e casuale>
+  SECRET_KEY=<openssl rand -hex 32>
+  CORS_ORIGINS=https://nextfolio.myhomecloud.it
+  ALLOWED_HOSTS=nextfolio.myhomecloud.it
+  APP_URL=https://nextfolio.myhomecloud.it
+  OPENFIGI_APY_KEY=<se usato>
+  SMTP_HOST=<host SMTP>
+  SMTP_PORT=587
+  SMTP_USER=<user>
+  SMTP_PASSWORD=<password>
+  EMAILS_FROM=noreply@myhomecloud.it
+  ```
+- [ ] `DEBUG=false` già impostato nel `docker-compose.yml` ✅
+- [ ] Verificare che `APP_URL` sia il dominio pubblico (usato nei link email reset password)
 
 ### 11.4 Database e migration
 
@@ -947,9 +957,9 @@ docker compose build
 | 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
 | 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
-| **11** | **Messa in Produzione — VPS, HTTPS, backup, monitoring, checklist pre-lancio** | ⬜ **Prossimo obiettivo** | 🔴 **Critica** | **1 sett.** |
+| **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | 🔄 **In corso** | 🔴 **Critica** | **< 1 sett.** |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → FASE 10 (mobile) → **FASE 11 (produzione)** — la FASE 10 è ora il prossimo passo; la FASE 11 è il cancello finale prima del lancio.
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → **FASE 11 (produzione)** — `docker-compose.yml` aggiornato per Cloudflare Tunnel; prossimo passo: creare `.env`, applicare migration, primo deploy.
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 

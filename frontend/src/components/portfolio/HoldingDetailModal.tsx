@@ -388,7 +388,6 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
           initialData={{
             name: data.name,
             symbol: data.symbol,
-            yahoo_ticker: null,
             isin: data.isin ?? null,
             asset_type: data.asset_type,
             exchange: data.exchange,

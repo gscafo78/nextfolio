@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Upload, ChevronRight, Check, AlertCircle, Search,
-  Plus, SkipForward, ArrowRight, Loader2, X, Download,
+  ArrowRight, X, Download,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/services/api";
@@ -10,7 +10,6 @@ import { TopBar } from "@/components/layout/TopBar";
 import {
   importerService,
   type GhostfolioPreview,
-  type GfAccountInfo,
   type GfAssetInfo,
   type AccountResolution,
   type AssetResolution,
@@ -22,11 +21,11 @@ import { Input } from "@/components/ui/Input";
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 
-function downloadBlob(blob: Blob, fallbackName: string, headers: Record<string, string>) {
+function downloadBlob(blob: Blob, fallbackName: string, headers: Record<string, unknown>) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const cd = headers["content-disposition"] as string | undefined;
+  const cd = headers["content-disposition"] as string | undefined ?? headers["Content-Disposition"] as string | undefined;
   const match = cd?.match(/filename=(.+)/);
   a.download = match ? match[1] : fallbackName;
   a.click();
@@ -916,7 +915,7 @@ export function Import() {
               setRawJson(raw);
             }}
           />
-          {rawJson && (
+          {rawJson !== null && (
             <div className="max-w-xl mx-auto">
               <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-2 mb-4">
                 <Check className="w-4 h-4 flex-shrink-0" />

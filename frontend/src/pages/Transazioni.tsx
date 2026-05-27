@@ -5,7 +5,6 @@ import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
-import i18n from "@/i18n";
 import { TopBar } from "@/components/layout/TopBar";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { CsvImport } from "@/components/transactions/CsvImport";
