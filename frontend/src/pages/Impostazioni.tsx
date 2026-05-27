@@ -277,7 +277,7 @@ function PreferenceSection() {
   const qc = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (fields: { theme?: string; display_currency?: string }) =>
+    mutationFn: (fields: { theme?: string; display_currency?: string; zen_mode?: boolean }) =>
       authService.updateSettings(fields),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-settings"] }),
   });
@@ -325,6 +325,28 @@ function PreferenceSection() {
             <option value="dark">🌙 Scuro</option>
             <option value="system">💻 Sistema</option>
           </select>
+        </div>
+        <div className="flex items-center justify-between px-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">Zen Mode</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              Nasconde i valori monetari — mostra solo percentuali e variazioni
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={settings.zen_mode}
+            onClick={() => updateMutation.mutate({ zen_mode: !settings.zen_mode })}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+              settings.zen_mode ? "bg-brand-600" : "bg-gray-200 dark:bg-slate-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                settings.zen_mode ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
         </div>
       </div>
     </section>

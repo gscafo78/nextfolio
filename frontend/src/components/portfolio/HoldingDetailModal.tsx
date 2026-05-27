@@ -11,6 +11,7 @@ import { portfolioService } from "@/services/portfolio";
 import { accountService } from "@/services/transactions";
 import { AccountFavicon } from "@/components/AccountFavicon";
 import { AssetEditModal } from "./AssetEditModal";
+import { useZenMode } from "@/context/ThemeContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,8 @@ type Tab = "overview" | "activities" | "accounts";
 export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [showEdit, setShowEdit] = useState(false);
+  const zenMode = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -120,7 +123,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
           {data?.current_value_eur != null && (
             <div className="mt-3 flex items-baseline gap-3">
               <span className="text-3xl font-bold text-gray-900">
-                € {fmt(data.current_value_eur)}
+                {zen(`€ ${fmt(data.current_value_eur)}`)}
               </span>
               {data.change_pct != null && (
                 <span className={`flex items-center gap-1 text-sm font-semibold ${color(data.change_pct)}`}>
@@ -226,7 +229,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                   <div className="grid grid-cols-2 gap-3">
                     <StatCard
                       label="Variazione (P&L)"
-                      value={data.unrealized_pnl_eur != null ? `€ ${fmtSign(data.unrealized_pnl_eur)}` : "—"}
+                      value={data.unrealized_pnl_eur != null ? zen(`€ ${fmtSign(data.unrealized_pnl_eur)}`) : "—"}
                       positive={data.unrealized_pnl_eur != null ? data.unrealized_pnl_eur >= 0 : undefined}
                     />
                     <StatCard
@@ -257,11 +260,11 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     />
                     <StatCard
                       label="Totale investito"
-                      value={`€ ${fmt(data.total_invested_eur)}`}
+                      value={zen(`€ ${fmt(data.total_invested_eur)}`)}
                     />
                     <StatCard
                       label="Commissioni totali"
-                      value={`€ ${fmt(data.total_fees)}`}
+                      value={zen(`€ ${fmt(data.total_fees)}`)}
                     />
                     <StatCard
                       label="Attività"
@@ -270,7 +273,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     {data.realized_pnl_eur !== 0 && (
                       <StatCard
                         label="P&L realizzato"
-                        value={`€ ${fmtSign(data.realized_pnl_eur)}`}
+                        value={zen(`€ ${fmtSign(data.realized_pnl_eur)}`)}
                         positive={data.realized_pnl_eur >= 0}
                       />
                     )}
@@ -315,7 +318,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                         <p className="text-xs text-gray-500 mt-1">
                           {a.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} ×{" "}
                           {fmt(a.price, 4)} {a.price_currency}
-                          {a.fee > 0 && <span className="text-gray-400"> · fee € {fmt(a.fee)}</span>}
+                          {a.fee > 0 && <span className="text-gray-400"> · fee {zen(`€ ${fmt(a.fee)}`)}</span>}
                         </p>
                         <p className="text-xs text-gray-400 flex items-center gap-1">
                           <AccountFavicon url={accountUrlById[a.account_id]} size={3} />
@@ -323,7 +326,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
-                        € {fmt(a.total_eur)}
+                        {zen(`€ ${fmt(a.total_eur)}`)}
                       </span>
                     </div>
                   ))}
@@ -343,7 +346,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                           {acc.account_name}
                         </span>
                         {acc.value_eur != null && (
-                          <span className="text-sm font-bold text-gray-900">€ {fmt(acc.value_eur)}</span>
+                          <span className="text-sm font-bold text-gray-900">{zen(`€ ${fmt(acc.value_eur)}`)}</span>
                         )}
                       </div>
                       <div className="flex items-center justify-between mt-1">

@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ShieldAlert, AlertTr
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { TopBar } from "@/components/layout/TopBar";
+import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut, type PerformancePoint } from "@/services/portfolio";
 
 // ── Costanti ─────────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ function KpiCard({ label, value, sub, positive }: {
 
 function AllocationPie({ title, items }: { title: string; items: AllocationItem[] }) {
   if (!items.length) return null;
+  const zenMode = useZenMode();
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-4">{title}</h3>
@@ -82,7 +84,7 @@ function AllocationPie({ title, items }: { title: string; items: AllocationItem[
               ))}
             </Pie>
             <Tooltip
-              formatter={(v: number) => [`€ ${fmt(v)}`, ""]}
+              formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, ""]}
               contentStyle={{ fontSize: 12, borderRadius: 8 }}
             />
           </PieChart>
@@ -544,6 +546,8 @@ function CorrelationSection() {
 
 export function Performance() {
   const [period, setPeriod] = useState("1y");
+  const zenMode = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
 
   const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
     queryKey: ["portfolio-dashboard"],
@@ -595,24 +599,24 @@ export function Performance() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           <KpiCard
             label="Valore portafoglio"
-            value={hasSummary ? `€ ${fmt(summary.total_value_eur)}` : "—"}
-            sub={hasSummary ? `Investito: € ${fmt(summary.total_invested_eur)}` : undefined}
+            value={hasSummary ? zen(`€ ${fmt(summary.total_value_eur)}`) : "—"}
+            sub={hasSummary ? `Investito: ${zen("€ " + fmt(summary.total_invested_eur))}` : undefined}
           />
           <KpiCard
             label="P&L totale"
-            value={hasSummary ? `€ ${fmtSign(summary.total_pnl_eur)}` : "—"}
+            value={hasSummary ? zen(`€ ${fmtSign(summary.total_pnl_eur)}`) : "—"}
             sub={hasSummary ? `${fmtSign(summary.total_pnl_pct, 2)}%` : undefined}
             positive={hasSummary ? summary.total_pnl_eur >= 0 : undefined}
           />
           <KpiCard
             label="P&L non realizzato"
-            value={hasSummary ? `€ ${fmtSign(summary.unrealized_pnl_eur)}` : "—"}
+            value={hasSummary ? zen(`€ ${fmtSign(summary.unrealized_pnl_eur)}`) : "—"}
             sub={hasSummary ? "Su posizioni aperte" : undefined}
             positive={hasSummary ? summary.unrealized_pnl_eur >= 0 : undefined}
           />
           <KpiCard
             label="P&L realizzato"
-            value={hasSummary ? `€ ${fmtSign(summary.realized_pnl_eur)}` : "—"}
+            value={hasSummary ? zen(`€ ${fmtSign(summary.realized_pnl_eur)}`) : "—"}
             sub={hasSummary ? "Da vendite chiuse" : undefined}
             positive={hasSummary ? summary.realized_pnl_eur >= 0 : undefined}
           />
@@ -692,13 +696,13 @@ export function Performance() {
                       tick={{ fontSize: 11, fill: "#94a3b8" }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`}
+                      tickFormatter={(v) => zenMode ? "•••" : `€${(v / 1000).toFixed(0)}k`}
                       width={52}
                     />
                     <Tooltip
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
                       formatter={(v: number, name: string) => [
-                        `€ ${fmt(v)}`,
+                        zenMode ? "•••••" : `€ ${fmt(v)}`,
                         name === "value_eur" ? "Valore" : "Investito",
                       ]}
                       labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: it })}
@@ -782,16 +786,16 @@ export function Performance() {
                       <tr className="border-t border-gray-200 bg-gray-50">
                         <td colSpan={4} className="px-5 py-2 text-xs text-gray-400">Totale portafoglio</td>
                         <td className="px-5 py-2 text-right text-sm font-semibold text-gray-900">
-                          € {fmt(summary.total_value_eur)}
+                          {zen(`€ ${fmt(summary.total_value_eur)}`)}
                         </td>
                         <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.unrealized_pnl_eur)}`}>
-                          € {fmtSign(summary.unrealized_pnl_eur)}
+                          {zen(`€ ${fmtSign(summary.unrealized_pnl_eur)}`)}
                         </td>
                         <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.realized_pnl_eur)}`}>
-                          € {fmtSign(summary.realized_pnl_eur)}
+                          {zen(`€ ${fmtSign(summary.realized_pnl_eur)}`)}
                         </td>
                         <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.daily_change_eur)}`}>
-                          € {fmtSign(summary.daily_change_eur)}
+                          {zen(`€ ${fmtSign(summary.daily_change_eur)}`)}
                         </td>
                       </tr>
                     </tfoot>
@@ -807,7 +811,7 @@ export function Performance() {
                   <Coins className="w-4 h-4 text-gray-400" />
                   <h3 className="text-sm font-semibold text-gray-700">Dividendi e cedole</h3>
                   <span className="ml-auto text-xs text-gray-400">
-                    Totale: € {fmt(dividends.reduce((s, d) => s + d.amount_eur, 0))}
+                    Totale: {zen(`€ ${fmt(dividends.reduce((s, d) => s + d.amount_eur, 0))}`)}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -838,7 +842,7 @@ export function Performance() {
                           </td>
                           <td className="px-5 py-3 text-xs text-gray-500">{d.account_name}</td>
                           <td className="px-5 py-3 text-right font-medium text-green-600">
-                            + € {fmt(d.amount_eur)}
+                            {zenMode ? "•••••" : `+ € ${fmt(d.amount_eur)}`}
                           </td>
                         </tr>
                       ))}
@@ -860,6 +864,8 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
   const hasPrices = pos.current_value_eur !== null;
   const weightPct = totalValue > 0 && pos.current_value_eur ? (pos.current_value_eur / totalValue) * 100 : 0;
   const isConcentrated = weightPct > 10;
+  const zenMode = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
   return (
     <tr className="hover:bg-gray-50 transition-colors">
       <td className="px-5 py-3">
@@ -878,7 +884,7 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
         {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
       </td>
       <td className="px-5 py-3 text-right text-gray-600 font-mono text-xs">
-        € {fmt(pos.pmc_eur, 2)}
+        {zen(`€ ${fmt(pos.pmc_eur, 2)}`)}
       </td>
       <td className="px-5 py-3 text-right">
         {hasPrices ? (
@@ -897,13 +903,13 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
         ) : <Minus className="w-3 h-3 text-gray-300 ml-auto" />}
       </td>
       <td className="px-5 py-3 text-right font-medium text-gray-900">
-        {hasPrices ? `€ ${fmt(pos.current_value_eur!)}` : "—"}
+        {hasPrices ? zen(`€ ${fmt(pos.current_value_eur!)}`) : "—"}
       </td>
       <td className="px-5 py-3 text-right">
         {pos.unrealized_pnl_eur !== null ? (
           <div>
             <div className={`text-xs font-semibold ${colorClass(pos.unrealized_pnl_eur)}`}>
-              € {fmtSign(pos.unrealized_pnl_eur)}
+              {zen(`€ ${fmtSign(pos.unrealized_pnl_eur)}`)}
             </div>
             {pos.unrealized_pnl_pct !== null && (
               <div className={`text-xs ${colorClass(pos.unrealized_pnl_pct)}`}>
@@ -915,7 +921,7 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
       </td>
       <td className={`px-5 py-3 text-right text-xs font-semibold ${colorClass(pos.realized_pnl_eur)}`}>
         {pos.realized_pnl_eur !== 0
-          ? `€ ${fmtSign(pos.realized_pnl_eur)}`
+          ? zen(`€ ${fmtSign(pos.realized_pnl_eur)}`)
           : <span className="text-gray-300">—</span>}
       </td>
       <td className="px-5 py-3 text-right">

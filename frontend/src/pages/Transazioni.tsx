@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useZenMode } from "@/context/ThemeContext";
 import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -218,6 +219,8 @@ export function Transazioni() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const qc = useQueryClient();
+  const zenMode = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
@@ -343,7 +346,7 @@ export function Transazioni() {
                     {acc.name}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {accTxs.length} op · investito € {invested.toLocaleString("it-IT", { maximumFractionDigits: 0 })}
+                    {accTxs.length} op · investito {zen("€ " + invested.toLocaleString("it-IT", { maximumFractionDigits: 0 }))}
                   </p>
                 </button>
               );
@@ -400,7 +403,7 @@ export function Transazioni() {
                       </div>
                       <div className="flex-shrink-0 text-right">
                         <div className="text-sm font-semibold text-gray-900 tabular-nums">
-                          € {tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {zen("€ " + tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                         </div>
                         <div className="text-xs text-gray-400 tabular-nums mt-0.5">
                           {tx.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })} × {tx.price.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
@@ -505,7 +508,7 @@ export function Transazioni() {
                         <div>{tx.price.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {tx.price_currency}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        € {tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                        {zen("€ " + tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2 }))}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-400 text-xs">
                         {tx.price_currency !== "EUR"
@@ -513,7 +516,7 @@ export function Transazioni() {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-400">
-                        {tx.fee > 0 ? `€ ${tx.fee.toFixed(2)}` : "—"}
+                        {tx.fee > 0 ? zen(`€ ${tx.fee.toFixed(2)}`) : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -545,7 +548,7 @@ export function Transazioni() {
                       Totale netto acquisti/vendite
                     </td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
-                      € {totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                      {zen("€ " + totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 }))}
                     </td>
                     <td colSpan={3} />
                   </tr>

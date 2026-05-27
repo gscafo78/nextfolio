@@ -25,6 +25,7 @@ export interface TwoFactorSetupOut {
 export interface UserSettingsOut {
   theme: string;
   display_currency: string;
+  zen_mode: boolean;
 }
 
 export const authService = {

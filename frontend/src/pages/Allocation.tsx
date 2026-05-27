@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { PieChart as PieIcon, ChevronDown, ChevronRight, Pencil, X, Check, Globe } from "lucide-react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { TopBar } from "@/components/layout/TopBar";
+import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type AllocationItem, type PositionOut, type ETFHoldingOut, type CountryItem } from "@/services/portfolio";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/services/api";
@@ -55,8 +56,59 @@ function buildExchangeItems(positions: PositionOut[], total: number): Allocation
 
 // ── Sub-componenti ────────────────────────────────────────────────────────────
 
+function StackedAllocationBar({ items, total }: { items: AllocationItem[]; total: number }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const zenMode = useZenMode();
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="text-sm font-semibold text-gray-700">Composizione portafoglio</span>
+        <span className="text-sm text-gray-500 tabular-nums">{zenMode ? "•••••" : `€ ${fmt(total)}`}</span>
+      </div>
+
+      {/* Stacked bar */}
+      <div className="h-4 rounded-full overflow-hidden flex gap-px">
+        {items.map((item, i) => (
+          <div
+            key={item.label}
+            className="h-full transition-opacity duration-150 cursor-default"
+            style={{
+              width: `${item.pct}%`,
+              backgroundColor: COLORS[i % COLORS.length],
+              opacity: hovered === null || hovered === i ? 1 : 0.35,
+            }}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            title={`${item.label}: ${item.pct}%`}
+          />
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+        {items.map((item, i) => (
+          <div
+            key={item.label}
+            className="flex items-center gap-1.5 text-xs cursor-default transition-opacity duration-150"
+            style={{ opacity: hovered === null || hovered === i ? 1 : 0.4 }}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+            <span className="text-gray-600">{item.label}</span>
+            <span className="font-semibold text-gray-900 tabular-nums">{item.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SmallDonutCard({ title, items }: { title: string; items: AllocationItem[] }) {
   if (!items.length) return null;
+  const maxPct = Math.max(...items.map((it) => it.pct));
+  const zenMode = useZenMode();
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
@@ -79,20 +131,31 @@ function SmallDonutCard({ title, items }: { title: string; items: AllocationItem
               ))}
             </Pie>
             <Tooltip
-              formatter={(v: number) => [`€ ${fmt(v)}`, ""]}
+              formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, ""]}
               contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
             />
           </PieChart>
         </ResponsiveContainer>
-        <div className="w-full sm:flex-1 space-y-1.5 min-w-0">
+        <div className="w-full sm:flex-1 space-y-2 min-w-0">
           {items.map((item, i) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: COLORS[i % COLORS.length] }}
-              />
-              <span className="text-xs text-gray-600 truncate flex-1">{item.label}</span>
-              <span className="text-xs font-semibold text-gray-800 tabular-nums">{item.pct}%</span>
+            <div key={item.label}>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                />
+                <span className="text-xs text-gray-600 truncate flex-1">{item.label}</span>
+                <span className="text-xs font-semibold text-gray-800 tabular-nums">{item.pct}%</span>
+              </div>
+              <div className="ml-4 h-1 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${maxPct > 0 ? (item.pct / maxPct) * 100 : 0}%`,
+                    backgroundColor: COLORS[i % COLORS.length],
+                  }}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -113,6 +176,7 @@ function EtfHoldingRow({
   onEdit: (etf: ETFHoldingOut) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const zenMode = useZenMode();
   return (
     <>
       <tr
@@ -143,7 +207,7 @@ function EtfHoldingRow({
           {etf.name}
         </td>
         <td className="px-4 py-3 text-sm text-right tabular-nums text-gray-700">
-          {etf.value_eur != null ? `€ ${fmt(etf.value_eur)}` : "—"}
+          {etf.value_eur != null ? (zenMode ? "•••••" : `€ ${fmt(etf.value_eur)}`) : "—"}
         </td>
         <td className="px-4 py-3 text-xs text-right text-gray-400">
           {etf.holdings.length} holdings
@@ -597,22 +661,8 @@ export function Allocation() {
           </div>
         ) : (
           <>
-            {/* Quota del patrimonio netto */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Quota del patrimonio netto
-                  <span className="ml-2 text-xs text-amber-500 font-semibold">● Portafoglio</span>
-                </span>
-                <span className="text-sm font-bold text-gray-900 tabular-nums">100,00 %</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full rounded-full bg-emerald-400" style={{ width: "100%" }} />
-              </div>
-              <div className="mt-2 text-xs text-gray-400 text-right">
-                Totale: <span className="font-semibold text-gray-700">€ {fmt(total)}</span>
-              </div>
-            </div>
+            {/* Barra composizione portafoglio */}
+            <StackedAllocationBar items={allocation.by_account} total={total} />
 
             {/* Per Piattaforma / Valuta / Asset Class / Borsa */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

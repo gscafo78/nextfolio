@@ -13,8 +13,15 @@ export function applyTheme(mode: ThemeMode) {
   try { localStorage.setItem(LS_KEY, mode); } catch { /* incognito */ }
 }
 
-const ThemeContext = createContext<ThemeMode>("system");
-export const useTheme = () => useContext(ThemeContext);
+interface AppSettings {
+  theme: ThemeMode;
+  zenMode: boolean;
+}
+
+const AppSettingsContext = createContext<AppSettings>({ theme: "system", zenMode: false });
+
+export const useTheme = () => useContext(AppSettingsContext).theme;
+export const useZenMode = () => useContext(AppSettingsContext).zenMode;
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: settings, isLoading } = useQuery({
@@ -25,9 +32,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const mode: ThemeMode = (settings?.theme as ThemeMode | undefined) ?? "system";
+  const zenMode: boolean = settings?.zen_mode ?? false;
 
   useEffect(() => {
-    // While fetching, let the FOUC script's class stand — no flash.
     if (isLoading) return;
 
     applyTheme(mode);
@@ -41,8 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [mode, isLoading]);
 
   return (
-    <ThemeContext.Provider value={mode}>
+    <AppSettingsContext.Provider value={{ theme: mode, zenMode }}>
       {children}
-    </ThemeContext.Provider>
+    </AppSettingsContext.Provider>
   );
 }

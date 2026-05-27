@@ -92,6 +92,7 @@ class TwoFactorSetupOut(BaseModel):
 class UserSettingsOut(BaseModel):
     theme: str
     display_currency: str
+    zen_mode: bool
 
     model_config = {"from_attributes": True}
 
@@ -99,6 +100,7 @@ class UserSettingsOut(BaseModel):
 class UserSettingsUpdate(BaseModel):
     theme: str | None = None
     display_currency: str | None = None
+    zen_mode: bool | None = None
 
 
 class ForgotPasswordRequest(BaseModel):

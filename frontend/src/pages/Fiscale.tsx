@@ -4,6 +4,7 @@ import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calcu
 import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
 import { portfolioService } from "@/services/portfolio";
 import { TopBar } from "@/components/layout/TopBar";
+import { useZenMode } from "@/context/ThemeContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -19,10 +20,11 @@ function sign(v: number) {
 }
 
 function GainBadge({ value }: { value: number }) {
+  const zenMode = useZenMode();
   const positive = value >= 0;
   return (
     <span className={`font-medium ${positive ? "text-green-600" : "text-red-600"}`}>
-      {sign(value)}{eur(Math.abs(value))}
+      {zenMode ? "•••••" : `${sign(value)}${eur(Math.abs(value))}`}
     </span>
   );
 }
@@ -48,6 +50,7 @@ function Bracket({
   newCarry: number;
   priorEntries: { year: number; amount: number; expires_year: number }[];
 }) {
+  const zenMode = useZenMode();
   const hasPrior = priorEntries.length > 0;
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -58,7 +61,7 @@ function Bracket({
             Aliquota {pct(rate)}
           </span>
         </div>
-        <p className="text-xl font-bold text-gray-900">{eur(tax)}</p>
+        <p className="text-xl font-bold text-gray-900">{zenMode ? "•••••" : eur(tax)}</p>
       </div>
 
       <div className="space-y-2 text-sm">
@@ -76,7 +79,7 @@ function Bracket({
         <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-start gap-2">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            <strong>{eur(newCarry)}</strong> di minusvalenze portate agli anni successivi (scadono tra 4 anni)
+            <strong>{zenMode ? "•••••" : eur(newCarry)}</strong> di minusvalenze portate agli anni successivi (scadono tra 4 anni)
           </span>
         </div>
       )}
@@ -88,7 +91,7 @@ function Bracket({
             {priorEntries.map((e) => (
               <div key={e.year} className="flex justify-between text-xs text-gray-600">
                 <span>Perdita {e.year} (scade {e.expires_year})</span>
-                <span className="font-medium">{eur(e.amount)}</span>
+                <span className="font-medium">{zenMode ? "•••••" : eur(e.amount)}</span>
               </div>
             ))}
           </div>
@@ -109,11 +112,12 @@ function Row({
   positive?: boolean;
   bold?: boolean;
 }) {
+  const zenMode = useZenMode();
   const color = value === 0 ? "text-gray-500" : positive ? "text-green-600" : "text-red-600";
   return (
     <div className={`flex justify-between ${bold ? "font-semibold" : ""}`}>
       <span className="text-gray-600">{label}</span>
-      <span className={color}>{eur(value)}</span>
+      <span className={color}>{zenMode ? "•••••" : eur(value)}</span>
     </div>
   );
 }
@@ -132,6 +136,7 @@ const BRACKET_LABEL: Record<string, string> = {
 
 function EventsTable({ events }: { events: TaxEvent[] }) {
   const [open, setOpen] = useState(false);
+  const zenMode = useZenMode();
   if (events.length === 0) return null;
 
   const sorted = [...events].sort((a, b) => b.date.localeCompare(a.date));
@@ -175,9 +180,9 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                     {ev.quantity != null ? ev.quantity.toLocaleString("it-IT") : "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-500">
-                    {ev.cost_eur != null ? eur(ev.cost_eur) : "—"}
+                    {ev.cost_eur != null ? (zenMode ? "•••••" : eur(ev.cost_eur)) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-600">{eur(ev.proceeds_eur)}</td>
+                  <td className="px-4 py-3 text-right text-gray-600">{zenMode ? "•••••" : eur(ev.proceeds_eur)}</td>
                   <td className="px-4 py-3 text-right">
                     <GainBadge value={ev.gain_loss_eur} />
                   </td>
@@ -195,6 +200,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
 }
 
 function IncomeSection({ report }: { report: AnnualTaxReport }) {
+  const zenMode = useZenMode();
   const total =
     report.dividends_eur + report.coupons_govt_eur + report.coupons_standard_eur + report.interests_eur;
   if (total < 0.01) return null;
@@ -215,30 +221,30 @@ function IncomeSection({ report }: { report: AnnualTaxReport }) {
         {report.dividends_eur > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Dividendi azionari (26%)</span>
-            <span className="font-medium">{eur(report.dividends_eur)}</span>
+            <span className="font-medium">{zenMode ? "•••••" : eur(report.dividends_eur)}</span>
           </div>
         )}
         {report.coupons_govt_eur > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Cedole titoli di Stato (12.5%)</span>
-            <span className="font-medium">{eur(report.coupons_govt_eur)}</span>
+            <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_govt_eur)}</span>
           </div>
         )}
         {report.coupons_standard_eur > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Cedole obbligazioni societarie (26%)</span>
-            <span className="font-medium">{eur(report.coupons_standard_eur)}</span>
+            <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_standard_eur)}</span>
           </div>
         )}
         {report.interests_eur > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Interessi (26%)</span>
-            <span className="font-medium">{eur(report.interests_eur)}</span>
+            <span className="font-medium">{zenMode ? "•••••" : eur(report.interests_eur)}</span>
           </div>
         )}
         <div className="border-t border-dashed border-gray-200 pt-2 flex justify-between font-semibold">
           <span className="text-gray-700">Totale redditi</span>
-          <span>{eur(total)}</span>
+          <span>{zenMode ? "•••••" : eur(total)}</span>
         </div>
       </div>
     </div>
@@ -282,6 +288,7 @@ function SellSimulator() {
   const [result, setResult] = useState<SimulateSellOut | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const zenMode = useZenMode();
 
   const { data: positions = [] } = useQuery({
     queryKey: ["positions"],
@@ -386,23 +393,23 @@ function SellSimulator() {
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SimResultCard label="Prezzo corrente" value={eur(result.current_price_eur)} />
-            <SimResultCard label="Ricavo vendita" value={eur(result.proceeds_eur)} />
-            <SimResultCard label="Costo base FIFO" value={eur(result.cost_basis_eur)} />
+            <SimResultCard label="Prezzo corrente" value={zenMode ? "•••••" : eur(result.current_price_eur)} />
+            <SimResultCard label="Ricavo vendita" value={zenMode ? "•••••" : eur(result.proceeds_eur)} />
+            <SimResultCard label="Costo base FIFO" value={zenMode ? "•••••" : eur(result.cost_basis_eur)} />
             <SimResultCard
               label="Gain / Loss"
-              value={(result.gain_loss_eur >= 0 ? "+" : "") + eur(result.gain_loss_eur)}
+              value={zenMode ? "•••••" : (result.gain_loss_eur >= 0 ? "+" : "") + eur(result.gain_loss_eur)}
               positive={result.gain_loss_eur > 0.005}
               negative={result.gain_loss_eur < -0.005}
             />
             <SimResultCard
               label="Imposta stimata"
-              value={eur(result.estimated_tax_eur)}
+              value={zenMode ? "•••••" : eur(result.estimated_tax_eur)}
               negative={result.estimated_tax_eur > 0}
             />
             <SimResultCard
               label="Netto dopo tasse"
-              value={eur(result.net_proceeds_eur)}
+              value={zenMode ? "•••••" : eur(result.net_proceeds_eur)}
               highlight
             />
           </div>
@@ -416,6 +423,7 @@ function SellSimulator() {
 
 function CarryforwardHistory({ years }: { years: number[] }) {
   const [open, setOpen] = useState(false);
+  const zenMode = useZenMode();
 
   // Carica i report per tutti gli anni disponibili (lazy)
   const queries = useQuery({
@@ -492,21 +500,21 @@ function CarryforwardHistory({ years }: { years: number[] }) {
                     <tr key={h.year} className="hover:bg-gray-50">
                       <td className="px-5 py-3 font-semibold text-gray-900">{h.year}</td>
                       <td className={`px-5 py-3 text-right text-xs ${h.losses_std > 0 ? "text-red-600 font-medium" : "text-gray-300"}`}>
-                        {h.losses_std > 0 ? `− ${eur(h.losses_std)}` : "—"}
+                        {h.losses_std > 0 ? (zenMode ? "•••••" : `− ${eur(h.losses_std)}`) : "—"}
                       </td>
                       <td className={`px-5 py-3 text-right text-xs ${h.losses_govt > 0 ? "text-red-500" : "text-gray-300"}`}>
-                        {h.losses_govt > 0 ? `− ${eur(h.losses_govt)}` : "—"}
+                        {h.losses_govt > 0 ? (zenMode ? "•••••" : `− ${eur(h.losses_govt)}`) : "—"}
                       </td>
                       <td className={`px-5 py-3 text-right text-xs ${h.carry_applied_std > 0 ? "text-green-600 font-medium" : "text-gray-300"}`}>
-                        {h.carry_applied_std > 0 ? `+ ${eur(h.carry_applied_std)}` : "—"}
+                        {h.carry_applied_std > 0 ? (zenMode ? "•••••" : `+ ${eur(h.carry_applied_std)}`) : "—"}
                       </td>
                       <td className={`px-5 py-3 text-right text-xs font-semibold ${(h.available_std + h.available_govt) > 0 ? "text-amber-600" : "text-gray-300"}`}>
                         {(h.available_std + h.available_govt) > 0
-                          ? eur(h.available_std + h.available_govt)
+                          ? (zenMode ? "•••••" : eur(h.available_std + h.available_govt))
                           : "—"}
                       </td>
                       <td className={`px-5 py-3 text-right text-xs ${h.expiring > 0 ? "text-red-500 font-semibold" : "text-gray-300"}`}>
-                        {h.expiring > 0 ? `⚠ ${eur(h.expiring)}` : "—"}
+                        {h.expiring > 0 ? (zenMode ? "•••••" : `⚠ ${eur(h.expiring)}`) : "—"}
                       </td>
                     </tr>
                   ))}
@@ -528,6 +536,7 @@ function CarryforwardHistory({ years }: { years: number[] }) {
 export function Fiscale() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const zenMode = useZenMode();
 
   const { data: years = [] } = useQuery({
     queryKey: ["tax-years"],
@@ -585,25 +594,25 @@ export function Fiscale() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <KpiCard
               label="Imposta dovuta"
-              value={eur(report.total_tax_due)}
+              value={zenMode ? "•••••" : eur(report.total_tax_due)}
               sub="capital gain"
               icon={<AlertCircle className="w-4 h-4 text-red-500" />}
             />
             <KpiCard
               label="Plusvalenze totali"
-              value={eur(report.gains_standard + report.gains_govt)}
+              value={zenMode ? "•••••" : eur(report.gains_standard + report.gains_govt)}
               sub="entrambe le aliquote"
               icon={<TrendingUp className="w-4 h-4 text-green-500" />}
             />
             <KpiCard
               label="Minusvalenze totali"
-              value={eur(report.losses_standard + report.losses_govt)}
+              value={zenMode ? "•••••" : eur(report.losses_standard + report.losses_govt)}
               sub="compensabili"
               icon={<TrendingDown className="w-4 h-4 text-red-500" />}
             />
             <KpiCard
               label="Zainetto disponibile"
-              value={eur(totalCarryStd + totalCarryGovt)}
+              value={zenMode ? "•••••" : eur(totalCarryStd + totalCarryGovt)}
               sub="da anni precedenti"
               icon={<Wallet className="w-4 h-4 text-brand-600" />}
             />

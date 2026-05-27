@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { Coins, TrendingUp, TrendingDown } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
+import { useZenMode } from "@/context/ThemeContext";
 import { api } from "@/services/api";
 
 // ── Tipi ──────────────────────────────────────────────────────────────────────
@@ -45,6 +46,9 @@ function fmt(v: number, d = 2) {
 // ── Componente principale ──────────────────────────────────────────────────────
 
 export function Dividendi() {
+  const zenMode = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
+
   const { data, isLoading } = useQuery<DividendAnalysis>({
     queryKey: ["dividend-analysis"],
     queryFn: async () => {
@@ -86,18 +90,18 @@ export function Dividendi() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Totale incassato</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">€ {fmt(data!.total_income_eur)}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{zen(`€ ${fmt(data!.total_income_eur)}`)}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Anno corrente</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  € {fmt((data!.by_year.find((y) => y.year === new Date().getFullYear())?.amount_eur ?? 0))}
+                  {zen(`€ ${fmt((data!.by_year.find((y) => y.year === new Date().getFullYear())?.amount_eur ?? 0))}`)}
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Media annua</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  € {fmt(data!.by_year.length > 0 ? data!.total_income_eur / data!.by_year.length : 0)}
+                  {zen(`€ ${fmt(data!.by_year.length > 0 ? data!.total_income_eur / data!.by_year.length : 0)}`)}
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -128,12 +132,12 @@ export function Dividendi() {
                       tick={{ fontSize: 10, fill: "#94a3b8" }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v) => `€${v}`}
+                      tickFormatter={(v) => zenMode ? "•••" : `€${v}`}
                       width={50}
                     />
                     <Tooltip
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                      formatter={(v: number) => [`€ ${fmt(v)}`, "Incassato"]}
+                      formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, "Incassato"]}
                     />
                     <Bar dataKey="amount_eur" radius={[3, 3, 0, 0]}>
                       {monthlyData.map((_, i) => (
@@ -165,7 +169,7 @@ export function Dividendi() {
                         <tr key={y.year} className="hover:bg-gray-50">
                           <td className="px-5 py-3 font-semibold text-gray-900">{y.year}</td>
                           <td className="px-5 py-3 text-right font-medium text-green-600">
-                            + € {fmt(y.amount_eur)}
+                            {zenMode ? "•••••" : `+ € ${fmt(y.amount_eur)}`}
                           </td>
                           <td className="px-5 py-3 text-right">
                             {y.growth_pct !== null ? (
@@ -212,10 +216,10 @@ export function Dividendi() {
                             <div className="text-xs text-gray-400 truncate max-w-[200px]">{entry.name}</div>
                           </td>
                           <td className="px-5 py-3 text-right text-gray-600">
-                            € {fmt(entry.cost_basis_eur)}
+                            {zen(`€ ${fmt(entry.cost_basis_eur)}`)}
                           </td>
                           <td className="px-5 py-3 text-right font-medium text-green-600">
-                            + € {fmt(entry.total_income_eur)}
+                            {zenMode ? "•••••" : `+ € ${fmt(entry.total_income_eur)}`}
                           </td>
                           <td className="px-5 py-3 text-right">
                             {entry.yield_on_cost_pct !== null ? (

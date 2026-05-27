@@ -6,6 +6,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { PortfolioChart } from "@/components/portfolio/PortfolioChart";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { useAuth } from "@/hooks/useAuth";
+import { useZenMode } from "@/context/ThemeContext";
 import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";
@@ -86,6 +87,8 @@ function PeriodSelector({
 export function Dashboard() {
   const { user } = useAuth();
   const navigate  = useNavigate();
+  const zenMode   = useZenMode();
+  const zen = (v: string) => zenMode ? "•••••" : v;
 
   const [period,    setPeriod]    = useState<Period>(
     () => localStorage.getItem("dashboard_period") ?? "max"
@@ -307,6 +310,7 @@ export function Dashboard() {
     return sortDir === "asc" ? va - vb : vb - va;
   });
 
+
   // Period label for KPI card
   const periodLabel = periodOptions.find((o) => o.value === period)?.label ?? period;
 
@@ -340,20 +344,20 @@ export function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KpiCard
                 label="Valore portafoglio"
-                value={hasPrices ? `€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : "—"}
-                sub={hasPrices ? `Investito: € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` : undefined}
+                value={hasPrices ? zen(`€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : "—"}
+                sub={hasPrices ? zen(`Investito: € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : undefined}
               />
               <KpiCard
                 label={`Performance ${periodLabel}`}
                 value={periodPnl != null
-                  ? `€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`
+                  ? zen(`€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`)
                   : "—"}
                 sub={periodPnlPct != null ? `${periodPnlPct >= 0 ? "+" : ""}${periodPnlPct.toFixed(2)}%` : undefined}
                 positive={periodPnl != null ? periodPnl >= 0 : undefined}
               />
               <KpiCard
                 label="Variazione oggi"
-                value={hasPrices ? `€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}` : "—"}
+                value={hasPrices ? zen(`€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
                 positive={hasPrices ? dailyChange >= 0 : undefined}
               />
             </div>
@@ -386,23 +390,25 @@ export function Dashboard() {
                         <div className="flex justify-between items-baseline">
                           <span className="text-xs text-gray-400">Valore</span>
                           <span className="text-sm font-bold text-gray-900">
-                            {hasPrices ? `€ ${value.toLocaleString("it-IT", { maximumFractionDigits: 0 })}` : "—"}
+                            {hasPrices ? zen(`€ ${value.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`) : "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-baseline">
                           <span className="text-xs text-gray-400">P&L</span>
                           <span className={`text-xs font-semibold ${hasPrices ? (pnl >= 0 ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
-                            {hasPrices ? `${pnl >= 0 ? "+" : ""}€ ${pnl.toLocaleString("it-IT", { maximumFractionDigits: 0 })} (${pnlPct.toFixed(1)}%)` : "—"}
+                            {hasPrices ? (zenMode ? `${pnlPct.toFixed(1)}%` : `${pnl >= 0 ? "+" : ""}€ ${pnl.toLocaleString("it-IT", { maximumFractionDigits: 0 })} (${pnlPct.toFixed(1)}%)`) : "—"}
                           </span>
                         </div>
                       </div>
                       {hasPrices && totalValue > 0 && (
                         <>
-                          <div className="mt-3 h-1 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-400 rounded-full"
-                              style={{ width: `${Math.min((value / totalValue) * 100, 100)}%` }} />
+                          <div className="mt-3 h-1 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-brand-500 dark:bg-brand-400 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min((value / totalValue) * 100, 100)}%` }}
+                            />
                           </div>
-                          <p className="text-xs text-gray-300 mt-1 text-right">
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1 text-right">
                             {((value / totalValue) * 100).toFixed(1)}% del totale
                           </p>
                         </>
@@ -476,7 +482,7 @@ export function Dashboard() {
                               <div className="flex-shrink-0 text-right">
                                 <div className="font-semibold text-gray-900 text-sm tabular-nums">
                                   {pos.current_value_eur != null
-                                    ? `€ ${pos.current_value_eur.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`
+                                    ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`)
                                     : <span className="text-gray-300 font-normal text-xs">N/D</span>}
                                 </div>
                                 <div className={`text-xs tabular-nums font-medium mt-0.5 ${
@@ -533,24 +539,26 @@ export function Dashboard() {
                                 </td>
                                 <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
                                   {pos.current_value_eur != null
-                                    ? `€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
                                     : <span className="text-gray-300 font-normal">N/D</span>}
                                 </td>
                                 <td className="px-4 py-3.5 text-right">
                                   {alloc != null ? (
                                     <div className="flex items-center justify-end gap-2">
-                                      <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
-                                        <div className="h-full bg-brand-400 rounded-full" style={{ width: `${Math.min(alloc, 100)}%` }} />
+                                      <div className="w-20 h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden hidden sm:block">
+                                        <div
+                                          className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                                          style={{ width: `${Math.min(alloc, 100)}%` }}
+                                        />
                                       </div>
-                                      <span className="text-xs text-gray-600 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
+                                      <span className="text-xs text-gray-600 dark:text-slate-400 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
                                     </div>
                                   ) : <span className="text-gray-300 text-xs">—</span>}
                                 </td>
                                 <td className="px-4 py-3.5 text-right tabular-nums">
                                   {pos.periodPnlEur != null ? (
                                     <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                      {pos.periodPnlEur >= 0 ? "+ " : "− "}
-                                      {Math.abs(pos.periodPnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      {zenMode ? "•••••" : `${pos.periodPnlEur >= 0 ? "+ " : "− "}${Math.abs(pos.periodPnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                     </span>
                                   ) : <span className="text-gray-300 text-xs">—</span>}
                                 </td>
