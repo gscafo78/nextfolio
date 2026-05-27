@@ -1,15 +1,18 @@
 import { NavLink } from "react-router-dom";
 import { BarChart2, TrendingUp, PieChart, ArrowLeftRight, Settings } from "lucide-react";
-
-const items = [
-  { to: "/",             label: "Home",         icon: BarChart2 },
-  { to: "/performance",  label: "Performance",  icon: TrendingUp },
-  { to: "/allocazione",  label: "Allocazioni",  icon: PieChart },
-  { to: "/transazioni",  label: "Transazioni",  icon: ArrowLeftRight },
-  { to: "/impostazioni", label: "Impostazioni", icon: Settings },
-];
+import { useTranslation } from "react-i18next";
 
 export function BottomNav() {
+  const { t } = useTranslation();
+
+  const items = [
+    { to: "/",             label: t("nav.dashboard"),    icon: BarChart2 },
+    { to: "/performance",  label: t("nav.performance"),  icon: TrendingUp },
+    { to: "/allocazione",  label: t("nav.allocation"),   icon: PieChart },
+    { to: "/transazioni",  label: t("nav.transactions"), icon: ArrowLeftRight },
+    { to: "/impostazioni", label: t("nav.settings"),     icon: Settings },
+  ];
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700"

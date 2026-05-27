@@ -662,6 +662,141 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
+## FASE 10 — Mobile & Smartphone ⬜
+**Obiettivo: esperienza pienamente fruibile su smartphone — tutte le pagine testate e ottimizzate per schermi < 640px**
+
+> Le fondamenta responsive sono già in FASE 6.4 (breakpoints, bottom nav, card layout, PWA).
+> Questa fase completa la copertura su ogni pagina e introduce interazioni native-like.
+
+### 10.1 Audit responsive su tutte le pagine
+
+- [ ] **Performance** — tabella posizioni con scroll orizzontale su mobile; KPI in griglia 2×2; grafici full-width con selezione periodo sopra
+- [ ] **Fiscale** — Bracket cards in layout verticale; EventsTable scrollabile; SellSimulator in accordion collassabile; storico minusvalenze in card
+- [ ] **Dividendi** — tabella annuale con scroll; grafici ridimensionati a full-width
+- [ ] **Alert** — card verticali per ogni alert (al posto della tabella desktop)
+- [ ] **Import / Export** — form selezione broker full-width; area drag-drop espansa; pulsanti export in colonna
+- [ ] **Strumenti (PAC)** — form e grafico affiancati su desktop → in colonna su mobile
+- [ ] **Admin** — tabella utenti → card verticali su mobile; modal azioni a piena altezza
+- [ ] **Impostazioni** — sezioni in accordion su mobile; pill lingua → grid 2×2 su schermi < 360px
+
+### 10.2 Interazioni touch
+
+- [ ] **Swipe per navigare** tra le tab principali (Dashboard → Performance → Allocazione → Fiscale) — `touch-action: pan-y`, rilevamento swipe con threshold 60px
+- [ ] **Pull-to-refresh** sulla Dashboard — aggiorna `portfolio/dashboard` (endpoint già disponibile)
+- [ ] **Long-press su posizione** per aprire `HoldingDetailModal` (alternativa al tap sul link)
+- [ ] Bottoni con area tap almeno 44×44px su tutti i form (revisione padding dove < 44px)
+
+### 10.3 PWA — completamento
+
+- [ ] **Install prompt** — `useInstallPrompt()` hook con banner "Aggiungi alla schermata Home" (dismiss persistito su `localStorage`)
+- [ ] **Offline fallback** — service worker mostra pagina `/offline.html` se network non disponibile; dati in cache Workbox serviti stale-while-revalidate
+- [ ] **Splash screen** — `theme-color` e `background_color` in `manifest.json` coerenti con palette brand (navy `#0f172a`)
+- [ ] **Icone PWA** — generare set completo (192×192, 512×512 maskable) da `favicon.svg`
+- [ ] Notifiche push per price alert *(rimandato a disponibilità VAPID backend — vedi 6.1)*
+
+### 10.4 Performance su mobile
+
+- [ ] **Lazy load** delle pagine pesanti (Performance, Fiscale, Allocation) via `React.lazy` + `Suspense` con skeleton
+- [ ] **Virtualizzazione tabelle** su Transazioni e Performance (> 50 righe) per evitare layout thrashing su browser mobile
+- [ ] **Riduzione bundle** — analisi con `vite-bundle-visualizer`; split chunk per `recharts` e `react-simple-maps`
+- [ ] Immagini e asset ottimizzati per connessioni lente (lazy-load favicon broker, compressione SVG)
+
+### 10.5 Test su dispositivi reali
+
+- [ ] Verifica su **iPhone (Safari)** — input date native, bottom safe-area inset (`env(safe-area-inset-bottom)`)
+- [ ] Verifica su **Android (Chrome)** — `inputMode="decimal"` su tutti i campi numerici
+- [ ] Breakpoint extra **< 375px** (iPhone SE) — nessun overflow orizzontale
+- [ ] **Landscape** su smartphone — sidebar nascosta, grafico full-width, layout a 2 colonne dove applicabile
+
+---
+
+## FASE 11 — Messa in Produzione 🚀 ⬜
+**Prerequisiti: FASE 9 (i18n) + FASE 10 (mobile) completate**
+**Obiettivo: app live su dominio pubblico, stabile, sicura e monitorata**
+
+### 11.1 Infrastruttura server
+
+- [ ] Scegliere provider VPS (es. Hetzner CX21, DigitalOcean Droplet 2 vCPU / 4 GB RAM) — sufficiente per uso personale
+- [ ] Sistema operativo: Ubuntu 24.04 LTS, aggiornamenti automatici di sicurezza (`unattended-upgrades`)
+- [ ] Firewall UFW: aperte solo porte 22 (SSH), 80 (HTTP→redirect), 443 (HTTPS)
+- [ ] Accesso SSH solo via chiave (password auth disabilitata)
+- [ ] Utente non-root dedicato (es. `nextfolio`) per eseguire i container
+
+### 11.2 Dominio e HTTPS
+
+- [ ] Acquistare dominio (es. `nextfolio.app` o sottodominio personale)
+- [ ] DNS: record `A` → IP server; TTL 300s durante il deploy iniziale
+- [ ] **Nginx** come reverse proxy:
+  - Porta 80 → redirect permanente 301 a HTTPS
+  - Porta 443 → proxy pass a container frontend (`:3000`) e backend (`:8000`)
+  - Header di sicurezza: `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Content-Security-Policy`
+- [ ] **Let's Encrypt** via `certbot --nginx` — certificato gratuito, rinnovo automatico (`cron` o `systemd timer`)
+- [ ] Testare HTTPS: SSL Labs score A+
+
+### 11.3 Configurazione produzione
+
+- [ ] Creare `.env.production` a partire da `.env.example`:
+  - `SECRET_KEY` — generato con `openssl rand -hex 32`
+  - `DATABASE_URL` — PostgreSQL locale nel container
+  - `REDIS_URL` — Redis locale nel container
+  - `ALLOWED_ORIGINS` — solo il dominio produzione
+  - `SMTP_*` — credenziali provider email produzione (es. Brevo/Mailgun free tier)
+  - `OPENFIGI_API_KEY` — se usato
+- [ ] `docker-compose.yml` production: porte esposte solo su `127.0.0.1` (nginx fa da proxy), no volume di codice sorgente
+- [ ] `DEBUG=false`, `RELOAD=false` nel backend
+- [ ] Variabile `APP_URL` impostata al dominio pubblico (usata nei link email reset password)
+
+### 11.4 Database e migration
+
+- [ ] Prima avvio: `docker compose run --rm backend alembic upgrade head` — applica tutte le migration
+- [ ] Verificare che tutte le migration 0001–0014 siano applicate senza errori
+- [ ] Primo utente: `POST /auth/register` → diventa SUPERADMIN automaticamente
+- [ ] Bloccare endpoint `/auth/register` dopo il primo utente (già implementato)
+- [ ] Testare reset password con SMTP produzione
+
+### 11.5 Backup automatico
+
+- [ ] Script `scripts/backup-postgres.sh` già presente — schedulare con `cron` ogni notte alle 02:00
+  ```cron
+  0 2 * * * /opt/nextfolio/scripts/backup-postgres.sh >> /var/log/nextfolio-backup.log 2>&1
+  ```
+- [ ] Backup conservati per 30 giorni (rotazione già nello script)
+- [ ] Testare ripristino da backup su ambiente di staging prima del go-live
+- [ ] Backup off-site opzionale: `rclone` verso Backblaze B2 o S3-compatible (gratuito fino a 10 GB)
+
+### 11.6 Monitoraggio e log
+
+- [ ] **Log applicazione**: `docker compose logs -f` → redirect su file con rotazione (`--log-driver json-file --log-opt max-size=10m`)
+- [ ] **Uptime monitoring**: configurare [UptimeRobot](https://uptimerobot.com) (free) su `GET /health` — notifica email se down
+- [ ] **Error tracking**: integrare [Sentry](https://sentry.io) free tier:
+  - Backend: `sentry-sdk[fastapi]` — cattura eccezioni non gestite
+  - Frontend: `@sentry/react` — cattura JS errors + performance traces
+- [ ] **Celery**: verificare che `celery beat` e `celery worker` si riavvino automaticamente (`restart: always` in docker-compose)
+- [ ] Dashboard prezzi attivi: controllare che i task `update_stock_prices` e `update_crypto_prices` girino regolarmente (log Celery)
+
+### 11.7 Checklist pre-lancio
+
+- [ ] ✅ Tutte le pagine funzionanti su desktop Chrome/Firefox/Safari
+- [ ] ✅ Tutte le pagine funzionanti su mobile iOS Safari e Android Chrome
+- [ ] ✅ Login, 2FA, reset password funzionanti end-to-end
+- [ ] ✅ Import CSV (Fineco / Degiro) testato con file reale
+- [ ] ✅ Market data: prezzi aggiornati per almeno 1 asset azionario, 1 ETF, 1 BTP, 1 crypto
+- [ ] ✅ Zen Mode: mascheramento EUR verificato su tutte le pagine
+- [ ] ✅ Dark mode: nessun testo invisibile in nessuna pagina
+- [ ] ✅ HTTPS: certificato valido, redirect da HTTP, nessun mixed content
+- [ ] ✅ Backup: primo dump creato, verifica integrità
+- [ ] ✅ UptimeRobot configurato e notifica di test ricevuta
+
+### 11.8 Post-lancio (prime 2 settimane)
+
+- [ ] Monitorare log Celery per errori nei task di market data
+- [ ] Verificare consumo RAM/CPU dopo 24h di uptime (`docker stats`)
+- [ ] Controllare dimensione DB dopo 1 settimana (tabella `price_history` cresce velocemente)
+- [ ] Valutare se attivare indici aggiuntivi su `price_history(asset_id, date)` se query lente
+- [ ] Archiviare `.env.production` in gestore password (non nel repo git)
+
+---
+
 ## FASE 7 — Qualità e rilascio ✅
 **Durata stimata: 1–2 settimane**
 **Obiettivo: test, sicurezza, deploy**
@@ -810,8 +945,13 @@ docker compose build
 | 6 | Features avanzate | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 7 | Testing + deploy | ✅ Completata (core) | 🟢 Normale | 1–2 sett. |
 | 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
+| 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ⬜ Non iniziata | 🟡 Media | 2–3 sett. |
+| 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
+| **11** | **Messa in Produzione — VPS, HTTPS, backup, monitoring, checklist pre-lancio** | ⬜ **Prossimo obiettivo** | 🔴 **Critica** | **1 sett.** |
 
-**Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), HTTPS (infra), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
+**Sequenza verso il go-live:** FASE 9 (i18n) → FASE 10 (mobile) → **FASE 11 (produzione)** — le prime due possono procedere in parallelo; la FASE 11 è il cancello finale prima del lancio.
+
+**Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
 **Tempo totale stimato: 12–18 settimane** (sviluppo part-time)
 
@@ -859,6 +999,9 @@ docker compose build
 | Login page redesign — stile broker premium | 8.5 | Primo impatto professionale; layout split con pannello brand dark e grafico decorativo SVG |
 | Favicon SVG (barre crescenti + trend line) | 8.6 | Favicon riconoscibile a 16×16; SVG preferito dai browser moderni con PNG fallback |
 | Fix palette `brand` Tailwind (200/300/400/900) | 8.7 | Bug silenzioso: le classi senza sfumatura definita non generano CSS; rendeva invisibili barre e indicatori |
+| Supporto smartphone completo (audit responsive, touch, PWA, performance mobile) | 10 | L'app deve essere pienamente fruibile su smartphone — copertura tutte le pagine, install prompt, offline fallback, virtualizzazione tabelle grandi |
+| Internazionalizzazione (i18n) — IT, EN, FR, DE | 9 | Lingua selezionabile dalle impostazioni; `i18next` + `react-i18next`; `language` su `user_settings` |
+| Piano go-live (VPS, nginx, HTTPS Let's Encrypt, Sentry, UptimeRobot, checklist pre-lancio) | 11 | Roadmap completa dalla dev locale al dominio pubblico; prerequisiti: FASE 9 + FASE 10 completate |
 
 ### Decisioni architetturali
 

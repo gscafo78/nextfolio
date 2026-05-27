@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TrendingUp, Wallet, PiggyBank, Percent } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,28 +100,6 @@ function KpiCard({
   );
 }
 
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: { value: number; name: string; color: string }[];
-  label?: number;
-}) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-gray-700 mb-1">Anno {label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {p.name}: {eur(p.value)}
-        </p>
-      ))}
-    </div>
-  );
-};
-
 function PacCalculator() {
   const [initial, setInitial] = useState(5000);
   const [monthly, setMonthly] = useState(300);
@@ -129,6 +108,7 @@ function PacCalculator() {
   const [result, setResult] = useState<PacResult>(() =>
     calculatePac(5000, 300, 20, 7),
   );
+  const { t } = useTranslation();
 
   function handleCalculate() {
     setResult(calculatePac(initial, monthly, years, rate));
@@ -136,19 +116,41 @@ function PacCalculator() {
 
   const doublingYears = rate > 0 ? (72 / rate).toFixed(1) : "∞";
 
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: { value: number; name: string; color: string }[];
+    label?: number;
+  }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-700 mb-1">{t("tools.tableYear")} {label}</p>
+        {payload.map((p) => (
+          <p key={p.name} style={{ color: p.color }}>
+            {p.name === "invested" ? t("tools.legendInvested") : t("tools.legendValue")}: {eur(p.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-gray-800 mb-1">Calcolatore PAC</h2>
+        <h2 className="text-sm font-semibold text-gray-800 mb-1">{t("tools.pacTitle")}</h2>
         <p className="text-xs text-gray-400">
-          Simulazione piano di accumulo con capitalizzazione composta mensile
+          {t("tools.pacDesc")}
         </p>
       </div>
 
       {/* Inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <label className="block">
-          <span className="text-xs font-medium text-gray-600 mb-1 block">Capitale iniziale (€)</span>
+          <span className="text-xs font-medium text-gray-600 mb-1 block">{t("tools.initialCapital")}</span>
           <input
             type="number"
             inputMode="decimal"
@@ -159,7 +161,7 @@ function PacCalculator() {
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-gray-600 mb-1 block">Rata mensile (€)</span>
+          <span className="text-xs font-medium text-gray-600 mb-1 block">{t("tools.monthlyAmount")}</span>
           <input
             type="number"
             inputMode="decimal"
@@ -171,7 +173,7 @@ function PacCalculator() {
         </label>
         <label className="block">
           <span className="text-xs font-medium text-gray-600 mb-1 block">
-            Durata: <strong>{years} anni</strong>
+            {t("tools.duration", { years })}
           </span>
           <input
             type="range"
@@ -182,13 +184,13 @@ function PacCalculator() {
             className="w-full accent-brand-600 mt-1"
           />
           <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-            <span>1 anno</span>
-            <span>40 anni</span>
+            <span>{t("tools.durationMin")}</span>
+            <span>{t("tools.durationMax")}</span>
           </div>
         </label>
         <label className="block">
           <span className="text-xs font-medium text-gray-600 mb-1 block">
-            Rendimento annuo: <strong>{rate}%</strong>
+            {t("tools.annualReturn", { rate })}
           </span>
           <input
             type="range"
@@ -200,8 +202,8 @@ function PacCalculator() {
             className="w-full accent-brand-600 mt-1"
           />
           <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-            <span>0%</span>
-            <span>20%</span>
+            <span>{t("tools.returnMin")}</span>
+            <span>{t("tools.returnMax")}</span>
           </div>
         </label>
       </div>
@@ -210,32 +212,32 @@ function PacCalculator() {
         onClick={handleCalculate}
         className="px-5 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
       >
-        Calcola proiezione
+        {t("tools.calculate")}
       </button>
 
       {/* KPI */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard
-          label="Capitale versato"
+          label={t("tools.capitalInvested")}
           value={eur(result.total_invested)}
           icon={<Wallet className="w-4 h-4 text-gray-400" />}
         />
         <KpiCard
-          label="Rendimento netto"
+          label={t("tools.netReturn")}
           value={eur(result.total_gain)}
-          sub={`+${result.gain_pct.toFixed(1)}% sul versato`}
+          sub={t("tools.returnPct", { pct: result.gain_pct.toFixed(1) })}
           icon={<TrendingUp className="w-4 h-4 text-green-500" />}
         />
         <KpiCard
-          label="Regola del 72"
-          value={`${doublingYears} anni`}
-          sub="per raddoppiare il capitale"
+          label={t("tools.rule72")}
+          value={`${doublingYears} ${t("dividends.year").toLowerCase()}`}
+          sub={t("tools.rule72Desc")}
           icon={<Percent className="w-4 h-4 text-amber-500" />}
         />
         <KpiCard
-          label="Valore finale stimato"
+          label={t("tools.finalValue")}
           value={eur(result.final_value)}
-          sub={`dopo ${years} anni`}
+          sub={t("tools.finalValueDesc", { years })}
           icon={<PiggyBank className="w-4 h-4 text-brand-300" />}
           highlight
         />
@@ -243,7 +245,7 @@ function PacCalculator() {
 
       {/* Chart */}
       <div>
-        <p className="text-xs font-medium text-gray-500 mb-3">Proiezione anno per anno</p>
+        <p className="text-xs font-medium text-gray-500 mb-3">{t("tools.projectionTitle")}</p>
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={result.series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
@@ -271,7 +273,7 @@ function PacCalculator() {
             <Legend
               formatter={(v) => (
                 <span className="text-xs text-gray-600">
-                  {v === "invested" ? "Capitale versato" : "Valore stimato"}
+                  {v === "invested" ? t("tools.legendInvested") : t("tools.legendValue")}
                 </span>
               )}
             />
@@ -297,16 +299,16 @@ function PacCalculator() {
 
       {/* Yearly table */}
       <div>
-        <p className="text-xs font-medium text-gray-500 mb-2">Dettaglio annuale</p>
+        <p className="text-xs font-medium text-gray-500 mb-2">{t("tools.tableTitle")}</p>
         <div className="overflow-x-auto rounded-lg border border-gray-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-600">
-                <th className="px-4 py-2.5 font-medium text-xs">Anno</th>
-                <th className="px-4 py-2.5 font-medium text-xs text-right">Versato</th>
-                <th className="px-4 py-2.5 font-medium text-xs text-right">Valore stimato</th>
-                <th className="px-4 py-2.5 font-medium text-xs text-right">Rendimento</th>
-                <th className="px-4 py-2.5 font-medium text-xs text-right">Rend. %</th>
+                <th className="px-4 py-2.5 font-medium text-xs">{t("tools.tableYear")}</th>
+                <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableInvested")}</th>
+                <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableValue")}</th>
+                <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableReturn")}</th>
+                <th className="px-4 py-2.5 font-medium text-xs text-right">{t("tools.tableReturnPct")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -343,9 +345,7 @@ function PacCalculator() {
       </div>
 
       <p className="text-xs text-gray-400 leading-relaxed">
-        Simulazione a scopo illustrativo. Il rendimento annuo è ipotetico e costante — i mercati
-        reali sono volatili. I valori non tengono conto di inflazione, tasse o commissioni di
-        prodotto.
+        {t("tools.disclaimer")}
       </p>
     </div>
   );
@@ -354,9 +354,10 @@ function PacCalculator() {
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export function Strumenti() {
+  const { t } = useTranslation();
   return (
     <>
-      <TopBar title="Strumenti" />
+      <TopBar title={t("tools.title")} />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 space-y-6">
           <PacCalculator />

@@ -15,6 +15,7 @@ class UserSettings(Base):
     theme: Mapped[str] = mapped_column(String(20), default="light")
     display_currency: Mapped[str] = mapped_column(String(3), default="EUR")
     zen_mode: Mapped[bool] = mapped_column(Boolean, default=False)
+    language: Mapped[str] = mapped_column(String(5), default="it")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

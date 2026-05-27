@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import QRCode from "react-qr-code";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -14,23 +15,25 @@ import { authService } from "@/services/auth";
 import { adminService } from "@/services/admin";
 import { useAuth } from "@/hooks/useAuth";
 import { applyTheme, type ThemeMode } from "@/context/ThemeContext";
+import i18n from "@/i18n";
 
 // ── Tipi conto ───────────────────────────────────────────────────────────────
 
-const ACCOUNT_TYPES: { value: AccountType; label: string; icon: React.ElementType; color: string }[] = [
-  { value: "BROKERAGE", label: "Broker",      icon: Briefcase, color: "bg-blue-100 text-blue-700" },
-  { value: "BANK",      label: "Banca",       icon: Landmark,  color: "bg-green-100 text-green-700" },
-  { value: "CRYPTO",    label: "Crypto",      icon: Coins,     color: "bg-purple-100 text-purple-700" },
-  { value: "PENSION",   label: "Previdenza",  icon: Building2, color: "bg-orange-100 text-orange-700" },
-  { value: "OTHER",     label: "Altro",       icon: HelpCircle,color: "bg-gray-100 text-gray-600" },
-];
+const ACCOUNT_TYPE_ICONS: Record<AccountType, { icon: React.ElementType; color: string }> = {
+  BROKERAGE: { icon: Briefcase, color: "bg-blue-100 text-blue-700" },
+  BANK:      { icon: Landmark,  color: "bg-green-100 text-green-700" },
+  CRYPTO:    { icon: Coins,     color: "bg-purple-100 text-purple-700" },
+  PENSION:   { icon: Building2, color: "bg-orange-100 text-orange-700" },
+  OTHER:     { icon: HelpCircle,color: "bg-gray-100 text-gray-600" },
+};
 
 function AccountTypeBadge({ type }: { type: AccountType }) {
-  const t = ACCOUNT_TYPES.find((x) => x.value === type) ?? ACCOUNT_TYPES[4];
-  const Icon = t.icon;
+  const { t } = useTranslation();
+  const meta = ACCOUNT_TYPE_ICONS[type] ?? ACCOUNT_TYPE_ICONS.OTHER;
+  const Icon = meta.icon;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${t.color}`}>
-      <Icon className="w-3 h-3" />{t.label}
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
+      <Icon className="w-3 h-3" />{t(`settings.accountTypes.${type}`)}
     </span>
   );
 }
@@ -44,12 +47,15 @@ const accountSchema = z.object({
 });
 type AccountFormData = z.infer<typeof accountSchema>;
 
+const ACCOUNT_TYPES_LIST = ["BROKERAGE", "BANK", "CRYPTO", "PENSION", "OTHER"] as const;
+
 function AccountForm({ initial, onSave, onCancel, loading }: {
   initial?: Partial<AccountFormData>;
   onSave: (data: AccountFormData) => void;
   onCancel: () => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const { register, handleSubmit, formState: { errors } } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
     defaultValues: { type: "BROKERAGE", currency: "EUR", ...initial },
@@ -57,33 +63,50 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Nome conto" placeholder="Es. Fineco principale" error={errors.name?.message} {...register("name")} />
-        <Input label="Valuta" placeholder="EUR" error={errors.currency?.message} {...register("currency")} />
+        <Input
+          label={t("settings.accountName")}
+          placeholder={t("settings.accountNamePlaceholder")}
+          error={errors.name?.message}
+          {...register("name")}
+        />
+        <Input
+          label={t("settings.accountCurrency")}
+          placeholder="EUR"
+          error={errors.currency?.message}
+          {...register("currency")}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
+          <label className="text-sm font-medium text-gray-700 block mb-1">{t("settings.accountType")}</label>
           <select {...register("type")} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
-            {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {ACCOUNT_TYPES_LIST.map((type) => (
+              <option key={type} value={type}>{t(`settings.accountTypes.${type}`)}</option>
+            ))}
           </select>
         </div>
-        <Input label="Broker / Istituto (opzionale)" placeholder="Es. Fineco, Degiro" {...register("broker")} />
+        <Input
+          label={t("settings.accountBroker")}
+          placeholder={t("settings.accountBrokerPlaceholder")}
+          {...register("broker")}
+        />
       </div>
       <Input
-        label="URL del conto (opzionale)"
-        placeholder="Es. https://www.fineco.it/it/banca/area-personale"
+        label={t("settings.accountUrl")}
+        placeholder={t("settings.accountUrlPlaceholder")}
         error={errors.url?.message}
         {...register("url")}
       />
       <div className="flex gap-2 justify-end pt-1">
-        <Button type="button" variant="secondary" onClick={onCancel}>Annulla</Button>
-        <Button type="submit" loading={loading}>Salva</Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button type="submit" loading={loading}>{t("common.save")}</Button>
       </div>
     </form>
   );
 }
 
 function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (a: Account) => void; onDelete: (a: Account) => void }) {
+  const { t } = useTranslation();
   const nameNode = account.url ? (
     <a
       href={account.url}
@@ -108,7 +131,7 @@ function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (
         </div>
         <div className="text-xs text-gray-400 mt-0.5">
           {account.broker && <span>{account.broker} · </span>}
-          <span>{account.transaction_count} transazioni</span>
+          <span>{account.transaction_count} {t("settings.transactions")}</span>
         </div>
       </div>
       <div className="flex gap-1">
@@ -119,7 +142,7 @@ function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (
           onClick={() => onDelete(account)}
           disabled={account.transaction_count > 0}
           className={`p-1.5 rounded-lg transition-colors ${account.transaction_count > 0 ? "text-gray-200 cursor-not-allowed" : "text-gray-400 hover:text-red-500 hover:bg-red-50"}`}
-          title={account.transaction_count > 0 ? "Hai transazioni in questo conto" : "Elimina"}
+          title={account.transaction_count > 0 ? t("settings.hasTransactions") : t("common.delete")}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -131,6 +154,7 @@ function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (
 // ── Sezione 2FA ──────────────────────────────────────────────────────────────
 
 function TwoFactorSection() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [setupData, setSetupData] = useState<{ secret: string; uri: string } | null>(null);
@@ -146,13 +170,13 @@ function TwoFactorSection() {
   const enableMutation = useMutation({
     mutationFn: () => authService.enable2fa("", code),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["me"] }); setSetupData(null); setCode(""); },
-    onError: () => setError("Codice non valido. Riprova."),
+    onError: () => setError(t("settings.invalidCode")),
   });
 
   const disableMutation = useMutation({
     mutationFn: () => authService.disable2fa("", code),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["me"] }); setCode(""); },
-    onError: () => setError("Codice non valido. Riprova."),
+    onError: () => setError(t("settings.invalidCode")),
   });
 
   const copySecret = () => {
@@ -168,26 +192,23 @@ function TwoFactorSection() {
   return (
     <section>
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">Autenticazione a due fattori (2FA)</h2>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Proteggi il tuo account con un codice TOTP (Google Authenticator, Authy, ecc.)
-        </p>
+        <h2 className="text-base font-semibold text-gray-900">{t("settings.twoFactor")}</h2>
+        <p className="text-sm text-gray-400 mt-0.5">{t("settings.twoFactorDesc")}</p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         {user.two_factor_enabled ? (
-          // 2FA attivo — opzione disattivazione
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ShieldCheck className="w-5 h-5 text-green-500" />
               <div>
-                <p className="text-sm font-medium text-gray-900">2FA attivo</p>
-                <p className="text-xs text-gray-400">Il tuo account è protetto dalla verifica in due passaggi.</p>
+                <p className="text-sm font-medium text-gray-900">{t("settings.twoFactorActive")}</p>
+                <p className="text-xs text-gray-400">{t("settings.twoFactorActiveDesc")}</p>
               </div>
             </div>
             {!setupData && (
               <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm text-gray-600 mb-3">Per disattivare inserisci il codice dalla tua app:</p>
+                <p className="text-sm text-gray-600 mb-3">{t("settings.twoFactorDisablePrompt")}</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -203,7 +224,7 @@ function TwoFactorSection() {
                     onClick={() => disableMutation.mutate()}
                     loading={disableMutation.isPending}
                   >
-                    <ShieldOff className="w-4 h-4 mr-1.5" /> Disattiva
+                    <ShieldOff className="w-4 h-4 mr-1.5" /> {t("settings.twoFactorDisable")}
                   </Button>
                 </div>
                 {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
@@ -211,12 +232,11 @@ function TwoFactorSection() {
             )}
           </div>
         ) : setupData ? (
-          // Step 2: scan QR + inserisci codice
           <div className="space-y-4">
             <p className="text-sm font-medium text-gray-700">
-              1. Scansiona il QR con la tua app di autenticazione
+              {t("settings.twoFactorSetupStep1")}
             </p>
-            <div className="flex justify-center p-4 bg-white border border-gray-200 rounded-xl inline-block">
+            <div className="flex justify-center p-4 bg-white border border-gray-200 rounded-xl">
               <QRCode value={setupData.uri} size={180} />
             </div>
             <div className="flex items-center gap-2">
@@ -229,7 +249,7 @@ function TwoFactorSection() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">
-                2. Inserisci il codice generato per attivare
+                {t("settings.twoFactorSetupStep2")}
               </p>
               <div className="flex gap-2">
                 <input
@@ -242,23 +262,22 @@ function TwoFactorSection() {
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32 outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <Button onClick={() => enableMutation.mutate()} loading={enableMutation.isPending}>
-                  <ShieldCheck className="w-4 h-4 mr-1.5" /> Attiva 2FA
+                  <ShieldCheck className="w-4 h-4 mr-1.5" /> {t("settings.twoFactorActivate")}
                 </Button>
-                <Button variant="secondary" onClick={() => setSetupData(null)}>Annulla</Button>
+                <Button variant="secondary" onClick={() => setSetupData(null)}>{t("common.cancel")}</Button>
               </div>
               {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
             </div>
           </div>
         ) : (
-          // Step 1: avvia setup
           <div className="flex items-center gap-3">
             <ShieldOff className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">2FA non attivo</p>
-              <p className="text-xs text-gray-400">Aumenta la sicurezza del tuo account.</p>
+              <p className="text-sm font-medium text-gray-900">{t("settings.twoFactorInactive")}</p>
+              <p className="text-xs text-gray-400">{t("settings.twoFactorInactiveDesc")}</p>
             </div>
             <Button onClick={() => setupMutation.mutate()} loading={setupMutation.isPending}>
-              Configura 2FA
+              {t("settings.twoFactorSetup")}
             </Button>
           </div>
         )}
@@ -269,7 +288,15 @@ function TwoFactorSection() {
 
 // ── Sezione preferenze ────────────────────────────────────────────────────────
 
+const LANGUAGES = [
+  { code: "it", label: "IT", native: "Italiano" },
+  { code: "en", label: "EN", native: "English" },
+  { code: "fr", label: "FR", native: "Français" },
+  { code: "de", label: "DE", native: "Deutsch" },
+];
+
 function PreferenceSection() {
+  const { t } = useTranslation();
   const { data: settings, isLoading } = useQuery({
     queryKey: ["my-settings"],
     queryFn: authService.getSettings,
@@ -277,7 +304,7 @@ function PreferenceSection() {
   const qc = useQueryClient();
 
   const updateMutation = useMutation({
-    mutationFn: (fields: { theme?: string; display_currency?: string; zen_mode?: boolean }) =>
+    mutationFn: (fields: { theme?: string; display_currency?: string; zen_mode?: boolean; language?: string }) =>
       authService.updateSettings(fields),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-settings"] }),
   });
@@ -287,14 +314,14 @@ function PreferenceSection() {
   return (
     <section>
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">Preferenze</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Impostazioni personali dell'interfaccia.</p>
+        <h2 className="text-base font-semibold text-gray-900">{t("settings.preferences")}</h2>
+        <p className="text-sm text-gray-400 mt-0.5">{t("settings.preferencesDesc")}</p>
       </div>
       <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
         <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <p className="text-sm font-medium text-gray-900">Valuta di visualizzazione</p>
-            <p className="text-xs text-gray-400">Usata per i totali nel portafoglio</p>
+            <p className="text-sm font-medium text-gray-900">{t("settings.displayCurrency")}</p>
+            <p className="text-xs text-gray-400">{t("settings.displayCurrencyDesc")}</p>
           </div>
           <select
             value={settings.display_currency}
@@ -302,36 +329,34 @@ function PreferenceSection() {
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="EUR">EUR — Euro</option>
-            <option value="USD">USD — Dollaro</option>
-            <option value="GBP">GBP — Sterlina</option>
-            <option value="CHF">CHF — Franco svizzero</option>
+            <option value="USD">USD — Dollar</option>
+            <option value="GBP">GBP — Pound</option>
+            <option value="CHF">CHF — Franc</option>
           </select>
         </div>
         <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <p className="text-sm font-medium text-gray-900">Tema</p>
-            <p className="text-xs text-gray-400">Aspetto dell'interfaccia</p>
+            <p className="text-sm font-medium text-gray-900">{t("settings.theme")}</p>
+            <p className="text-xs text-gray-400">{t("settings.themeDesc")}</p>
           </div>
           <select
             value={settings.theme}
             onChange={(e) => {
-              const t = e.target.value as ThemeMode;
-              applyTheme(t);
-              updateMutation.mutate({ theme: t });
+              const theme = e.target.value as ThemeMode;
+              applyTheme(theme);
+              updateMutation.mutate({ theme });
             }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
           >
-            <option value="light">☀️ Chiaro</option>
-            <option value="dark">🌙 Scuro</option>
-            <option value="system">💻 Sistema</option>
+            <option value="light">{t("settings.themeLight")}</option>
+            <option value="dark">{t("settings.themeDark")}</option>
+            <option value="system">{t("settings.themeSystem")}</option>
           </select>
         </div>
         <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">Zen Mode</p>
-            <p className="text-xs text-gray-400 dark:text-slate-500">
-              Nasconde i valori monetari — mostra solo percentuali e variazioni
-            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{t("settings.zenMode")}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{t("settings.zenModeDesc")}</p>
           </div>
           <button
             role="switch"
@@ -348,6 +373,34 @@ function PreferenceSection() {
             />
           </button>
         </div>
+        <div className="flex items-center justify-between px-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{t("settings.language")}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{t("settings.languageDesc")}</p>
+          </div>
+          <div className="flex gap-1">
+            {LANGUAGES.map((lang) => {
+              const isActive = (settings.language ?? "it") === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  title={lang.native}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.code);
+                    updateMutation.mutate({ language: lang.code });
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                    isActive
+                      ? "bg-brand-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -356,6 +409,7 @@ function PreferenceSection() {
 // ── Sezione Email ─────────────────────────────────────────────────────────────
 
 function EmailSection() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [testTo, setTestTo] = useState(user?.email ?? "");
   const [testResult, setTestResult] = useState<"ok" | "error" | null>(null);
@@ -384,14 +438,11 @@ function EmailSection() {
   return (
     <section>
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">Configurazione Email</h2>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Impostazioni SMTP per invio notifiche, reset password e benvenuto utenti.
-        </p>
+        <h2 className="text-base font-semibold text-gray-900">{t("settings.email")}</h2>
+        <p className="text-sm text-gray-400 mt-0.5">{t("settings.emailDesc")}</p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
-        {/* Stato connessione */}
         <div className="flex items-center gap-3 px-5 py-4">
           {cfg.configured ? (
             <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -400,24 +451,23 @@ function EmailSection() {
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900">
-              {cfg.configured ? "SMTP configurato" : "SMTP non configurato"}
+              {cfg.configured ? t("settings.smtpConfigured") : t("settings.smtpNotConfigured")}
             </p>
             <p className="text-xs text-gray-400 truncate">
               {cfg.configured
-                ? `${cfg.smtp_host}:${cfg.smtp_port} · Da: ${cfg.emails_from}`
-                : "Aggiungi SMTP_HOST, SMTP_USER, EMAILS_FROM nel file .env"}
+                ? `${cfg.smtp_host}:${cfg.smtp_port} · ${t("settings.smtpFrom")}: ${cfg.emails_from}`
+                : t("settings.smtpNotConfiguredHint")}
             </p>
           </div>
         </div>
 
-        {/* Dettagli config */}
         {cfg.configured && (
           <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-2">
             {[
-              ["Host", cfg.smtp_host],
-              ["Porta", String(cfg.smtp_port)],
-              ["Utente", cfg.smtp_user],
-              ["Mittente", cfg.emails_from],
+              [t("settings.smtpHost"), cfg.smtp_host],
+              [t("settings.smtpPort"), String(cfg.smtp_port)],
+              [t("settings.smtpUser"), cfg.smtp_user],
+              [t("settings.smtpFrom"), cfg.emails_from],
             ].map(([k, v]) => (
               <div key={k}>
                 <p className="text-xs text-gray-400">{k}</p>
@@ -427,10 +477,9 @@ function EmailSection() {
           </div>
         )}
 
-        {/* Invio email di test */}
         {cfg.configured && (
           <div className="px-5 py-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Email di test</p>
+            <p className="text-sm font-medium text-gray-700 mb-2">{t("settings.testEmail")}</p>
             <div className="flex gap-2 items-start">
               <input
                 type="email"
@@ -440,17 +489,17 @@ function EmailSection() {
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
               />
               <Button onClick={handleTest} loading={testLoading} size="sm">
-                <Send className="w-4 h-4 mr-1.5" /> Invia
+                <Send className="w-4 h-4 mr-1.5" /> {t("settings.testEmailSend")}
               </Button>
             </div>
             {testResult === "ok" && (
               <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Email inviata con successo!
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t("settings.testEmailOk")}
               </p>
             )}
             {testResult === "error" && (
               <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
-                <XCircle className="w-3.5 h-3.5" /> Errore nell'invio. Verifica le credenziali SMTP.
+                <XCircle className="w-3.5 h-3.5" /> {t("settings.testEmailError")}
               </p>
             )}
           </div>
@@ -463,6 +512,7 @@ function EmailSection() {
 // ── Pagina principale ────────────────────────────────────────────────────────
 
 export function Impostazioni() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "SUPERADMIN";
   const [showCreate, setShowCreate] = useState(false);
@@ -491,37 +541,31 @@ export function Impostazioni() {
 
   const handleDelete = (acc: Account) => {
     if (acc.transaction_count > 0) return;
-    if (confirm(`Eliminare il conto "${acc.name}"? L'operazione è irreversibile.`)) {
+    if (confirm(t("settings.deleteAccountConfirm", { name: acc.name }))) {
       deleteMutation.mutate(acc.id);
     }
   };
 
   return (
     <>
-      <TopBar title="Impostazioni" />
+      <TopBar title={t("settings.title")} />
       <main className="flex-1 p-4 md:p-6 max-w-3xl space-y-6 md:space-y-8">
 
-        {/* Preferenze personali */}
         <PreferenceSection />
 
-        {/* 2FA */}
         <TwoFactorSection />
 
-        {/* Email (solo superadmin) */}
         {isSuperAdmin && <EmailSection />}
 
-        {/* Conti di investimento */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Conti di investimento</h2>
-              <p className="text-sm text-gray-400 mt-0.5">
-                Gestisci i tuoi broker e conti. Ogni transazione è associata a un conto.
-              </p>
+              <h2 className="text-base font-semibold text-gray-900">{t("settings.accounts")}</h2>
+              <p className="text-sm text-gray-400 mt-0.5">{t("settings.accountsDesc")}</p>
             </div>
             {!showCreate && (
               <Button onClick={() => setShowCreate(true)}>
-                <Plus className="w-4 h-4 mr-1.5" /> Nuovo conto
+                <Plus className="w-4 h-4 mr-1.5" /> {t("settings.newAccount")}
               </Button>
             )}
           </div>
@@ -529,7 +573,7 @@ export function Impostazioni() {
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {showCreate && (
               <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                <p className="text-sm font-medium text-gray-700 mb-3">Nuovo conto</p>
+                <p className="text-sm font-medium text-gray-700 mb-3">{t("settings.newAccountTitle")}</p>
                 <AccountForm
                   onSave={(data) => createMutation.mutate(data)}
                   onCancel={() => setShowCreate(false)}
@@ -538,12 +582,12 @@ export function Impostazioni() {
               </div>
             )}
             {isLoading ? (
-              <div className="py-12 text-center text-gray-400 text-sm">Caricamento...</div>
+              <div className="py-12 text-center text-gray-400 text-sm">{t("common.loading")}</div>
             ) : accounts.length === 0 && !showCreate ? (
               <div className="py-12 text-center">
-                <p className="text-gray-400 text-sm mb-3">Nessun conto ancora.</p>
+                <p className="text-gray-400 text-sm mb-3">{t("settings.noAccounts")}</p>
                 <Button onClick={() => setShowCreate(true)}>
-                  <Plus className="w-4 h-4 mr-1.5" /> Crea il primo conto
+                  <Plus className="w-4 h-4 mr-1.5" /> {t("settings.createFirstAccount")}
                 </Button>
               </div>
             ) : (
@@ -552,7 +596,7 @@ export function Impostazioni() {
                   <div key={acc.id}>
                     {editing?.id === acc.id ? (
                       <div className="px-5 py-4 bg-blue-50 border-l-2 border-brand-500">
-                        <p className="text-sm font-medium text-gray-700 mb-3">Modifica conto</p>
+                        <p className="text-sm font-medium text-gray-700 mb-3">{t("settings.editAccountTitle")}</p>
                         <AccountForm
                           initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency }}
                           onSave={(data) => updateMutation.mutate({ id: acc.id, data })}
@@ -570,11 +614,12 @@ export function Impostazioni() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {ACCOUNT_TYPES.map((t) => {
-              const Icon = t.icon;
+            {(["BROKERAGE", "BANK", "CRYPTO", "PENSION", "OTHER"] as AccountType[]).map((type) => {
+              const meta = ACCOUNT_TYPE_ICONS[type];
+              const Icon = meta.icon;
               return (
-                <span key={t.value} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${t.color}`}>
-                  <Icon className="w-3 h-3" />{t.label}
+                <span key={type} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${meta.color}`}>
+                  <Icon className="w-3 h-3" />{t(`settings.accountTypes.${type}`)}
                 </span>
               );
             })}

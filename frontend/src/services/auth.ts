@@ -26,6 +26,7 @@ export interface UserSettingsOut {
   theme: string;
   display_currency: string;
   zen_mode: boolean;
+  language: string;
 }
 
 export const authService = {

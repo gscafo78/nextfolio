@@ -7,6 +7,7 @@ import { PortfolioChart } from "@/components/portfolio/PortfolioChart";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { useAuth } from "@/hooks/useAuth";
 import { useZenMode } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";
@@ -19,15 +20,15 @@ type Period    = string;
 
 interface PeriodOption { label: string; value: Period }
 
-function buildPeriodOptions(firstYear: number | null): PeriodOption[] {
+function buildPeriodOptions(firstYear: number | null, t: (k: string) => string): PeriodOption[] {
   const currentYear = new Date().getFullYear();
   const base: PeriodOption[] = [
-    { label: "Oggi",   value: "today" },
-    { label: "WTD",    value: "wtd"   },
-    { label: "MTD",    value: "mtd"   },
-    { label: "YTD",    value: "ytd"   },
-    { label: "1 anno", value: "1y"    },
-    { label: "Max",    value: "max"   },
+    { label: t("dashboard.periods.1D"),  value: "today" },
+    { label: t("dashboard.periods.WTD"), value: "wtd"   },
+    { label: t("dashboard.periods.MTD"), value: "mtd"   },
+    { label: t("dashboard.periods.YTD"), value: "ytd"   },
+    { label: t("dashboard.periods.1Y"),  value: "1y"    },
+    { label: t("dashboard.periods.MAX"), value: "max"   },
   ];
   if (firstYear) {
     for (let y = currentYear; y >= firstYear; y--)
@@ -85,10 +86,12 @@ function PeriodSelector({
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export function Dashboard() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate  = useNavigate();
   const zenMode   = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
+  const dateLocale = i18n.language === "en" ? "en-US" : i18n.language === "fr" ? "fr-FR" : i18n.language === "de" ? "de-DE" : "it-IT";
 
   const [period,    setPeriod]    = useState<Period>(
     () => localStorage.getItem("dashboard_period") ?? "max"
@@ -206,7 +209,7 @@ export function Dashboard() {
     ? new Date(allBuyDates.reduce((a, b) => (a < b ? a : b))).getFullYear()
     : null;
 
-  const periodOptions = buildPeriodOptions(firstYear);
+  const periodOptions = buildPeriodOptions(firstYear, t);
 
   const netQtyByAsset: Record<number, number> = {};
   for (const tx of transactions) {
@@ -323,9 +326,9 @@ export function Dashboard() {
         {/* Greeting + period selector */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Ciao, {user?.name} 👋</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t("dashboard.greeting", { name: user?.name })} 👋</h2>
             <p className="hidden md:block text-gray-500 mt-0.5 text-sm">
-              {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+              {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
           <PeriodSelector period={period} options={periodOptions} onChange={(p) => { setPeriod(p); localStorage.setItem("dashboard_period", p); }} />
@@ -333,7 +336,7 @@ export function Dashboard() {
 
         {positions.length === 0 && !positionsLoading ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-            <p className="text-sm">Aggiungi le prime transazioni per vedere prezzi e performance.</p>
+            <p className="text-sm">{t("dashboard.noPositions")}</p>
           </div>
         ) : (
           <>
@@ -343,12 +346,12 @@ export function Dashboard() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KpiCard
-                label="Valore portafoglio"
+                label={t("dashboard.portfolioValue")}
                 value={hasPrices ? zen(`€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : "—"}
-                sub={hasPrices ? zen(`Investito: € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : undefined}
+                sub={hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : undefined}
               />
               <KpiCard
-                label={`Performance ${periodLabel}`}
+                label={t("dashboard.performancePeriod", { period: periodLabel })}
                 value={periodPnl != null
                   ? zen(`€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`)
                   : "—"}
@@ -356,7 +359,7 @@ export function Dashboard() {
                 positive={periodPnl != null ? periodPnl >= 0 : undefined}
               />
               <KpiCard
-                label="Variazione oggi"
+                label={t("dashboard.dailyChange")}
                 value={hasPrices ? zen(`€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
                 positive={hasPrices ? dailyChange >= 0 : undefined}
               />
@@ -366,10 +369,10 @@ export function Dashboard() {
             {accountBreakdown.length > 1 && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Per conto</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t("dashboard.byAccount")}</h3>
                   <button onClick={() => navigate("/impostazioni")}
                     className="text-xs text-brand-600 hover:underline flex items-center gap-1">
-                    Gestisci conti <ArrowRight className="w-3 h-3" />
+                    {t("dashboard.manageAccounts")} <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -388,13 +391,13 @@ export function Dashboard() {
                       </div>
                       <div className="mt-3 space-y-1">
                         <div className="flex justify-between items-baseline">
-                          <span className="text-xs text-gray-400">Valore</span>
+                          <span className="text-xs text-gray-400">{t("dashboard.value")}</span>
                           <span className="text-sm font-bold text-gray-900">
                             {hasPrices ? zen(`€ ${value.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`) : "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-baseline">
-                          <span className="text-xs text-gray-400">P&L</span>
+                          <span className="text-xs text-gray-400">{t("dashboard.pnl")}</span>
                           <span className={`text-xs font-semibold ${hasPrices ? (pnl >= 0 ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
                             {hasPrices ? (zenMode ? `${pnlPct.toFixed(1)}%` : `${pnl >= 0 ? "+" : ""}€ ${pnl.toLocaleString("it-IT", { maximumFractionDigits: 0 })} (${pnlPct.toFixed(1)}%)`) : "—"}
                           </span>
@@ -409,7 +412,7 @@ export function Dashboard() {
                             />
                           </div>
                           <p className="text-xs text-gray-400 dark:text-slate-500 mt-1 text-right">
-                            {((value / totalValue) * 100).toFixed(1)}% del totale
+                            {((value / totalValue) * 100).toFixed(1)}% {t("dashboard.pctOfTotal")}
                           </p>
                         </>
                       )}
@@ -423,7 +426,7 @@ export function Dashboard() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 md:px-5 py-3 md:py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-gray-900">Holdings</h3>
+                  <h3 className="text-base font-bold text-gray-900">{t("dashboard.holdings")}</h3>
                   <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
@@ -432,16 +435,16 @@ export function Dashboard() {
                     className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 disabled:opacity-50 transition-colors"
                     title="Aggiorna storico prezzi">
                     <RefreshCw className={`w-3.5 h-3.5 ${backfillPending ? "animate-spin" : ""}`} />
-                    <span className="hidden md:inline">Aggiorna storico</span>
+                    <span className="hidden md:inline">{t("dashboard.updateHistory")}</span>
                   </button>
                   <div className="flex rounded-full border border-gray-200 overflow-hidden text-xs font-medium">
                     <button onClick={() => setShowClosed(false)}
                       className={`px-3 py-1 transition-colors ${!showClosed ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
-                      Attivi
+                      {t("dashboard.open")}
                     </button>
                     <button onClick={() => setShowClosed(true)}
                       className={`px-3 py-1 transition-colors ${showClosed ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
-                      Chiusi
+                      {t("dashboard.closed")}
                     </button>
                   </div>
                 </div>
@@ -483,7 +486,7 @@ export function Dashboard() {
                                 <div className="font-semibold text-gray-900 text-sm tabular-nums">
                                   {pos.current_value_eur != null
                                     ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`)
-                                    : <span className="text-gray-300 font-normal text-xs">N/D</span>}
+                                    : <span className="text-gray-300 font-normal text-xs">{t("dashboard.na")}</span>}
                                 </div>
                                 <div className={`text-xs tabular-nums font-medium mt-0.5 ${
                                   pos.periodPnlPct != null
@@ -504,13 +507,13 @@ export function Dashboard() {
                   <table className="hidden md:table w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-50 bg-gray-50/50 text-left">
-                        <SortTh field="name" current={sortField} dir={sortDir} onSort={handleSort} className="pl-5">Nome</SortTh>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Prima attività</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Quantità</th>
-                        <SortTh field="value" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Valore</SortTh>
-                        <SortTh field="allocation" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Allocaz.</SortTh>
-                        <SortTh field="change" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Variazione</SortTh>
-                        <SortTh field="performance" current={sortField} dir={sortDir} onSort={handleSort} className="pr-5 text-right">Performance</SortTh>
+                        <SortTh field="name" current={sortField} dir={sortDir} onSort={handleSort} className="pl-5">{t("common.name")}</SortTh>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.firstActivity")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.qty")}</th>
+                        <SortTh field="value" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">{t("dashboard.value")}</SortTh>
+                        <SortTh field="allocation" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">{t("dashboard.allocation")}</SortTh>
+                        <SortTh field="change" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">{t("dashboard.change")}</SortTh>
+                        <SortTh field="performance" current={sortField} dir={sortDir} onSort={handleSort} className="pr-5 text-right">{t("dashboard.performance")}</SortTh>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -525,7 +528,7 @@ export function Dashboard() {
                                 key={pos.asset_id}
                                 className="hover:bg-gray-50/70 transition-colors cursor-pointer"
                                 onDoubleClick={() => setSelectedAssetId(pos.asset_id)}
-                                title="Doppio click per i dettagli"
+                                title={t("dashboard.dblClickDetails")}
                               >
                                 <td className="pl-5 pr-4 py-3.5">
                                   <div className="font-medium text-gray-900 truncate max-w-[220px]">{pos.name}</div>
@@ -540,7 +543,7 @@ export function Dashboard() {
                                 <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
                                   {pos.current_value_eur != null
                                     ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-                                    : <span className="text-gray-300 font-normal">N/D</span>}
+                                    : <span className="text-gray-300 font-normal">{t("dashboard.na")}</span>}
                                 </td>
                                 <td className="px-4 py-3.5 text-right">
                                   {alloc != null ? (
@@ -579,19 +582,19 @@ export function Dashboard() {
 
               {showClosed && (
                 closedRows.length === 0 ? (
-                  <div className="p-10 text-center text-sm text-gray-400">Nessuna posizione chiusa.</div>
+                  <div className="p-10 text-center text-sm text-gray-400">{t("dashboard.noClosed")}</div>
                 ) : (
                   <div className="overflow-x-auto">
                   <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="border-b border-gray-50 bg-gray-50/50 text-left">
-                        <th className="pl-5 pr-4 py-3 text-xs font-medium text-gray-400 uppercase">Nome</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Prima attività</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Ultima attività</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Investito</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Incassato</th>
-                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">P&L</th>
-                        <th className="pr-5 pl-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Performance</th>
+                        <th className="pl-5 pr-4 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.name")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.firstActivity")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.lastActivity")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("transactions.invested")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.income")}</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.pnl")}</th>
+                        <th className="pr-5 pl-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dashboard.performance")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">

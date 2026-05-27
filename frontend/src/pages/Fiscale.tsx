@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
 import { portfolioService } from "@/services/portfolio";
 import { TopBar } from "@/components/layout/TopBar";
@@ -51,6 +52,7 @@ function Bracket({
   priorEntries: { year: number; amount: number; expires_year: number }[];
 }) {
   const zenMode = useZenMode();
+  const { t } = useTranslation();
   const hasPrior = priorEntries.length > 0;
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -58,39 +60,39 @@ function Bracket({
         <div>
           <span className="text-sm font-semibold text-gray-700">{label}</span>
           <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-            Aliquota {pct(rate)}
+            {t("tax.rate", { pct: pct(rate) })}
           </span>
         </div>
         <p className="text-xl font-bold text-gray-900">{zenMode ? "•••••" : eur(tax)}</p>
       </div>
 
       <div className="space-y-2 text-sm">
-        <Row label="Plusvalenze lorde" value={gains} positive />
-        <Row label="Minusvalenze" value={-losses} />
+        <Row label={t("tax.grossGains")} value={gains} positive />
+        <Row label={t("tax.losses")} value={-losses} />
         {carryApplied > 0 && (
-          <Row label="Zainetto fiscale applicato" value={-carryApplied} />
+          <Row label={t("tax.carryforwardApplied")} value={-carryApplied} />
         )}
         <div className="border-t border-dashed border-gray-200 my-2" />
-        <Row label="Imponibile netto" value={netTaxable} positive={netTaxable > 0} bold />
-        <Row label={`Imposta (${pct(rate)})`} value={tax} bold />
+        <Row label={t("tax.netTaxable")} value={netTaxable} positive={netTaxable > 0} bold />
+        <Row label={t("tax.tax", { pct: pct(rate) })} value={tax} bold />
       </div>
 
       {newCarry > 0 && (
         <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-start gap-2">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            <strong>{zenMode ? "•••••" : eur(newCarry)}</strong> di minusvalenze portate agli anni successivi (scadono tra 4 anni)
+            <strong>{zenMode ? "•••••" : eur(newCarry)}</strong> {t("tax.carryforwardNote")}
           </span>
         </div>
       )}
 
       {hasPrior && (
         <div className="mt-4">
-          <p className="text-xs font-medium text-gray-500 mb-1">Zainetto disponibile</p>
+          <p className="text-xs font-medium text-gray-500 mb-1">{t("tax.carryforwardAvailable")}</p>
           <div className="space-y-1">
             {priorEntries.map((e) => (
               <div key={e.year} className="flex justify-between text-xs text-gray-600">
-                <span>Perdita {e.year} (scade {e.expires_year})</span>
+                <span>{t("tax.priorLoss", { year: e.year, expires: e.expires_year })}</span>
                 <span className="font-medium">{zenMode ? "•••••" : eur(e.amount)}</span>
               </div>
             ))}
@@ -122,21 +124,11 @@ function Row({
   );
 }
 
-const TX_TYPE_LABEL: Record<string, string> = {
-  SELL: "Vendita",
-  DIVIDEND: "Dividendo",
-  COUPON: "Cedola",
-  INTEREST: "Interesse",
-};
-
-const BRACKET_LABEL: Record<string, string> = {
-  standard: "26%",
-  government_bond: "12.5%",
-};
 
 function EventsTable({ events }: { events: TaxEvent[] }) {
   const [open, setOpen] = useState(false);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
   if (events.length === 0) return null;
 
   const sorted = [...events].sort((a, b) => b.date.localeCompare(a.date));
@@ -147,7 +139,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
       >
-        <span>Dettaglio eventi ({events.length})</span>
+        <span>{t("tax.eventsDetail")} ({events.length})</span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -156,14 +148,14 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-600">
-                <th className="px-4 py-3 font-medium">Data</th>
-                <th className="px-4 py-3 font-medium">Asset</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Quantità</th>
-                <th className="px-4 py-3 font-medium text-right">Costo</th>
-                <th className="px-4 py-3 font-medium text-right">Ricavo</th>
-                <th className="px-4 py-3 font-medium text-right">Gain/Loss</th>
-                <th className="px-4 py-3 font-medium text-right">Aliquota</th>
+                <th className="px-4 py-3 font-medium">{t("common.date")}</th>
+                <th className="px-4 py-3 font-medium">{t("common.asset")}</th>
+                <th className="px-4 py-3 font-medium">{t("common.type")}</th>
+                <th className="px-4 py-3 font-medium">{t("common.quantity")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("tax.cost")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("tax.proceeds")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("tax.gainLoss")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("tax.rate", { pct: "" }).trim()}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -175,7 +167,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                   <td className="px-4 py-3 font-medium text-gray-900 max-w-[180px] truncate">
                     {ev.asset_name}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{TX_TYPE_LABEL[ev.tx_type] ?? ev.tx_type}</td>
+                  <td className="px-4 py-3 text-gray-600">{t(`transactions.types.${ev.tx_type}`, { defaultValue: ev.tx_type })}</td>
                   <td className="px-4 py-3 text-gray-500">
                     {ev.quantity != null ? ev.quantity.toLocaleString("it-IT") : "—"}
                   </td>
@@ -187,7 +179,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                     <GainBadge value={ev.gain_loss_eur} />
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-gray-500">
-                    {BRACKET_LABEL[ev.tax_bracket] ?? ev.tax_bracket}
+                    {ev.tax_bracket === "government_bond" ? "12.5%" : ev.tax_bracket === "standard" ? "26%" : ev.tax_bracket}
                   </td>
                 </tr>
               ))}
@@ -201,6 +193,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
 
 function IncomeSection({ report }: { report: AnnualTaxReport }) {
   const zenMode = useZenMode();
+  const { t } = useTranslation();
   const total =
     report.dividends_eur + report.coupons_govt_eur + report.coupons_standard_eur + report.interests_eur;
   if (total < 0.01) return null;
@@ -208,42 +201,41 @@ function IncomeSection({ report }: { report: AnnualTaxReport }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-3">
-        <p className="text-sm font-semibold text-gray-700">Redditi da capitale</p>
+        <p className="text-sm font-semibold text-gray-700">{t("tax.capitalIncome")}</p>
         <div className="group relative">
           <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
           <div className="absolute left-4 bottom-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg p-2 shadow-lg">
-            In regime amministrato la ritenuta è applicata alla fonte dal broker. Questi importi sono
-            mostrati a titolo informativo.
+            {t("tax.capitalIncomeNote")}
           </div>
         </div>
       </div>
       <div className="space-y-2 text-sm">
         {report.dividends_eur > 0 && (
           <div className="flex justify-between text-gray-600">
-            <span>Dividendi azionari (26%)</span>
+            <span>{t("tax.stockDividends")}</span>
             <span className="font-medium">{zenMode ? "•••••" : eur(report.dividends_eur)}</span>
           </div>
         )}
         {report.coupons_govt_eur > 0 && (
           <div className="flex justify-between text-gray-600">
-            <span>Cedole titoli di Stato (12.5%)</span>
+            <span>{t("tax.govBondCoupons")}</span>
             <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_govt_eur)}</span>
           </div>
         )}
         {report.coupons_standard_eur > 0 && (
           <div className="flex justify-between text-gray-600">
-            <span>Cedole obbligazioni societarie (26%)</span>
+            <span>{t("tax.corpBondCoupons")}</span>
             <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_standard_eur)}</span>
           </div>
         )}
         {report.interests_eur > 0 && (
           <div className="flex justify-between text-gray-600">
-            <span>Interessi (26%)</span>
+            <span>{t("tax.interest")}</span>
             <span className="font-medium">{zenMode ? "•••••" : eur(report.interests_eur)}</span>
           </div>
         )}
         <div className="border-t border-dashed border-gray-200 pt-2 flex justify-between font-semibold">
-          <span className="text-gray-700">Totale redditi</span>
+          <span className="text-gray-700">{t("tax.totalIncome")}</span>
           <span>{zenMode ? "•••••" : eur(total)}</span>
         </div>
       </div>
@@ -289,6 +281,7 @@ function SellSimulator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
 
   const { data: positions = [] } = useQuery({
     queryKey: ["positions"],
@@ -309,7 +302,7 @@ function SellSimulator() {
       setResult(out);
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(detail ?? "Errore nella simulazione");
+      setError(detail ?? t("common.error"));
       setResult(null);
     } finally {
       setLoading(false);
@@ -320,8 +313,8 @@ function SellSimulator() {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-4">
         <Calculator className="w-4 h-4 text-brand-600" />
-        <h2 className="text-sm font-semibold text-gray-700">Simulatore vendita</h2>
-        <span className="text-xs text-gray-400">— impatto fiscale stimato (FIFO)</span>
+        <h2 className="text-sm font-semibold text-gray-700">{t("tax.simulator")}</h2>
+        <span className="text-xs text-gray-400">{t("tax.simulatorDesc")}</span>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -334,10 +327,10 @@ function SellSimulator() {
           }}
           className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
         >
-          <option value="">Seleziona un asset...</option>
+          <option value="">{t("tax.selectAsset")}</option>
           {positions.map((p) => (
             <option key={p.asset_id} value={p.asset_id}>
-              {p.symbol} — {p.name} ({p.quantity.toLocaleString("it-IT")} quote)
+              {p.symbol} — {p.name} ({p.quantity.toLocaleString("it-IT")} {t("holdingDetail.units")})
             </option>
           ))}
         </select>
@@ -346,7 +339,7 @@ function SellSimulator() {
           <input
             type="number"
             inputMode="decimal"
-            placeholder="Quantità"
+            placeholder={t("common.quantity")}
             value={quantityStr}
             onChange={(e) => {
               setQuantityStr(e.target.value);
@@ -359,7 +352,7 @@ function SellSimulator() {
               onClick={() => setQuantityStr(String(maxQty))}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-brand-600 hover:text-brand-700 font-medium"
             >
-              max
+              {t("tax.max")}
             </button>
           )}
         </div>
@@ -369,7 +362,7 @@ function SellSimulator() {
           disabled={!assetId || !quantityStr || loading}
           className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? "Calcolo..." : "Calcola"}
+          {loading ? t("tax.calculating") : t("tax.calculate")}
         </button>
       </div>
 
@@ -385,30 +378,30 @@ function SellSimulator() {
             <p className="text-sm font-medium text-gray-700">
               {result.asset_name}{" "}
               <span className="text-gray-400 font-normal">
-                × {result.quantity.toLocaleString("it-IT")} quote
+                × {result.quantity.toLocaleString("it-IT")} {t("holdingDetail.units")}
               </span>
             </p>
             <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-              {result.tax_bracket === "government_bond" ? "Titoli di Stato 12.5%" : "Standard 26%"}
+              {result.tax_bracket === "government_bond" ? `${t("tax.govBondBracket")} 12.5%` : `Standard 26%`}
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SimResultCard label="Prezzo corrente" value={zenMode ? "•••••" : eur(result.current_price_eur)} />
-            <SimResultCard label="Ricavo vendita" value={zenMode ? "•••••" : eur(result.proceeds_eur)} />
-            <SimResultCard label="Costo base FIFO" value={zenMode ? "•••••" : eur(result.cost_basis_eur)} />
+            <SimResultCard label={t("tax.currentPrice")} value={zenMode ? "•••••" : eur(result.current_price_eur)} />
+            <SimResultCard label={t("tax.saleProceeds")} value={zenMode ? "•••••" : eur(result.proceeds_eur)} />
+            <SimResultCard label={t("tax.fifoCost")} value={zenMode ? "•••••" : eur(result.cost_basis_eur)} />
             <SimResultCard
-              label="Gain / Loss"
+              label={t("tax.gainLoss")}
               value={zenMode ? "•••••" : (result.gain_loss_eur >= 0 ? "+" : "") + eur(result.gain_loss_eur)}
               positive={result.gain_loss_eur > 0.005}
               negative={result.gain_loss_eur < -0.005}
             />
             <SimResultCard
-              label="Imposta stimata"
+              label={t("tax.estimatedTax")}
               value={zenMode ? "•••••" : eur(result.estimated_tax_eur)}
               negative={result.estimated_tax_eur > 0}
             />
             <SimResultCard
-              label="Netto dopo tasse"
+              label={t("tax.netAfterTax")}
               value={zenMode ? "•••••" : eur(result.net_proceeds_eur)}
               highlight
             />
@@ -424,6 +417,7 @@ function SellSimulator() {
 function CarryforwardHistory({ years }: { years: number[] }) {
   const [open, setOpen] = useState(false);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
 
   // Carica i report per tutti gli anni disponibili (lazy)
   const queries = useQuery({
@@ -470,8 +464,8 @@ function CarryforwardHistory({ years }: { years: number[] }) {
       >
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-semibold text-gray-700">Storico minusvalenze multi-anno</span>
-          <span className="text-xs text-gray-400">(Art. 68 TUIR — compensabili entro 4 anni)</span>
+          <span className="text-sm font-semibold text-gray-700">{t("tax.lossHistory")}</span>
+          <span className="text-xs text-gray-400">{t("tax.lossHistoryDesc")}</span>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -479,20 +473,20 @@ function CarryforwardHistory({ years }: { years: number[] }) {
       {open && (
         <div className="border-t border-gray-100">
           {queries.isLoading ? (
-            <div className="px-5 py-6 text-center text-sm text-gray-400">Caricamento...</div>
+            <div className="px-5 py-6 text-center text-sm text-gray-400">{t("common.loading")}</div>
           ) : history.length === 0 ? (
-            <div className="px-5 py-6 text-center text-sm text-gray-400">Nessun dato.</div>
+            <div className="px-5 py-6 text-center text-sm text-gray-400">{t("common.noData")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-400 uppercase">
-                    <th className="px-5 py-2.5 text-left">Anno</th>
-                    <th className="px-5 py-2.5 text-right">Minus. maturate (std)</th>
-                    <th className="px-5 py-2.5 text-right">Minus. maturate (TdS)</th>
-                    <th className="px-5 py-2.5 text-right">Compensate (std)</th>
-                    <th className="px-5 py-2.5 text-right">Residuo disponibile</th>
-                    <th className="px-5 py-2.5 text-right">In scadenza</th>
+                    <th className="px-5 py-2.5 text-left">{t("dividends.year")}</th>
+                    <th className="px-5 py-2.5 text-right">{t("tax.stdLoss")}</th>
+                    <th className="px-5 py-2.5 text-right">{t("tax.govLoss")}</th>
+                    <th className="px-5 py-2.5 text-right">{t("tax.usedLoss")}</th>
+                    <th className="px-5 py-2.5 text-right">{t("tax.remainingLoss")}</th>
+                    <th className="px-5 py-2.5 text-right">{t("tax.expiring")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -521,7 +515,7 @@ function CarryforwardHistory({ years }: { years: number[] }) {
                 </tbody>
               </table>
               <div className="px-5 py-3 text-xs text-gray-400 bg-gray-50 border-t border-gray-100">
-                Le minusvalenze standard (26%) e titoli di Stato (12,5%) sono in zainetti separati e non compensabili tra loro.
+                {t("tax.lossNote")}
               </div>
             </div>
           )}
@@ -537,6 +531,7 @@ export function Fiscale() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
 
   const { data: years = [] } = useQuery({
     queryKey: ["tax-years"],
@@ -559,7 +554,7 @@ export function Fiscale() {
 
   return (
     <>
-      <TopBar title="Fiscale" />
+      <TopBar title={t("tax.title")} />
       <main className="flex-1">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
@@ -581,39 +576,39 @@ export function Fiscale() {
       <SellSimulator />
 
       {isLoading ? (
-        <div className="text-center py-16 text-sm text-gray-500">Calcolo in corso...</div>
+        <div className="text-center py-16 text-sm text-gray-500">{t("tax.calculating")}</div>
       ) : !report || report.events.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
           <Wallet className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">Nessun evento fiscale nel {selectedYear}</p>
-          <p className="text-xs text-gray-400 mt-1">Le vendite, i dividendi e le cedole appariranno qui.</p>
+          <p className="text-sm font-medium text-gray-500">{t("tax.noEvents", { year: selectedYear })}</p>
+          <p className="text-xs text-gray-400 mt-1">{t("tax.noEventsDesc")}</p>
         </div>
       ) : (
         <>
           {/* KPI cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <KpiCard
-              label="Imposta dovuta"
+              label={t("tax.taxDue")}
               value={zenMode ? "•••••" : eur(report.total_tax_due)}
-              sub="capital gain"
+              sub={t("tax.taxDueDesc")}
               icon={<AlertCircle className="w-4 h-4 text-red-500" />}
             />
             <KpiCard
-              label="Plusvalenze totali"
+              label={t("tax.totalGains")}
               value={zenMode ? "•••••" : eur(report.gains_standard + report.gains_govt)}
-              sub="entrambe le aliquote"
+              sub={t("tax.totalGainsDesc")}
               icon={<TrendingUp className="w-4 h-4 text-green-500" />}
             />
             <KpiCard
-              label="Minusvalenze totali"
+              label={t("tax.totalLosses")}
               value={zenMode ? "•••••" : eur(report.losses_standard + report.losses_govt)}
-              sub="compensabili"
+              sub={t("tax.totalLossesDesc")}
               icon={<TrendingDown className="w-4 h-4 text-red-500" />}
             />
             <KpiCard
-              label="Zainetto disponibile"
+              label={t("tax.carryforward")}
               value={zenMode ? "•••••" : eur(totalCarryStd + totalCarryGovt)}
-              sub="da anni precedenti"
+              sub={t("tax.carryforwardDesc")}
               icon={<Wallet className="w-4 h-4 text-brand-600" />}
             />
           </div>
@@ -621,7 +616,7 @@ export function Fiscale() {
           {/* Bracket cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Bracket
-              label="Azioni, ETF, Crypto"
+              label={t("tax.standardBracket")}
               rate={0.26}
               gains={report.gains_standard}
               losses={report.losses_standard}
@@ -632,7 +627,7 @@ export function Fiscale() {
               priorEntries={report.prior_carryforward_standard}
             />
             <Bracket
-              label="Titoli di Stato (BTP/BOT/CCT)"
+              label={t("tax.govBondBracket")}
               rate={0.125}
               gains={report.gains_govt}
               losses={report.losses_govt}
@@ -653,12 +648,7 @@ export function Fiscale() {
           {/* Disclaimer */}
           <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-700">
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p>
-              I calcoli sono effettuati con metodo <strong>FIFO</strong> a scopo informativo e potrebbero
-              differire da quanto calcolato dal tuo broker (che usa PMC in regime amministrato o LIFO in
-              regime dichiarativo). Per la dichiarazione fiscale consulta un commercialista o usa i report
-              ufficiali del tuo intermediario.
-            </p>
+            <p>{t("tax.disclaimer")}</p>
           </div>
 
           {/* Events table */}

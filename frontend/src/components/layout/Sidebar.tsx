@@ -11,23 +11,25 @@ import {
   ShieldCheck,
   Coins,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.svg";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: BarChart2 },
-  { to: "/transazioni", label: "Transazioni", icon: ArrowLeftRight },
-  { to: "/performance", label: "Performance", icon: TrendingUp },
-  { to: "/allocazione", label: "Allocazioni", icon: PieChart },
-  { to: "/fiscale", label: "Fiscale", icon: Calculator },
-  { to: "/dividendi", label: "Dividendi", icon: Coins },
-  { to: "/strumenti", label: "Strumenti", icon: Wrench },
-  { to: "/alert", label: "Alert", icon: Bell },
-  { to: "/import", label: "Importa / Esporta", icon: Upload },
-];
-
 export function Sidebar() {
+  const { t } = useTranslation();
   const { isSuperAdmin } = useAuth();
+
+  const navItems = [
+    { to: "/", label: t("nav.dashboard"), icon: BarChart2 },
+    { to: "/transazioni", label: t("nav.transactions"), icon: ArrowLeftRight },
+    { to: "/performance", label: t("nav.performance"), icon: TrendingUp },
+    { to: "/allocazione", label: t("nav.allocation"), icon: PieChart },
+    { to: "/fiscale", label: t("nav.tax"), icon: Calculator },
+    { to: "/dividendi", label: t("nav.dividends"), icon: Coins },
+    { to: "/strumenti", label: t("nav.tools"), icon: Wrench },
+    { to: "/alert", label: t("nav.alerts"), icon: Bell },
+    { to: "/import", label: t("nav.import"), icon: Upload },
+  ];
 
   return (
     <aside className="hidden md:flex w-64 min-h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 flex-col">
@@ -65,7 +67,7 @@ export function Sidebar() {
             }
           >
             <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-            Amministrazione
+            {t("nav.admin")}
           </NavLink>
         )}
       </nav>

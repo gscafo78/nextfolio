@@ -4,6 +4,7 @@ import {
   Upload, ChevronRight, Check, AlertCircle, Search,
   Plus, SkipForward, ArrowRight, Loader2, X, Download,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/services/api";
 import { TopBar } from "@/components/layout/TopBar";
 import {
@@ -35,6 +36,7 @@ function downloadBlob(blob: Blob, fallbackName: string, headers: Record<string, 
 function ExportCard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   async function handleExport() {
     setLoading(true);
@@ -47,7 +49,7 @@ function ExportCard() {
         resp.headers,
       );
     } catch {
-      setError("Errore durante l'esportazione. Riprova.");
+      setError(t("import.exportError"));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ function ExportCard() {
       const resp = await api.get("/portfolio/export/ghostfolio", { responseType: "blob" });
       downloadBlob(new Blob([resp.data], { type: "application/json" }), "nextfolio_ghostfolio.json", resp.headers);
     } catch {
-      setError("Errore durante l'esportazione. Riprova.");
+      setError(t("import.exportError"));
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,7 @@ function ExportCard() {
       const resp = await api.get("/portfolio/export/nextfolio", { responseType: "blob" });
       downloadBlob(new Blob([resp.data], { type: "application/json" }), "nextfolio_backup.json", resp.headers);
     } catch {
-      setError("Errore durante l'esportazione. Riprova.");
+      setError(t("import.exportError"));
     } finally {
       setLoading(false);
     }
@@ -81,9 +83,9 @@ function ExportCard() {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-5">
-      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">Esporta dati</h2>
+      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">{t("import.exportTitle")}</h2>
       <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
-        Backup completo, Excel per il commercialista, o formato Ghostfolio per migrazione.
+        {t("import.exportDesc")}
       </p>
 
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -94,7 +96,7 @@ function ExportCard() {
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4" />
-            Backup Nextfolio (.json)
+            {t("import.exportBackup")}
           </button>
           <button
             onClick={handleExport}
@@ -102,7 +104,7 @@ function ExportCard() {
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4" />
-            {loading ? "Preparazione..." : "Scarica Excel (.xlsx)"}
+            {loading ? t("common.prepare") : t("import.exportExcel")}
           </button>
           <button
             onClick={handleGhostfolioExport}
@@ -110,14 +112,14 @@ function ExportCard() {
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4" />
-            Esporta Ghostfolio (.json)
+            {t("import.exportGhostfolio")}
           </button>
         </div>
 
         <div className="text-xs text-gray-400 dark:text-slate-500 space-y-1">
-          <p><strong className="text-gray-600 dark:text-slate-400">Backup Nextfolio:</strong> Tutti i dati (conti, asset, transazioni) — per ripristino o migrazione</p>
-          <p><strong className="text-gray-600 dark:text-slate-400">Excel:</strong> Fogli Transazioni, Posizioni, Info — per commercialista</p>
-          <p><strong className="text-gray-600 dark:text-slate-400">Ghostfolio:</strong> Formato JSON v3 compatibile con import Ghostfolio</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportBackup")}:</strong> {t("import.exportBackupDesc")}</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportExcel")}:</strong> {t("import.exportExcelDesc")}</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportGhostfolio")}:</strong> {t("import.exportGhostfolioDesc")}</p>
         </div>
       </div>
 
@@ -140,6 +142,7 @@ function RestoreCard() {
     transactions_skipped: number;
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -165,10 +168,9 @@ function RestoreCard() {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-5">
-      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">Ripristina backup</h2>
+      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">{t("import.restoreTitle")}</h2>
       <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
-        Importa un file <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">nextfolio_backup_*.json</code>.
-        I duplicati vengono ignorati automaticamente.
+        {t("import.restoreDesc")}
       </p>
 
       <input
@@ -184,17 +186,17 @@ function RestoreCard() {
         className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <Download className="w-4 h-4 rotate-180" />
-        {loading ? "Importazione in corso..." : "Seleziona backup (.json)"}
+        {loading ? t("import.importing") : t("import.selectBackup")}
       </button>
 
       {result && (
         <div className="mt-4 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-3 space-y-0.5">
-          <p className="font-semibold text-green-700 dark:text-green-400 mb-1">Importazione completata</p>
-          <p className="text-green-600 dark:text-green-500">Conti creati: <strong>{result.accounts_created}</strong></p>
-          <p className="text-green-600 dark:text-green-500">Asset creati: <strong>{result.assets_created}</strong></p>
-          <p className="text-green-600 dark:text-green-500">Transazioni importate: <strong>{result.transactions_imported}</strong></p>
+          <p className="font-semibold text-green-700 dark:text-green-400 mb-1">{t("import.importDone")}</p>
+          <p className="text-green-600 dark:text-green-500">{t("import.accountsCreated")} <strong>{result.accounts_created}</strong></p>
+          <p className="text-green-600 dark:text-green-500">{t("import.assetsCreated")} <strong>{result.assets_created}</strong></p>
+          <p className="text-green-600 dark:text-green-500">{t("import.txImported")} <strong>{result.transactions_imported}</strong></p>
           {result.transactions_skipped > 0 && (
-            <p className="text-gray-500 dark:text-slate-400">Transazioni duplicate saltate: {result.transactions_skipped}</p>
+            <p className="text-gray-500 dark:text-slate-400">{t("import.txSkipped")} {result.transactions_skipped}</p>
           )}
         </div>
       )}
@@ -210,14 +212,14 @@ function RestoreCard() {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STEPS = ["Carica file", "Account", "Asset", "Importa"];
-
 const ASSET_TYPES = ["ETF", "STOCK", "BOND", "CRYPTO", "COMMODITY", "REIT", "OTHER"];
 const EXCHANGES = ["MIL", "EuroTLX", "MOT", "XETRA", "NYSE", "NASDAQ", "CRYPTO", "OTHER"];
 
 // ── Stepper ───────────────────────────────────────────────────────────────────
 
 function Stepper({ current }: { current: number }) {
+  const { t } = useTranslation();
+  const STEPS = [t("import.uploadFile"), t("import.accountMapping"), t("import.assetMapping"), t("import.startImport")];
   return (
     <div className="flex items-center gap-2 mb-8">
       {STEPS.map((label, i) => (
@@ -249,6 +251,7 @@ function UploadStep({ onParsed }: { onParsed: (raw: unknown) => void }) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const handleFile = useCallback((file: File) => {
     setError("");
@@ -257,16 +260,16 @@ function UploadStep({ onParsed }: { onParsed: (raw: unknown) => void }) {
       try {
         const json = JSON.parse(e.target?.result as string);
         if (!json.activities || !Array.isArray(json.activities)) {
-          setError("File non valido: manca il campo 'activities'. Assicurati di esportare da Ghostfolio in formato JSON.");
+          setError(t("import.invalidFile"));
           return;
         }
         onParsed(json);
       } catch {
-        setError("Impossibile leggere il file. Assicurati che sia un JSON valido.");
+        setError(t("import.invalidJson"));
       }
     };
     reader.readAsText(file);
-  }, [onParsed]);
+  }, [onParsed, t]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -277,9 +280,9 @@ function UploadStep({ onParsed }: { onParsed: (raw: unknown) => void }) {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">Carica export Ghostfolio</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-2">{t("import.ghostfolioTitle")}</h2>
       <p className="text-sm text-gray-500 mb-6">
-        Esporta il tuo portafoglio da Ghostfolio (<em>Impostazioni → Importa/Esporta → Esporta JSON</em>) e carica il file qui.
+        {t("import.ghostfolioInstructions")}
       </p>
 
       <div
@@ -292,8 +295,8 @@ function UploadStep({ onParsed }: { onParsed: (raw: unknown) => void }) {
         }`}
       >
         <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-        <p className="text-sm font-medium text-gray-700">Trascina qui il file JSON</p>
-        <p className="text-xs text-gray-400 mt-1">oppure clicca per scegliere</p>
+        <p className="text-sm font-medium text-gray-700">{t("import.dropZone")}</p>
+        <p className="text-xs text-gray-400 mt-1">{t("import.dropZoneOr")}</p>
         <input
           ref={inputRef}
           type="file"
@@ -328,13 +331,14 @@ function AccountStep({
     queryKey: ["accounts"],
     queryFn: accountService.list,
   });
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Mapping account</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">{t("import.accountMapping")}</h2>
         <p className="text-sm text-gray-500">
-          Per ogni conto trovato nel file scegli se crearlo o collegarlo a uno esistente in Nextfolio.
+          {t("import.accountMappingDesc")}
         </p>
       </div>
 
@@ -353,10 +357,10 @@ function AccountStep({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-gray-900">{acc.name}</p>
-                <p className="text-xs text-gray-400">{acc.broker ?? "—"} · {acc.transaction_count} transazioni</p>
+                <p className="text-xs text-gray-400">{acc.broker ?? "—"} · {acc.transaction_count} {t("settings.transactions")}</p>
               </div>
               {acc.is_null && (
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">senza conto</span>
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">{t("import.noAccount")}</span>
               )}
             </div>
 
@@ -369,7 +373,7 @@ function AccountStep({
                     : "border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
               >
-                Usa esistente
+                {t("import.useExisting")}
               </button>
               <button
                 onClick={() => onChange(acc.ghostfolio_id, { ...r, action: "create" })}
@@ -379,7 +383,7 @@ function AccountStep({
                     : "border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
               >
-                Crea nuovo
+                {t("import.createNew")}
               </button>
             </div>
 
@@ -389,7 +393,7 @@ function AccountStep({
                 onChange={(e) => onChange(acc.ghostfolio_id, { ...r, existing_id: Number(e.target.value) })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
-                <option value="">— seleziona conto —</option>
+                <option value="">{t("import.selectAccount")}</option>
                 {existingAccounts.map((a: any) => (
                   <option key={a.id} value={a.id}>{a.name} ({a.broker ?? a.type})</option>
                 ))}
@@ -399,12 +403,12 @@ function AccountStep({
             {r.action === "create" && (
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  label="Nome"
+                  label={t("common.name")}
                   value={r.name ?? ""}
                   onChange={(e) => onChange(acc.ghostfolio_id, { ...r, name: e.target.value })}
                 />
                 <Input
-                  label="Broker"
+                  label={t("settings.accountBroker").replace(" / Istituto (opzionale)", "")}
                   value={r.broker ?? ""}
                   onChange={(e) => onChange(acc.ghostfolio_id, { ...r, broker: e.target.value })}
                 />
@@ -477,6 +481,7 @@ function AssetRow({
 }) {
   const r = resolution;
   const isAutoResolved = !asset.is_uuid && !!asset.db_match;
+  const { t } = useTranslation();
 
   return (
     <div className={`bg-white rounded-xl border p-4 space-y-3 ${
@@ -503,17 +508,17 @@ function AssetRow({
 
       {/* Action toggle */}
       <div className="flex gap-2">
-        {["use_existing", "create", "skip"].map((action) => (
+        {(["use_existing", "create", "skip"] as const).map((action) => (
           <button
             key={action}
-            onClick={() => onChange({ ...r, action: action as AssetResolution["action"] })}
+            onClick={() => onChange({ ...r, action })}
             className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors ${
               r.action === action
                 ? "border-brand-400 bg-brand-50 text-brand-700 font-medium"
                 : "border-gray-200 text-gray-400 hover:border-gray-300"
             }`}
           >
-            {action === "use_existing" ? "Collega" : action === "create" ? "Crea" : "Salta"}
+            {action === "use_existing" ? t("import.link") : action === "create" ? t("import.create") : t("import.skip")}
           </button>
         ))}
       </div>
@@ -539,7 +544,7 @@ function AssetRow({
               onClick={() => onChange({ ...r, existing_id: asset.db_match!.id })}
               className="mt-2 w-full text-left text-xs bg-brand-50 text-brand-700 px-3 py-2 rounded-lg hover:bg-brand-100 transition-colors"
             >
-              Suggerito: <strong>{asset.db_match.name}</strong> ({asset.db_match.symbol})
+              {t("import.suggested")} <strong>{asset.db_match.name}</strong> ({asset.db_match.symbol})
             </button>
           )}
           {!r.existing_id && asset.suggestions.map((s) => (
@@ -548,7 +553,7 @@ function AssetRow({
               onClick={() => onChange({ ...r, existing_id: s.id })}
               className="mt-1 w-full text-left text-xs bg-gray-50 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              Suggerito: <strong>{s.name}</strong> ({s.symbol})
+              {t("import.suggested")} <strong>{s.name}</strong> ({s.symbol})
             </button>
           ))}
         </div>
@@ -558,33 +563,33 @@ function AssetRow({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <Input
-              label="Nome"
+              label={t("common.name")}
               value={r.name ?? asset.name}
               onChange={(e) => onChange({ ...r, name: e.target.value })}
             />
             <div>
               <Input
-                label="Simbolo ticker (opzionale)"
+                label={t("allocation.symbol")}
                 value={r.symbol ?? (asset.is_uuid ? "" : asset.ghostfolio_symbol)}
                 onChange={(e) => onChange({ ...r, symbol: e.target.value })}
                 placeholder="es. SWDA.MI"
               />
-              <p className="text-xs text-gray-400 mt-0.5">Se assente viene usato ISIN o WKN</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t("transactions.symbolLabel")}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t("common.type")}</label>
               <select
                 value={r.type ?? asset.suggested_type}
                 onChange={(e) => onChange({ ...r, type: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                {ASSET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {ASSET_TYPES.map((assetType) => <option key={assetType} value={assetType}>{assetType}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Borsa</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t("holdingDetail.exchange")}</label>
               <select
                 value={r.exchange ?? asset.suggested_exchange}
                 onChange={(e) => onChange({ ...r, exchange: e.target.value })}
@@ -594,7 +599,7 @@ function AssetRow({
               </select>
             </div>
             <Input
-              label="Valuta"
+              label={t("common.currency")}
               value={r.currency ?? asset.currency}
               onChange={(e) => onChange({ ...r, currency: e.target.value })}
             />
@@ -621,7 +626,7 @@ function AssetRow({
                 onChange={(e) => onChange({ ...r, import_price_history: e.target.checked })}
                 className="rounded border-gray-300 text-brand-600"
               />
-              Importa storico prezzi ({asset.price_history_count} date)
+              {t("import.priceHistoryTitle")} ({asset.price_history_count} date)
             </label>
           )}
         </div>
@@ -629,7 +634,7 @@ function AssetRow({
 
       {r.action === "skip" && (
         <p className="text-xs text-gray-400">
-          Le {asset.transaction_count} transazioni di questo asset verranno ignorate.
+          {t("import.txWillBeSkipped", { count: asset.transaction_count })}
         </p>
       )}
     </div>
@@ -648,20 +653,21 @@ function AssetStep({
   const needsAttention = preview.assets.filter((a) => !a.db_match);
   const autoResolved = preview.assets.filter((a) => a.db_match && !a.is_uuid);
   const [showAuto, setShowAuto] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Mapping asset</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">{t("import.assetMapping")}</h2>
         <p className="text-sm text-gray-500">
-          Collega ogni asset del file a uno già presente in Nextfolio, creane uno nuovo o salta le sue transazioni.
+          {t("import.assetMappingDesc")}
         </p>
       </div>
 
       {needsAttention.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Da risolvere ({needsAttention.length})
+            {t("import.toResolve")} ({needsAttention.length})
           </p>
           <div className="space-y-3">
             {needsAttention.map((a) => (
@@ -682,7 +688,7 @@ function AssetStep({
             onClick={() => setShowAuto((s) => !s)}
             className="text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors flex items-center gap-1 mb-2"
           >
-            Asset auto-riconosciuti ({autoResolved.length})
+            {t("import.autoRecognized")} ({autoResolved.length})
             <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showAuto ? "rotate-90" : ""}`} />
           </button>
           {showAuto && (
@@ -728,6 +734,7 @@ function SummaryStep({
   const txSkipped = preview.assets
     .filter((a) => assetResolutions[a.ghostfolio_symbol]?.action === "skip")
     .reduce((s, a) => s + a.transaction_count, 0);
+  const { t } = useTranslation();
 
   if (result) {
     return (
@@ -735,13 +742,13 @@ function SummaryStep({
         <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
           <Check className="w-7 h-7 text-green-600" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Import completato</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t("import.importComplete")}</h2>
         <div className="bg-white rounded-xl border border-gray-200 p-5 text-sm text-left space-y-2">
-          <Row label="Account creati" value={result.accounts_created} />
-          <Row label="Asset creati" value={result.assets_created} />
-          <Row label="Prezzi storici importati" value={result.price_history_inserted} />
-          <Row label="Transazioni importate" value={result.transactions_created} />
-          {result.transactions_skipped > 0 && <Row label="Transazioni saltate" value={result.transactions_skipped} warn />}
+          <Row label={t("import.accountsCreated").replace(":", "")} value={result.accounts_created} />
+          <Row label={t("import.assetsCreated").replace(":", "")} value={result.assets_created} />
+          <Row label={t("import.pricesImported")} value={result.price_history_inserted} />
+          <Row label={t("import.txImported").replace(":", "")} value={result.transactions_created} />
+          {result.transactions_skipped > 0 && <Row label={t("import.txSkipped").replace(":", "")} value={result.transactions_skipped} warn />}
         </div>
         {result.errors.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 text-left space-y-1">
@@ -755,16 +762,16 @@ function SummaryStep({
   return (
     <div className="max-w-md mx-auto space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Riepilogo</h2>
-        <p className="text-sm text-gray-500">Controlla prima di importare.</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">{t("import.summary")}</h2>
+        <p className="text-sm text-gray-500">{t("import.summaryCheck")}</p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 text-sm space-y-2">
-        <Row label="Account da creare" value={accountsToCreate} />
-        <Row label="Asset da creare" value={assetsToCreate} />
-        <Row label="Asset saltati" value={assetsSkipped} warn={assetsSkipped > 0} />
-        <Row label="Transazioni totali" value={preview.total_transactions} />
-        {txSkipped > 0 && <Row label="Transazioni che verranno saltate" value={txSkipped} warn />}
+        <Row label={t("import.accountsToCreate")} value={accountsToCreate} />
+        <Row label={t("import.assetsToCreate")} value={assetsToCreate} />
+        <Row label={t("import.assetsSkipped")} value={assetsSkipped} warn={assetsSkipped > 0} />
+        <Row label={t("import.totalTx")} value={preview.total_transactions} />
+        {txSkipped > 0 && <Row label={t("import.txToSkip")} value={txSkipped} warn />}
       </div>
 
       {error && (
@@ -776,7 +783,7 @@ function SummaryStep({
 
       <Button className="w-full" onClick={onExecute} loading={isPending}>
         <ArrowRight className="w-4 h-4 mr-2" />
-        Avvia import
+        {t("import.startImport")}
       </Button>
     </div>
   );
@@ -830,6 +837,7 @@ function buildDefaultAssetResolutions(preview: GhostfolioPreview): Record<string
 
 export function Import() {
   const [step, setStep] = useState(0);
+  const { t } = useTranslation();
   const [rawJson, setRawJson] = useState<unknown>(null);
   const [preview, setPreview] = useState<GhostfolioPreview | null>(null);
   const [accountRes, setAccountRes] = useState<Record<string, AccountResolution>>({});
@@ -859,7 +867,7 @@ export function Import() {
       setImportResult(data);
     },
     onError: (err: any) => {
-      const detail = err?.response?.data?.detail ?? err?.message ?? "Errore sconosciuto";
+      const detail = err?.response?.data?.detail ?? err?.message ?? t("common.error");
       setImportError(String(detail));
     },
   });
@@ -887,7 +895,7 @@ export function Import() {
 
   return (
     <>
-      <TopBar title="Importa / Esporta" />
+      <TopBar title={t("import.title")} />
       <main className="flex-1">
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <ExportCard />
@@ -895,8 +903,8 @@ export function Import() {
 
       <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Importa da Ghostfolio</h2>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Wizard interattivo — risolvi ogni ambiguità prima di importare</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{t("import.ghostfolioTitle")}</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t("import.ghostfolioDesc")}</p>
         </div>
 
       <Stepper current={step} />
@@ -912,14 +920,14 @@ export function Import() {
             <div className="max-w-xl mx-auto">
               <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-2 mb-4">
                 <Check className="w-4 h-4 flex-shrink-0" />
-                File caricato correttamente. Clicca "Analizza" per proseguire.
+                {t("import.fileUploaded")}
               </div>
               <Button
                 className="w-full"
                 onClick={() => previewMutation.mutate(rawJson)}
                 loading={previewMutation.isPending}
               >
-                Analizza file
+                {t("import.analyzeFile")}
               </Button>
               {previewMutation.isError && (
                 <p className="mt-2 text-sm text-red-600 text-center">
@@ -939,9 +947,9 @@ export function Import() {
             onChange={(id, r) => setAccountRes((prev) => ({ ...prev, [id]: r }))}
           />
           <div className="flex justify-between pt-2">
-            <Button variant="secondary" onClick={() => setStep(0)}>Indietro</Button>
+            <Button variant="secondary" onClick={() => setStep(0)}>{t("common.back")}</Button>
             <Button onClick={() => setStep(2)} disabled={!canAdvanceAccounts}>
-              Avanti <ChevronRight className="w-4 h-4 ml-1" />
+              {t("common.next")} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -955,9 +963,9 @@ export function Import() {
             onChange={(sym, r) => setAssetRes((prev) => ({ ...prev, [sym]: r }))}
           />
           <div className="flex justify-between pt-2">
-            <Button variant="secondary" onClick={() => setStep(1)}>Indietro</Button>
+            <Button variant="secondary" onClick={() => setStep(1)}>{t("common.back")}</Button>
             <Button onClick={() => setStep(3)} disabled={!canAdvanceAssets}>
-              Avanti <ChevronRight className="w-4 h-4 ml-1" />
+              {t("common.next")} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -976,7 +984,7 @@ export function Import() {
           />
           {!importResult && (
             <div className="max-w-md mx-auto">
-              <Button variant="secondary" onClick={() => setStep(2)}>Indietro</Button>
+              <Button variant="secondary" onClick={() => setStep(2)}>{t("common.back")}</Button>
             </div>
           )}
         </div>

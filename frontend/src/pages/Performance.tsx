@@ -8,6 +8,7 @@ import {
 import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ShieldAlert, AlertTriangle, GitFork } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut, type PerformancePoint } from "@/services/portfolio";
@@ -29,14 +30,7 @@ const PIE_COLORS = [
   "#ef4444", "#06b6d4", "#84cc16", "#f97316",
 ];
 
-const TYPE_LABELS: Record<string, string> = {
-  STOCK: "Azioni", ETF: "ETF", BOND: "Obbligazioni",
-  CRYPTO: "Crypto", COMMODITY: "Commodity", REIT: "REIT",
-};
-
-const DIV_LABELS: Record<string, string> = {
-  DIVIDEND: "Dividendo", COUPON: "Cedola", INTEREST: "Interesse",
-};
+// TYPE_LABELS and DIV_LABELS are now provided by t() inside components
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -143,6 +137,8 @@ function RiskCard({
 
 function RiskMetricsSection() {
   const [riskPeriod, setRiskPeriod] = useState("3y");
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "en" ? undefined : it;
 
   const { data: risk, isLoading } = useQuery({
     queryKey: ["portfolio-risk", riskPeriod],
@@ -156,7 +152,7 @@ function RiskMetricsSection() {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
         <ShieldAlert className="w-4 h-4 text-gray-400" />
-        <h3 className="text-sm font-semibold text-gray-700">Metriche di rischio</h3>
+        <h3 className="text-sm font-semibold text-gray-700">{t("performance.riskMetrics")}</h3>
         <div className="ml-auto flex gap-1">
           {RISK_PERIODS.map((p) => (
             <button
@@ -175,19 +171,19 @@ function RiskMetricsSection() {
       </div>
 
       {isLoading || !risk ? (
-        <div className="p-6 text-center text-sm text-gray-400">Calcolo in corso...</div>
+        <div className="p-6 text-center text-sm text-gray-400">{t("performance.calculating")}</div>
       ) : risk.trading_days < 10 ? (
         <div className="p-6 text-center text-sm text-gray-400">
-          Dati insufficienti per il periodo selezionato (minimo ~10 giorni di storico prezzi).
+          {t("performance.insufficientData")}
         </div>
       ) : (
         <div className="p-5 space-y-4">
           {/* Metriche principali */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <RiskCard
-              label="Volatilità ann."
+              label={t("performance.annVolatility")}
               value={`${risk.annualized_volatility_pct.toFixed(1)}%`}
-              sub="deviazione standard × √252"
+              sub={t("performance.annVolatilityDesc")}
               color={
                 risk.annualized_volatility_pct > 25
                   ? "text-red-600"
@@ -197,25 +193,25 @@ function RiskMetricsSection() {
               }
             />
             <RiskCard
-              label="Max drawdown"
+              label={t("performance.maxDrawdown")}
               value={`${risk.max_drawdown_pct.toFixed(1)}%`}
               sub={
                 risk.max_drawdown_start && risk.max_drawdown_end
-                  ? `${format(parseISO(risk.max_drawdown_start.toString()), "MMM yy", { locale: it })} → ${format(parseISO(risk.max_drawdown_end.toString()), "MMM yy", { locale: it })}`
-                  : "picco-valle"
+                  ? `${format(parseISO(risk.max_drawdown_start.toString()), "MMM yy", { locale: dateLocale })} → ${format(parseISO(risk.max_drawdown_end.toString()), "MMM yy", { locale: dateLocale })}`
+                  : t("performance.maxDrawdownDesc")
               }
               color={riskColor(risk.max_drawdown_pct, "low")}
             />
             <RiskCard
-              label="Sharpe ratio"
+              label={t("performance.sharpe")}
               value={fmtRatio(risk.sharpe_ratio)}
-              sub="rendimento / volatilità (rf=0%)"
+              sub={t("performance.sharpeDesc")}
               color={riskColor(risk.sharpe_ratio, "high")}
             />
             <RiskCard
-              label="Sortino ratio"
+              label={t("performance.sortino")}
               value={fmtRatio(risk.sortino_ratio)}
-              sub="rendimento / downside deviation"
+              sub={t("performance.sortinoDesc")}
               color={riskColor(risk.sortino_ratio, "high")}
             />
           </div>
@@ -223,27 +219,27 @@ function RiskMetricsSection() {
           {/* Metriche secondarie */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div className="bg-gray-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-gray-400 mb-0.5">Rendimento ann. (TWRR)</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.annReturn")}</p>
               <p className={`text-sm font-semibold ${risk.twrr_annualized_pct >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {fmtPct(risk.twrr_annualized_pct)}
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-gray-400 mb-0.5">Calmar ratio</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.calmar")}</p>
               <p className={`text-sm font-semibold ${riskColor(risk.calmar_ratio, "high")}`}>
                 {fmtRatio(risk.calmar_ratio)}
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-gray-400 mb-0.5">Miglior giorno</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.bestDay")}</p>
               <p className="text-sm font-semibold text-green-600">+{risk.best_day_pct.toFixed(2)}%</p>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-gray-400 mb-0.5">Peggior giorno</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.worstDay")}</p>
               <p className="text-sm font-semibold text-red-600">{risk.worst_day_pct.toFixed(2)}%</p>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5 col-span-2 sm:col-span-2">
-              <p className="text-xs text-gray-400 mb-0.5">Giorni positivi</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.positiveDays")}</p>
               <div className="flex items-center gap-2 mt-1">
                 <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
@@ -255,7 +251,7 @@ function RiskMetricsSection() {
               </div>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5 col-span-2 sm:col-span-2">
-              <p className="text-xs text-gray-400 mb-0.5">Giorni di trading analizzati</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t("performance.tradingDays")}</p>
               <p className="text-sm font-semibold text-gray-700">{risk.trading_days.toLocaleString("it-IT")}</p>
             </div>
           </div>
@@ -270,11 +266,6 @@ const BENCHMARK_OPTIONS = [
   { value: "FTSE_MIB", label: "FTSE MIB" },
   { value: "SP500", label: "S&P 500" },
   { value: "NASDAQ", label: "NASDAQ" },
-];
-
-const CORR_COLORS = [
-  "#1d4ed8", "#3b82f6", "#93c5fd", "#e0f2fe",
-  "#fef9c3", "#fde68a", "#f97316", "#dc2626",
 ];
 
 function corrColor(v: number): string {
@@ -310,11 +301,12 @@ function buildMonthlyReturns(series: PerformancePoint[]): { month: string; pct: 
 }
 
 function MonthlyBarChart({ series }: { series: PerformancePoint[] }) {
+  const { t } = useTranslation();
   const data = buildMonthlyReturns(series);
   if (data.length < 2) return null;
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Performance mensile</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">{t("performance.monthlyPerf")}</h3>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -338,7 +330,7 @@ function MonthlyBarChart({ series }: { series: PerformancePoint[] }) {
           />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-            formatter={(v: number) => [`${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, "Rendimento"]}
+            formatter={(v: number) => [`${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, t("performance.monthlyReturn")]}
             labelFormatter={(d) => {
               const [y, m] = d.split("-");
               return `${m}/${y}`;
@@ -360,6 +352,8 @@ function MonthlyBarChart({ series }: { series: PerformancePoint[] }) {
 
 function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint[]; period: string }) {
   const [benchIndex, setBenchIndex] = useState("MSCI_WORLD");
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "en" ? undefined : it;
 
   const { data: bench, isLoading } = useQuery({
     queryKey: ["benchmark", benchIndex, period],
@@ -394,8 +388,8 @@ function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-700">Confronto con indice</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Portafoglio e benchmark normalizzati a 100</p>
+          <h3 className="text-sm font-semibold text-gray-700">{t("performance.benchmark")}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{t("performance.benchmarkNote")}</p>
         </div>
         <select
           value={benchIndex}
@@ -408,7 +402,7 @@ function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint
         </select>
       </div>
       {isLoading ? (
-        <div className="h-48 flex items-center justify-center text-xs text-gray-400">Caricamento...</div>
+        <div className="h-48 flex items-center justify-center text-xs text-gray-400">{t("common.loading")}</div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={combined} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
@@ -432,9 +426,9 @@ function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint
               contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
               formatter={(v: number, name: string) => [
                 `${v.toFixed(2)}`,
-                name === "portfolio" ? "Portafoglio" : BENCHMARK_OPTIONS.find((o) => o.value === benchIndex)?.label ?? "Benchmark",
+                name === "portfolio" ? t("performance.portfolio") : BENCHMARK_OPTIONS.find((o) => o.value === benchIndex)?.label ?? "Benchmark",
               ]}
-              labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: it })}
+              labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dateLocale })}
             />
             <Line type="monotone" dataKey="portfolio" stroke="#10b981" strokeWidth={2} dot={false} name="portfolio" />
             <Line type="monotone" dataKey="benchmark" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="benchmark" connectNulls />
@@ -449,6 +443,7 @@ function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint
 
 function CorrelationSection() {
   const [corrPeriod, setCorrPeriod] = useState("1y");
+  const { t } = useTranslation();
 
   const { data, isLoading } = useQuery({
     queryKey: ["correlation", corrPeriod],
@@ -468,7 +463,7 @@ function CorrelationSection() {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
         <GitFork className="w-4 h-4 text-gray-400" />
-        <h3 className="text-sm font-semibold text-gray-700">Correlazione tra asset</h3>
+        <h3 className="text-sm font-semibold text-gray-700">{t("performance.correlation")}</h3>
         <div className="ml-auto flex gap-1">
           {CORR_PERIODS.map((p) => (
             <button
@@ -485,10 +480,10 @@ function CorrelationSection() {
       </div>
 
       {isLoading ? (
-        <div className="p-6 text-center text-sm text-gray-400">Calcolo in corso...</div>
+        <div className="p-6 text-center text-sm text-gray-400">{t("performance.calculating")}</div>
       ) : !data || data.labels.length < 2 ? (
         <div className="p-6 text-center text-sm text-gray-400">
-          Dati insufficienti — servono almeno 2 asset con storico prezzi.
+          {t("performance.insufficientData")}
         </div>
       ) : (
         <div className="p-4 overflow-x-auto">
@@ -524,11 +519,11 @@ function CorrelationSection() {
           </table>
           <div className="mt-3 flex items-center gap-3 flex-wrap">
             {[
-              { label: "Alta +", color: "#1d4ed8" },
-              { label: "Media +", color: "#60a5fa" },
-              { label: "Nulla", color: "#9ca3af" },
-              { label: "Media −", color: "#fca5a5" },
-              { label: "Alta −", color: "#dc2626" },
+              { label: t("performance.correlationHigh"), color: "#1d4ed8" },
+              { label: t("performance.correlationMed"), color: "#60a5fa" },
+              { label: t("performance.correlationNone"), color: "#9ca3af" },
+              { label: t("performance.correlationMedNeg"), color: "#fca5a5" },
+              { label: t("performance.correlationHighNeg"), color: "#dc2626" },
             ].map((c) => (
               <div key={c.label} className="flex items-center gap-1">
                 <span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: c.color + "55" }} />
@@ -548,6 +543,8 @@ export function Performance() {
   const [period, setPeriod] = useState("1y");
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "en" ? undefined : it;
 
   const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
     queryKey: ["portfolio-dashboard"],
@@ -592,38 +589,38 @@ export function Performance() {
 
   return (
     <>
-      <TopBar title="Performance" />
+      <TopBar title={t("performance.title")} />
       <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* KPI sommario */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           <KpiCard
-            label="Valore portafoglio"
+            label={t("dashboard.portfolioValue")}
             value={hasSummary ? zen(`€ ${fmt(summary.total_value_eur)}`) : "—"}
-            sub={hasSummary ? `Investito: ${zen("€ " + fmt(summary.total_invested_eur))}` : undefined}
+            sub={hasSummary ? `${t("performance.invested")}: ${zen("€ " + fmt(summary.total_invested_eur))}` : undefined}
           />
           <KpiCard
-            label="P&L totale"
+            label={t("performance.kpiTotalPnl")}
             value={hasSummary ? zen(`€ ${fmtSign(summary.total_pnl_eur)}`) : "—"}
             sub={hasSummary ? `${fmtSign(summary.total_pnl_pct, 2)}%` : undefined}
             positive={hasSummary ? summary.total_pnl_eur >= 0 : undefined}
           />
           <KpiCard
-            label="P&L non realizzato"
+            label={t("performance.unrealizedPnl")}
             value={hasSummary ? zen(`€ ${fmtSign(summary.unrealized_pnl_eur)}`) : "—"}
-            sub={hasSummary ? "Su posizioni aperte" : undefined}
+            sub={hasSummary ? t("performance.openPositionsNote") : undefined}
             positive={hasSummary ? summary.unrealized_pnl_eur >= 0 : undefined}
           />
           <KpiCard
-            label="P&L realizzato"
+            label={t("performance.realizedPnl")}
             value={hasSummary ? zen(`€ ${fmtSign(summary.realized_pnl_eur)}`) : "—"}
-            sub={hasSummary ? "Da vendite chiuse" : undefined}
+            sub={hasSummary ? t("performance.closedSalesNote") : undefined}
             positive={hasSummary ? summary.realized_pnl_eur >= 0 : undefined}
           />
           <KpiCard
-            label="IRR (XIRR)"
+            label={t("performance.irrXirr")}
             value={xirrData?.xirr_pct != null ? `${fmtSign(xirrData.xirr_pct, 2)}%` : "—"}
-            sub="Tasso interno di rendimento"
+            sub={t("performance.internalRate")}
             positive={xirrData?.xirr_pct != null ? xirrData.xirr_pct >= 0 : undefined}
           />
         </div>
@@ -631,7 +628,7 @@ export function Performance() {
         {positions.length === 0 && !loadingPos ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
             <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aggiungi transazioni per vedere la performance.</p>
+            <p className="text-sm">{t("performance.addTransactions")}</p>
           </div>
         ) : (
           <>
@@ -640,7 +637,7 @@ export function Performance() {
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700">Andamento portafoglio</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t("performance.portfolioTrend")}</h3>
                   {perf && (
                     <span className={`text-xs font-medium ${perf.twrr_pct >= 0 ? "text-green-600" : "text-red-600"}`}>
                       TWRR {fmtSign(perf.twrr_pct, 2)}%
@@ -665,10 +662,10 @@ export function Performance() {
               </div>
 
               {loadingPerf ? (
-                <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Caricamento...</div>
+                <div className="h-48 flex items-center justify-center text-gray-400 text-sm">{t("common.loading")}</div>
               ) : chartData.length === 0 ? (
                 <div className="h-48 flex items-center justify-center text-gray-400 text-sm">
-                  Nessun dato storico disponibile. Avvia un backfill dalla pagina Asset.
+                  {t("performance.noHistoricalData")}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
@@ -703,9 +700,9 @@ export function Performance() {
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
                       formatter={(v: number, name: string) => [
                         zenMode ? "•••••" : `€ ${fmt(v)}`,
-                        name === "value_eur" ? "Valore" : "Investito",
+                        name === "value_eur" ? t("common.value") : t("performance.invested"),
                       ]}
-                      labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: it })}
+                      labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dateLocale })}
                     />
                     <Area
                       type="monotone"
@@ -747,10 +744,10 @@ export function Performance() {
             {/* Allocazione */}
             {allocation && allocation.total_value_eur > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <AllocationPie title="Per tipo asset" items={allocation.by_type} />
-                <AllocationPie title="Per valuta" items={allocation.by_currency} />
+                <AllocationPie title={t("performance.allocationPie")} items={allocation.by_type} />
+                <AllocationPie title={t("performance.allocationCurrency")} items={allocation.by_currency} />
                 {allocation.by_account.length > 1 && (
-                  <AllocationPie title="Per conto" items={allocation.by_account} />
+                  <AllocationPie title={t("performance.allocationAccount")} items={allocation.by_account} />
                 )}
               </div>
             )}
@@ -759,21 +756,21 @@ export function Performance() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-700">Posizioni aperte</h3>
+                <h3 className="text-sm font-semibold text-gray-700">{t("performance.openPositions")}</h3>
                 <span className="ml-auto text-xs text-gray-400">{positions.length} asset</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-50 text-left">
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">Asset</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Qtà</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">PMC</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Prezzo att.</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Valore</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">P&L non real.</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">P&L real.</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Var. oggi</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.asset")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.qty")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.avgCost")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentPrice")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentValue")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.unrealizedPnl")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.realizedPnl")}</th>
+                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.dailyChange")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -784,7 +781,7 @@ export function Performance() {
                   {positions.length > 0 && summary && (
                     <tfoot>
                       <tr className="border-t border-gray-200 bg-gray-50">
-                        <td colSpan={4} className="px-5 py-2 text-xs text-gray-400">Totale portafoglio</td>
+                        <td colSpan={4} className="px-5 py-2 text-xs text-gray-400">{t("performance.totalPortfolio")}</td>
                         <td className="px-5 py-2 text-right text-sm font-semibold text-gray-900">
                           {zen(`€ ${fmt(summary.total_value_eur)}`)}
                         </td>
@@ -809,31 +806,31 @@ export function Performance() {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                   <Coins className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-700">Dividendi e cedole</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t("performance.dividendsAndCoupons")}</h3>
                   <span className="ml-auto text-xs text-gray-400">
-                    Totale: {zen(`€ ${fmt(dividends.reduce((s, d) => s + d.amount_eur, 0))}`)}
+                    {t("performance.total")} {zen(`€ ${fmt(dividends.reduce((s, d) => s + d.amount_eur, 0))}`)}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-50 text-left">
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">Data</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">Tipo</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">Asset</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">Conto</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Importo EUR</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.date")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.type")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.asset")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.account")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.amountEur")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {dividends.map((d) => (
                         <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-5 py-3 text-gray-600">
-                            {format(parseISO(d.date), "dd MMM yyyy", { locale: it })}
+                            {format(parseISO(d.date), "dd MMM yyyy", { locale: dateLocale })}
                           </td>
                           <td className="px-5 py-3">
                             <span className="text-xs font-medium text-blue-600">
-                              {DIV_LABELS[d.type] ?? d.type}
+                              {t(`performance.dividendTypes.${d.type}`) || d.type}
                             </span>
                           </td>
                           <td className="px-5 py-3">
@@ -861,6 +858,7 @@ export function Performance() {
 // ── Riga posizione ─────────────────────────────────────────────────────────────
 
 function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number }) {
+  const { t } = useTranslation();
   const hasPrices = pos.current_value_eur !== null;
   const weightPct = totalValue > 0 && pos.current_value_eur ? (pos.current_value_eur / totalValue) * 100 : 0;
   const isConcentrated = weightPct > 10;
@@ -872,13 +870,13 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
         <div className="flex items-center gap-1.5">
           <span className="font-medium text-gray-900">{pos.symbol}</span>
           {isConcentrated && (
-            <span title={`Concentrazione elevata: ${weightPct.toFixed(1)}% del portafoglio`}>
+            <span title={`${t("performance.highConcentration")}: ${weightPct.toFixed(1)}%`}>
               <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
             </span>
           )}
         </div>
         <div className="text-xs text-gray-400 truncate max-w-[200px]">{pos.name}</div>
-        <div className="text-xs text-gray-300">{TYPE_LABELS[pos.asset_type] ?? pos.asset_type} · {pos.exchange}</div>
+        <div className="text-xs text-gray-300">{t(`performance.assetTypes.${pos.asset_type}`) || pos.asset_type} · {pos.exchange}</div>
       </td>
       <td className="px-5 py-3 text-right text-gray-600">
         {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}

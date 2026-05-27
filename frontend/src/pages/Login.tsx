@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { ShieldCheck, TrendingUp, BarChart2, Shield, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { authService } from "@/services/auth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -96,6 +97,7 @@ function PortfolioChart() {
 }
 
 export function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState<"credentials" | "totp">("credentials");
   const [sessionToken, setSessionToken] = useState("");
@@ -200,11 +202,11 @@ export function Login() {
 
           {/* Ticker strip */}
           <div className="flex gap-6 pt-5 border-t border-white/8">
-            {TICKERS.map((t) => (
-              <div key={t.name}>
-                <div className="text-[9px] text-slate-600 uppercase tracking-wider">{t.name}</div>
-                <div className={`text-xs font-bold mt-0.5 ${t.pos ? "text-emerald-400" : "text-red-400"}`}>
-                  {t.change}
+            {TICKERS.map((tk) => (
+              <div key={tk.name}>
+                <div className="text-[9px] text-slate-600 uppercase tracking-wider">{tk.name}</div>
+                <div className={`text-xs font-bold mt-0.5 ${tk.pos ? "text-emerald-400" : "text-red-400"}`}>
+                  {tk.change}
                 </div>
               </div>
             ))}
@@ -229,14 +231,14 @@ export function Login() {
             <span className="text-xl font-bold text-gray-900">
               Next<span className="text-emerald-500">folio</span>
             </span>
-            <p className="text-sm text-gray-400 mt-1">Il tuo portafoglio intelligente</p>
+            <p className="text-sm text-gray-400 mt-1">{t("auth.mobileTagline")}</p>
           </div>
 
           {step === "credentials" ? (
             <>
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Bentornato</h2>
-                <p className="text-sm text-gray-400 mt-1">Accedi al tuo portafoglio</p>
+                <h2 className="text-2xl font-bold text-gray-900">{t("auth.welcome")}</h2>
+                <p className="text-sm text-gray-400 mt-1">{t("auth.signInDesc")}</p>
               </div>
 
               <form
@@ -244,14 +246,14 @@ export function Login() {
                 className="space-y-4"
               >
                 <Input
-                  label="Email"
+                  label={t("auth.email")}
                   type="email"
                   autoComplete="email"
                   error={credForm.formState.errors.email?.message}
                   {...credForm.register("email")}
                 />
                 <Input
-                  label="Password"
+                  label={t("auth.password")}
                   type="password"
                   autoComplete="current-password"
                   error={credForm.formState.errors.password?.message}
@@ -260,7 +262,7 @@ export function Login() {
 
                 {loginMutation.isError && (
                   <div className="text-sm text-red-600 text-center bg-red-50 border border-red-100 rounded-xl py-2.5 px-4">
-                    Credenziali non valide. Riprova.
+                    {t("auth.invalidCredentials")}
                   </div>
                 )}
 
@@ -269,7 +271,7 @@ export function Login() {
                   loading={loginMutation.isPending}
                   className="w-full !py-3 !text-base gap-2"
                 >
-                  Accedi
+                  {t("auth.signIn")}
                   {!loginMutation.isPending && <ArrowRight className="w-4 h-4" />}
                 </Button>
 
@@ -278,7 +280,7 @@ export function Login() {
                     to="/forgot-password"
                     className="text-sm text-gray-400 hover:text-blue-600 transition-colors"
                   >
-                    Password dimenticata?
+                    {t("auth.forgotPassword")}
                   </Link>
                 </div>
               </form>
@@ -289,9 +291,9 @@ export function Login() {
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
                   <ShieldCheck className="w-7 h-7 text-blue-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Verifica identità</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t("auth.twoFactorTitle")}</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  Inserisci il codice dall'app di autenticazione
+                  {t("auth.twoFactorDesc")}
                 </p>
               </div>
 
@@ -300,7 +302,7 @@ export function Login() {
                 className="space-y-4"
               >
                 <Input
-                  label="Codice 6 cifre"
+                  label={t("auth.codeLabel")}
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -312,7 +314,7 @@ export function Login() {
 
                 {totpMutation.isError && (
                   <div className="text-sm text-red-600 text-center bg-red-50 border border-red-100 rounded-xl py-2.5 px-4">
-                    Codice non valido. Riprova.
+                    {t("auth.invalidCode")}
                   </div>
                 )}
 
@@ -321,7 +323,7 @@ export function Login() {
                   loading={totpMutation.isPending}
                   className="w-full !py-3 !text-base"
                 >
-                  Verifica
+                  {t("auth.verify")}
                 </Button>
 
                 <button
@@ -329,7 +331,7 @@ export function Login() {
                   onClick={() => setStep("credentials")}
                   className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
                 >
-                  ← Torna al login
+                  ← {t("auth.backToLogin")}
                 </button>
               </form>
             </>
@@ -337,7 +339,7 @@ export function Login() {
 
           {/* Footer */}
           <p className="text-center text-xs text-gray-300 mt-12">
-            © {new Date().getFullYear()} Nextfolio · Dati cifrati e protetti
+            {t("auth.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
       </div>

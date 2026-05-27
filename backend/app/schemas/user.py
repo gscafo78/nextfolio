@@ -93,6 +93,7 @@ class UserSettingsOut(BaseModel):
     theme: str
     display_currency: str
     zen_mode: bool
+    language: str
 
     model_config = {"from_attributes": True}
 
@@ -101,6 +102,7 @@ class UserSettingsUpdate(BaseModel):
     theme: str | None = None
     display_currency: str | None = None
     zen_mode: bool | None = None
+    language: str | None = None
 
 
 class ForgotPasswordRequest(BaseModel):

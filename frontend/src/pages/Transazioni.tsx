@@ -4,6 +4,7 @@ import { useZenMode } from "@/context/ThemeContext";
 import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { CsvImport } from "@/components/transactions/CsvImport";
@@ -13,15 +14,6 @@ import { Input } from "@/components/ui/Input";
 import { accountService, assetService, transactionService, type Transaction, type TransactionType } from "@/services/transactions";
 import { HoldingDetailModal } from "@/components/portfolio/HoldingDetailModal";
 import { AccountFavicon } from "@/components/AccountFavicon";
-
-const TX_LABELS: Record<TransactionType, string> = {
-  BUY: "Acquisto",
-  SELL: "Vendita",
-  DIVIDEND: "Dividendo",
-  COUPON: "Cedola",
-  FEE: "Commissione",
-  INTEREST: "Interesse",
-};
 
 const TX_COLORS: Record<TransactionType, string> = {
   BUY: "text-green-600",
@@ -34,11 +26,12 @@ const TX_COLORS: Record<TransactionType, string> = {
 
 type Modal = null | "add" | "import";
 
-// ── Edit Transaction Modal ───────────────────────────────────────────────────
-
 const TX_TYPES_LIST = ["BUY", "SELL", "DIVIDEND", "COUPON", "FEE", "INTEREST"] as const;
 
+// ── Edit Transaction Modal ───────────────────────────────────────────────────
+
 function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [form, setForm] = useState({
     account_id: tx.account_id,
@@ -81,14 +74,14 @@ function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Modifica transazione</h2>
+            <h2 className="text-lg font-semibold">{t("transactions.editTransaction")}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{tx.asset.name} · #{tx.id}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
         </div>
 
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Conto</label>
+          <label className="text-xs font-medium text-gray-600 block mb-1">{t("common.account")}</label>
           <select
             value={form.account_id}
             onChange={(e) => set("account_id", Number(e.target.value))}
@@ -100,27 +93,27 @@ function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Tipo</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">{t("common.type")}</label>
             <select
               value={form.type}
               onChange={(e) => set("type", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
             >
-              {TX_TYPES_LIST.map((t) => <option key={t} value={t}>{TX_LABELS[t]}</option>)}
+              {TX_TYPES_LIST.map((type) => <option key={type} value={type}>{t(`transactions.types.${type}`)}</option>)}
             </select>
           </div>
-          <Input label="Data" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+          <Input label={t("common.date")} type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Input label="Quantità" type="number" step="any" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} />
-          <Input label={`Prezzo (${tx.price_currency})`} type="number" step="any" value={form.price} onChange={(e) => set("price", e.target.value)} />
-          <Input label="Commissioni (EUR)" type="number" step="any" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
+          <Input label={t("common.quantity")} type="number" step="any" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} />
+          <Input label={`${t("common.price")} (${tx.price_currency})`} type="number" step="any" value={form.price} onChange={(e) => set("price", e.target.value)} />
+          <Input label={t("transactionForm.fees")} type="number" step="any" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </div>
 
         {tx.price_currency !== "EUR" && (
           <Input
-            label={`Tasso cambio ${tx.price_currency}/EUR`}
+            label={t("transactionForm.fxRate", { currency: tx.price_currency })}
             type="number"
             step="any"
             value={form.exchange_rate}
@@ -128,15 +121,15 @@ function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
           />
         )}
 
-        <Input label="Note" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+        <Input label={t("transactionForm.notesLabel")} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
 
         {error && (
-          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? "Errore durante il salvataggio"}</p>
+          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? t("transactions.saveError")}</p>
         )}
 
         <div className="flex gap-3 pt-1">
-          <Button variant="secondary" onClick={onClose} className="flex-1">Annulla</Button>
-          <Button onClick={() => mutate()} loading={isPending} className="flex-1">Salva</Button>
+          <Button variant="secondary" onClick={onClose} className="flex-1">{t("common.cancel")}</Button>
+          <Button onClick={() => mutate()} loading={isPending} className="flex-1">{t("common.save")}</Button>
         </div>
       </div>
     </div>
@@ -152,6 +145,7 @@ function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker
   currentYahooTicker: string | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [symbol, setSymbol] = useState(currentSymbol);
   const [yahooTicker, setYahooTicker] = useState(currentYahooTicker ?? "");
@@ -172,37 +166,37 @@ function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Ticker asset</h2>
+            <h2 className="text-base font-semibold">{t("transactions.assetTicker")}</h2>
             <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[240px]">{assetName}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
         </div>
 
         <Input
-          label="Simbolo (usato come identificativo)"
+          label={t("transactions.symbolLabel")}
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
           placeholder="es. IT0005413171"
         />
         <div>
           <Input
-            label="Yahoo Finance ticker (override prezzi)"
+            label={t("transactions.yahooTickerLabel")}
             value={yahooTicker}
             onChange={(e) => setYahooTicker(e.target.value)}
             placeholder="es. SWDA.MI, BTPITALY.MI"
           />
           <p className="text-xs text-gray-400 mt-1">
-            Lascia vuoto per usare il simbolo. Usa il ticker Yahoo Finance esatto (es. <em>SWDA.MI</em> per Borsa IT, <em>SWDA.DE</em> per Xetra).
+            {t("transactions.yahooTickerHint")}
           </p>
         </div>
 
         {error && (
-          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? "Errore"}</p>
+          <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? t("common.error")}</p>
         )}
 
         <div className="flex gap-3 pt-1">
-          <Button variant="secondary" onClick={onClose} className="flex-1">Annulla</Button>
-          <Button onClick={() => mutate()} loading={isPending} className="flex-1">Salva</Button>
+          <Button variant="secondary" onClick={onClose} className="flex-1">{t("common.cancel")}</Button>
+          <Button onClick={() => mutate()} loading={isPending} className="flex-1">{t("common.save")}</Button>
         </div>
       </div>
     </div>
@@ -210,6 +204,7 @@ function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker
 }
 
 export function Transazioni() {
+  const { t, i18n } = useTranslation();
   const [modal, setModal] = useState<Modal>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [editAsset, setEditAsset] = useState<{ id: number; name: string; symbol: string; yahoo_ticker: string | null } | null>(null);
@@ -221,6 +216,8 @@ export function Transazioni() {
   const qc = useQueryClient();
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
+
+  const dateLocale = i18n.language === "en" ? undefined : it;
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
@@ -241,7 +238,6 @@ export function Transazioni() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
   });
 
-  // Totale filtrato
   const totalEur = transactions
     .filter((tx) => tx.type === "BUY" || tx.type === "SELL")
     .reduce((sum, tx) => sum + (tx.type === "BUY" ? tx.total_eur : -tx.total_eur), 0);
@@ -256,14 +252,14 @@ export function Transazioni() {
 
   return (
     <>
-      <TopBar title="Transazioni" />
+      <TopBar title={t("transactions.title")} />
       <main className="flex-1 p-4 md:p-6">
 
         {/* Barra filtri */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="flex items-center gap-1.5 text-sm text-gray-500">
             <Filter className="w-4 h-4" />
-            <span>Filtri{activeFilters > 0 ? ` (${activeFilters})` : ""}:</span>
+            <span>{t("transactions.filters")}{activeFilters > 0 ? ` (${activeFilters})` : ""}:</span>
           </div>
 
           <select
@@ -271,7 +267,7 @@ export function Transazioni() {
             onChange={(e) => { setFilterAccountId(e.target.value ? Number(e.target.value) : ""); resetPage(); }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
-            <option value="">Tutti i conti</option>
+            <option value="">{t("transactions.allAccounts")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
@@ -282,9 +278,9 @@ export function Transazioni() {
             onChange={(e) => { setFilterType(e.target.value as TransactionType | ""); resetPage(); }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
-            <option value="">Tutti i tipi</option>
-            {Object.entries(TX_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            <option value="">{t("transactions.allTypes")}</option>
+            {TX_TYPES_LIST.map((type) => (
+              <option key={type} value={type}>{t(`transactions.types.${type}`)}</option>
             ))}
           </select>
 
@@ -293,15 +289,14 @@ export function Transazioni() {
               onClick={() => { setFilterAccountId(""); setFilterType(""); resetPage(); }}
               className="text-xs text-brand-600 hover:underline"
             >
-              Rimuovi filtri
+              {t("transactions.removeFilters")}
             </button>
           )}
 
           <div className="flex-1" />
 
-          {/* Righe per pagina */}
           <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <span className="hidden sm:inline">Righe:</span>
+            <span className="hidden sm:inline">{t("transactions.rows")}</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); resetPage(); }}
@@ -311,22 +306,21 @@ export function Transazioni() {
             </select>
           </div>
 
-          {/* Sommario rapido */}
           <span className="text-sm text-gray-500">
-            {transactions.length} op.
+            {transactions.length} {t("transactions.ops")}
           </span>
 
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setModal("import")}>
-              <Upload className="w-4 h-4 mr-1.5" /> Importa CSV
+              <Upload className="w-4 h-4 mr-1.5" /> {t("transactions.importCsv")}
             </Button>
             <Button onClick={() => setModal("add")}>
-              <Plus className="w-4 h-4 mr-1.5" /> Aggiungi
+              <Plus className="w-4 h-4 mr-1.5" /> {t("transactions.addTx")}
             </Button>
           </div>
         </div>
 
-        {/* Riepilogo per conto quando nessun filtro */}
+        {/* Riepilogo per conto */}
         {filterAccountId === "" && accounts.length > 1 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {accounts.map((acc) => {
@@ -346,7 +340,7 @@ export function Transazioni() {
                     {acc.name}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {accTxs.length} op · investito {zen("€ " + invested.toLocaleString("it-IT", { maximumFractionDigits: 0 }))}
+                    {accTxs.length} {t("transactions.ops")} · {t("transactions.invested").toLowerCase()} {zen("€ " + invested.toLocaleString("it-IT", { maximumFractionDigits: 0 }))}
                   </p>
                 </button>
               );
@@ -356,15 +350,15 @@ export function Transazioni() {
 
         {/* Tabella */}
         {isLoading ? (
-          <div className="text-center text-gray-400 py-16">Caricamento...</div>
+          <div className="text-center text-gray-400 py-16">{t("common.loading")}</div>
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
             <p className="text-gray-400 text-sm">
-              {activeFilters > 0 ? "Nessuna transazione con questi filtri." : "Nessuna transazione ancora."}
+              {activeFilters > 0 ? t("transactions.noTransactionsFiltered") : t("transactions.noTransactions")}
             </p>
             {activeFilters === 0 && (
               <Button className="mt-4" onClick={() => setModal("add")}>
-                <Plus className="w-4 h-4 mr-1.5" /> Prima transazione
+                <Plus className="w-4 h-4 mr-1.5" /> {t("transactions.firstTransaction")}
               </Button>
             )}
           </div>
@@ -380,9 +374,9 @@ export function Transazioni() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs font-semibold ${TX_COLORS[tx.type]}`}>{TX_LABELS[tx.type]}</span>
+                          <span className={`text-xs font-semibold ${TX_COLORS[tx.type]}`}>{t(`transactions.types.${tx.type}`)}</span>
                           <span className="text-xs text-gray-400">
-                            {format(new Date(tx.date), "dd MMM yyyy", { locale: it })}
+                            {format(new Date(tx.date), "dd MMM yyyy", { locale: dateLocale })}
                           </span>
                         </div>
                         <div className="mt-0.5 flex items-center gap-1">
@@ -413,7 +407,7 @@ export function Transazioni() {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => { if (confirm("Eliminare la transazione?")) deleteTx(tx.id); }}
+                            onClick={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
                             className="text-gray-300 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -429,7 +423,7 @@ export function Transazioni() {
             {/* ── Paginazione mobile ── */}
             {totalPages > 1 && (
               <div className="md:hidden flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
-                <span className="text-xs">{(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} di {transactions.length}</span>
+                <span className="text-xs">{(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} {t("transactions.of")} {transactions.length}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={safePage === 1} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">←</button>
                   <span className="px-2 text-xs">{safePage}/{totalPages}</span>
@@ -443,15 +437,15 @@ export function Transazioni() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-left">
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Data</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Asset</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Conto</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">Quantità</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">Prezzo</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">Totale EUR</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">Cambio</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">Comm.</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t("common.type")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t("common.asset")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t("common.account")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">{t("common.quantity")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">{t("common.price")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">{t("transactions.totalEur")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">{t("transactions.exchangeRate")}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-right">{t("transactions.feeAbbr")}</th>
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -461,24 +455,23 @@ export function Transazioni() {
                   return (
                     <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-600">
-                        {format(new Date(tx.date), "dd MMM yyyy", { locale: it })}
+                        {format(new Date(tx.date), "dd MMM yyyy", { locale: dateLocale })}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`font-medium ${TX_COLORS[tx.type]}`}>{TX_LABELS[tx.type]}</span>
+                        <span className={`font-medium ${TX_COLORS[tx.type]}`}>{t(`transactions.types.${tx.type}`)}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setHoldingAssetId(tx.asset.id)}
                             className="font-medium text-gray-900 truncate max-w-[120px] hover:text-brand-600 hover:underline transition-colors text-left"
-                            title="Apri dettagli holding"
                           >
                             {tx.asset.yahoo_ticker ?? tx.asset.symbol}
                           </button>
                           <button
                             onClick={() => setEditAsset({ id: tx.asset.id, name: tx.asset.name, symbol: tx.asset.symbol, yahoo_ticker: tx.asset.yahoo_ticker })}
                             className="text-gray-300 hover:text-brand-500 transition-colors flex-shrink-0"
-                            title="Modifica ticker"
+                            title={t("transactions.editTicker")}
                           >
                             <Tag className="w-3 h-3" />
                           </button>
@@ -523,14 +516,14 @@ export function Transazioni() {
                           <button
                             onClick={() => setEditTx(tx)}
                             className="text-gray-300 hover:text-brand-500 transition-colors"
-                            title="Modifica"
+                            title={t("common.edit")}
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => { if (confirm("Eliminare la transazione?")) deleteTx(tx.id); }}
+                            onClick={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
                             className="text-gray-300 hover:text-red-500 transition-colors"
-                            title="Elimina"
+                            title={t("common.delete")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -540,12 +533,11 @@ export function Transazioni() {
                   );
                 })}
               </tbody>
-              {/* Footer con totale investito */}
               {transactions.some((tx) => tx.type === "BUY" || tx.type === "SELL") && (
                 <tfoot>
                   <tr className="border-t border-gray-200 bg-gray-50">
                     <td colSpan={6} className="px-4 py-2 text-xs text-gray-400">
-                      Totale netto acquisti/vendite
+                      {t("transactions.totalNetBuySell")}
                     </td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
                       {zen("€ " + totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 }))}
@@ -561,7 +553,7 @@ export function Transazioni() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
                 <span>
-                  {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} di {transactions.length}
+                  {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} {t("transactions.of")} {transactions.length}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -569,7 +561,7 @@ export function Transazioni() {
                     disabled={safePage === 1}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    ← Indietro
+                    ← {t("common.back")}
                   </button>
                   <span className="px-3 text-xs">
                     {safePage} / {totalPages}
@@ -579,7 +571,7 @@ export function Transazioni() {
                     disabled={safePage === totalPages}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    Avanti →
+                    {t("common.next")} →
                   </button>
                 </div>
               </div>
@@ -593,7 +585,7 @@ export function Transazioni() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold">Nuova transazione</h2>
+              <h2 className="text-lg font-semibold">{t("transactions.newTransaction")}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
             </div>
             <TransactionForm onSuccess={() => setModal(null)} />
@@ -606,7 +598,7 @@ export function Transazioni() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold">Importa da CSV</h2>
+              <h2 className="text-lg font-semibold">{t("transactions.importCsvTitle")}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
             </div>
             <CsvImport onSuccess={() => setModal(null)} />
@@ -614,10 +606,8 @@ export function Transazioni() {
         </div>
       )}
 
-      {/* Modal Modifica Transazione */}
       {editTx && <EditTxModal tx={editTx} onClose={() => setEditTx(null)} />}
 
-      {/* Modal Dettaglio Holding */}
       {holdingAssetId != null && (
         <HoldingDetailModal
           assetId={holdingAssetId}
@@ -625,7 +615,6 @@ export function Transazioni() {
         />
       )}
 
-      {/* Modal Modifica Ticker Asset */}
       {editAsset && (
         <EditTickerModal
           assetId={editAsset.id}

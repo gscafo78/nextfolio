@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { authService } from "@/services/auth";
 
 export function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ export function ForgotPassword() {
       await authService.forgotPassword(email);
       setSent(true);
     } catch {
-      setError("Errore nell'invio. Riprova tra qualche istante.");
+      setError(t("auth.sendError"));
     } finally {
       setLoading(false);
     }
@@ -29,7 +31,7 @@ export function ForgotPassword() {
           <h1 className="text-2xl font-bold text-gray-900">
             Next<span className="text-brand-600">Folio</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Reimposta la password</p>
+          <p className="text-sm text-gray-500 mt-1">{t("auth.resetPassword")}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -40,27 +42,27 @@ export function ForgotPassword() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-sm font-medium text-gray-900">Email inviata!</p>
+              <p className="text-sm font-medium text-gray-900">{t("auth.emailSent")}</p>
               <p className="text-sm text-gray-500">
-                Se <strong>{email}</strong> è registrata, riceverai un link per reimpostare la password. Controlla anche la cartella spam.
+                {t("auth.resetLinkSentFull", { email })}
               </p>
               <Link to="/login" className="block mt-4 text-sm text-brand-600 hover:underline">
-                Torna al login
+                {t("auth.backToLogin")}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-sm text-gray-500 mb-4">
-                Inserisci la tua email e ti invieremo un link per scegliere una nuova password.
+                {t("auth.forgotPasswordDesc")}
               </p>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.email")}</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@esempio.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -70,10 +72,10 @@ export function ForgotPassword() {
                 disabled={loading}
                 className="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors"
               >
-                {loading ? "Invio in corso..." : "Invia link di reset"}
+                {loading ? t("auth.sending") : t("auth.sendResetLink")}
               </button>
               <Link to="/login" className="block text-center text-sm text-gray-500 hover:text-gray-700">
-                Torna al login
+                {t("auth.backToLogin")}
               </Link>
             </form>
           )}

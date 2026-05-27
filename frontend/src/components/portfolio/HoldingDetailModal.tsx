@@ -7,6 +7,7 @@ import {
 import { X, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { portfolioService } from "@/services/portfolio";
 import { accountService } from "@/services/transactions";
 import { AccountFavicon } from "@/components/AccountFavicon";
@@ -26,10 +27,6 @@ function color(v: number | null) {
   return v >= 0 ? "text-green-600" : "text-red-600";
 }
 
-const TX_LABELS: Record<string, string> = {
-  BUY: "Acquisto", SELL: "Vendita", DIVIDEND: "Dividendo",
-  COUPON: "Cedola", FEE: "Commissione", INTEREST: "Interesse",
-};
 const TX_BADGE: Record<string, string> = {
   BUY: "bg-green-50 text-green-700",
   SELL: "bg-red-50 text-red-700",
@@ -48,6 +45,8 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
   const [showEdit, setShowEdit] = useState(false);
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "en" ? undefined : it;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -98,14 +97,14 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                 </span>
               )}
               <h2 className="text-base font-bold text-gray-900 leading-tight truncate">
-                {data?.name ?? "Caricamento..."}
+                {data?.name ?? t("common.loading")}
               </h2>
               {data?.isin && <p className="text-xs text-gray-400 mt-0.5">{data.isin}</p>}
             </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowEdit(true)}
-                title="Modifica titolo"
+                title={t("holdingDetail.editTitle")}
                 className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
               >
                 <Pencil className="w-4 h-4" />
@@ -140,7 +139,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
 
         {isError && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-red-500">Errore nel caricamento dei dati.</p>
+            <p className="text-sm text-red-500">{t("holdingDetail.loadError")}</p>
           </div>
         )}
 
@@ -183,7 +182,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     )}
                     <Tooltip
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                      formatter={(v: number) => [`${fmt(v, 2)} ${data.currency}`, "Prezzo"]}
+                      formatter={(v: number) => [`${fmt(v, 2)} ${data.currency}`, t("common.price")]}
                       labelFormatter={(l) => l}
                     />
                     <Area
@@ -198,24 +197,24 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-xs text-gray-400 px-6 text-center">
-                  Nessuno storico prezzi. Avvia un backfill dalla Dashboard.
+                  {t("holdingDetail.noPriceHistory")}
                 </div>
               )}
             </div>
 
             {/* Tabs */}
             <div className="flex border-b border-gray-100 flex-shrink-0 px-2">
-              {(["overview", "activities", "accounts"] as Tab[]).map((t) => (
+              {(["overview", "activities", "accounts"] as Tab[]).map((tabKey) => (
                 <button
-                  key={t}
-                  onClick={() => setTab(t)}
+                  key={tabKey}
+                  onClick={() => setTab(tabKey)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                    tab === t
+                    tab === tabKey
                       ? "border-brand-600 text-brand-600"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  {t === "overview" ? "Overview" : t === "activities" ? "Attività" : "Conti"}
+                  {tabKey === "overview" ? t("holdingDetail.overview") : tabKey === "activities" ? t("holdingDetail.activities") : t("holdingDetail.accounts")}
                 </button>
               ))}
             </div>
@@ -228,73 +227,73 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <StatCard
-                      label="Variazione (P&L)"
+                      label={t("holdingDetail.changeLabel")}
                       value={data.unrealized_pnl_eur != null ? zen(`€ ${fmtSign(data.unrealized_pnl_eur)}`) : "—"}
                       positive={data.unrealized_pnl_eur != null ? data.unrealized_pnl_eur >= 0 : undefined}
                     />
                     <StatCard
-                      label="Performance"
+                      label={t("holdingDetail.performance")}
                       value={data.unrealized_pnl_pct != null ? `${fmtSign(data.unrealized_pnl_pct)} %` : "—"}
                       positive={data.unrealized_pnl_pct != null ? data.unrealized_pnl_pct >= 0 : undefined}
                     />
                     <StatCard
-                      label="Prezzo medio (PMC)"
+                      label={t("holdingDetail.avgCost")}
                       value={`${fmt(data.pmc_eur, 4)} ${data.currency}`}
                     />
                     <StatCard
-                      label="Prezzo di mercato"
+                      label={t("holdingDetail.marketPrice")}
                       value={data.current_price != null ? `${fmt(data.current_price, 4)} ${data.currency}` : "—"}
                     />
                     <StatCard
-                      label="Prezzo minimo"
+                      label={t("holdingDetail.minPrice")}
                       value={data.min_price != null ? `${fmt(data.min_price, 4)} ${data.currency}` : "—"}
                     />
                     <StatCard
-                      label="Prezzo massimo"
+                      label={t("holdingDetail.maxPrice")}
                       value={data.max_price != null ? `${fmt(data.max_price, 4)} ${data.currency}` : "—"}
                       positive={data.max_price != null && data.current_price != null && data.current_price >= data.max_price * 0.99 ? true : undefined}
                     />
                     <StatCard
-                      label="Quantità"
+                      label={t("common.quantity")}
                       value={data.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
                     />
                     <StatCard
-                      label="Totale investito"
+                      label={t("holdingDetail.totalInvested")}
                       value={zen(`€ ${fmt(data.total_invested_eur)}`)}
                     />
                     <StatCard
-                      label="Commissioni totali"
+                      label={t("holdingDetail.totalFees")}
                       value={zen(`€ ${fmt(data.total_fees)}`)}
                     />
                     <StatCard
-                      label="Attività"
+                      label={t("holdingDetail.activities")}
                       value={String(data.activities_count)}
                     />
                     {data.realized_pnl_eur !== 0 && (
                       <StatCard
-                        label="P&L realizzato"
+                        label={t("holdingDetail.realizedPnl")}
                         value={zen(`€ ${fmtSign(data.realized_pnl_eur)}`)}
                         positive={data.realized_pnl_eur >= 0}
                       />
                     )}
                     {data.first_buy_date && (
                       <StatCard
-                        label="Prima attività"
-                        value={format(parseISO(String(data.first_buy_date)), "dd MMM yyyy", { locale: it })}
+                        label={t("holdingDetail.firstActivity")}
+                        value={format(parseISO(String(data.first_buy_date)), "dd MMM yyyy", { locale: dateLocale })}
                       />
                     )}
-                    <StatCard label="Classe asset" value={data.asset_type} />
-                    <StatCard label="Borsa" value={data.exchange} />
+                    <StatCard label={t("holdingDetail.assetClass")} value={data.asset_type} />
+                    <StatCard label={t("holdingDetail.exchange")} value={data.exchange} />
                   </div>
 
                   {/* Settori */}
                   {data.sectors && data.sectors.length > 0 && (
-                    <WeightList title="Settori" items={data.sectors.map(s => ({ label: s.name, weight: s.weight }))} />
+                    <WeightList title={t("holdingDetail.sectors")} items={data.sectors.map(s => ({ label: s.name, weight: s.weight }))} />
                   )}
 
                   {/* Paesi */}
                   {data.countries && data.countries.length > 0 && (
-                    <WeightList title="Paesi" items={data.countries.map(c => ({ label: c.name || c.code, weight: c.weight }))} />
+                    <WeightList title={t("holdingDetail.countries")} items={data.countries.map(c => ({ label: c.name || c.code, weight: c.weight }))} />
                   )}
                 </div>
               )}
@@ -303,16 +302,16 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
               {tab === "activities" && (
                 <div className="divide-y divide-gray-50">
                   {data.activities.length === 0 ? (
-                    <p className="p-8 text-sm text-gray-400 text-center">Nessuna attività.</p>
+                    <p className="p-8 text-sm text-gray-400 text-center">{t("holdingDetail.noActivities")}</p>
                   ) : data.activities.map((a) => (
                     <div key={a.id} className="px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-gray-50 transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TX_BADGE[a.type] ?? "bg-gray-100 text-gray-600"}`}>
-                            {TX_LABELS[a.type] ?? a.type}
+                            {t(`transactions.types.${a.type}`, { defaultValue: a.type })}
                           </span>
                           <span className="text-xs text-gray-400">
-                            {format(parseISO(String(a.date)), "dd MMM yyyy", { locale: it })}
+                            {format(parseISO(String(a.date)), "dd MMM yyyy", { locale: dateLocale })}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
@@ -337,7 +336,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
               {tab === "accounts" && (
                 <div className="p-5 space-y-3">
                   {data.accounts.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-8">Nessun conto.</p>
+                    <p className="text-sm text-gray-400 text-center py-8">{t("holdingDetail.noAccounts")}</p>
                   ) : data.accounts.map((acc) => (
                     <div key={acc.account_id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                       <div className="flex items-baseline justify-between">
@@ -351,7 +350,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                       </div>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-xs text-gray-500">
-                          {acc.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} unità
+                          {acc.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} {t("holdingDetail.units")}
                         </span>
                         {acc.pct != null && (
                           <span className="text-xs text-gray-400">{acc.pct}%</span>

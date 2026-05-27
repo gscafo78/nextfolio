@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   accountService,
   fxService,
@@ -29,20 +30,14 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const TX_TYPES = [
-  { value: "BUY", label: "Acquisto" },
-  { value: "SELL", label: "Vendita" },
-  { value: "DIVIDEND", label: "Dividendo" },
-  { value: "COUPON", label: "Cedola" },
-  { value: "FEE", label: "Commissione" },
-  { value: "INTEREST", label: "Interesse" },
-];
+const TX_TYPES_LIST = ["BUY", "SELL", "DIVIDEND", "COUPON", "FEE", "INTEREST"] as const;
 
 interface TransactionFormProps {
   onSuccess?: () => void;
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
+  const { t } = useTranslation();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [priceCurrency, setPriceCurrency] = useState("EUR");
   const [loadingRate, setLoadingRate] = useState(false);
@@ -66,7 +61,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   });
 
   const date = watch("date");
-  // Coerce to number to prevent string-concatenation in total calculation
   const qty = Number(watch("quantity")) || 0;
   const price = Number(watch("price")) || 0;
   const exchangeRate = Number(watch("exchange_rate")) || 1;
@@ -75,18 +69,15 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
   const needsFx = priceCurrency !== "EUR";
   const totalAssetCurrency = qty * price;
-  // BUY: fee is a cost (add). SELL/COUPON/DIVIDEND/INTEREST: fee reduces proceeds (subtract).
   const feeSign = txType === "BUY" ? 1 : -1;
   const totalEur = totalAssetCurrency * exchangeRate + feeSign * fee;
 
-  // When a different asset is selected, default price currency to the asset's currency
   useEffect(() => {
     if (selectedAsset) {
       setPriceCurrency(selectedAsset.currency);
     }
   }, [selectedAsset]);
 
-  // Fetch historical FX rate when price currency or date changes
   const fetchRate = async () => {
     if (!needsFx) return;
     setLoadingRate(true);
@@ -128,19 +119,19 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     <form onSubmit={handleSubmit((d) => mutate(d))} className="space-y-4">
       {/* Asset */}
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">Asset</label>
+        <label className="text-sm font-medium text-gray-700 block mb-1">{t("common.asset")}</label>
         <AssetAutocomplete onSelect={(asset) => setSelectedAsset(asset)} />
       </div>
 
       {/* Conto + Tipo */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">Conto</label>
+          <label className="text-sm font-medium text-gray-700 block mb-1">{t("common.account")}</label>
           <select
             {...register("account_id")}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
           >
-            <option value="">— seleziona —</option>
+            <option value="">{t("transactionForm.selectType")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
@@ -148,25 +139,25 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           {errors.account_id && <p className="text-xs text-red-600 mt-1">{errors.account_id.message}</p>}
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
+          <label className="text-sm font-medium text-gray-700 block mb-1">{t("common.type")}</label>
           <select
             {...register("type")}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
           >
-            {TX_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+            {TX_TYPES_LIST.map((type) => (
+              <option key={type} value={type}>{t(`transactions.types.${type}`)}</option>
             ))}
           </select>
         </div>
       </div>
 
       {/* Data */}
-      <Input label="Data" type="date" error={errors.date?.message} {...register("date")} />
+      <Input label={t("common.date")} type="date" error={errors.date?.message} {...register("date")} />
 
       {/* Quantità + Prezzo con valuta + Commissioni */}
       <div className="grid grid-cols-3 gap-3">
         <Input
-          label="Quantità"
+          label={t("common.quantity")}
           type="number"
           inputMode="decimal"
           step="any"
@@ -176,7 +167,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
         {/* Prezzo + selettore valuta inline */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Prezzo</label>
+          <label className="text-sm font-medium text-gray-700">{t("common.price")}</label>
           <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
             <input
               type="number"
@@ -199,7 +190,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         </div>
 
         <Input
-          label="Commissioni (EUR)"
+          label={t("transactionForm.fees")}
           type="number"
           inputMode="decimal"
           step="any"
@@ -208,22 +199,22 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         />
       </div>
 
-      {/* Tasso di cambio — visibile solo se prezzo non è in EUR */}
+      {/* Tasso di cambio */}
       {needsFx && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-amber-800">
-              Tasso di cambio {priceCurrency}/EUR
+              {t("transactionForm.fxRate", { currency: priceCurrency })}
             </label>
             <button
               type="button"
               onClick={fetchRate}
               disabled={loadingRate || !date}
-              title="Aggiorna dal tasso BCE della data selezionata"
+              title={t("transactionForm.fxUpdate")}
               className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 disabled:opacity-40"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingRate ? "animate-spin" : ""}`} />
-              {loadingRate ? "Caricamento..." : "Tasso BCE"}
+              {loadingRate ? t("transactionForm.loadingRate") : t("transactionForm.fxLabel")}
             </button>
           </div>
           <input
@@ -238,8 +229,9 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             <p className="text-xs text-red-600">{errors.exchange_rate.message}</p>
           )}
           <p className="text-xs text-amber-700">
-            1 {priceCurrency} = {exchangeRate.toFixed(6)} EUR
-            {date && ` — tasso del ${date}`}
+            {date
+              ? t("transactionForm.fxDateNote", { currency: priceCurrency, rate: exchangeRate.toFixed(6), date })
+              : t("transactionForm.fxNoteSimple", { currency: priceCurrency, rate: exchangeRate.toFixed(6) })}
           </p>
         </div>
       )}
@@ -249,34 +241,34 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1 text-sm">
           {needsFx && (
             <div className="flex justify-between text-gray-500">
-              <span>Controvalore in {priceCurrency}</span>
+              <span>{t("transactionForm.countervalue", { currency: priceCurrency })}</span>
               <span>{totalAssetCurrency.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {priceCurrency}</span>
             </div>
           )}
           {fee > 0 && (
             <div className="flex justify-between text-gray-500">
-              <span>Commissioni</span>
+              <span>{t("transactionForm.commissions")}</span>
               <span className={feeSign > 0 ? "text-red-500" : "text-gray-500"}>
                 {feeSign > 0 ? "+" : "−"} € {fee.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
               </span>
             </div>
           )}
           <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
-            <span>{txType === "BUY" ? "Totale costo EUR" : "Totale netto EUR"}</span>
+            <span>{txType === "BUY" ? t("transactionForm.totalCost") : t("transactionForm.totalNet")}</span>
             <span>€ {totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span>
           </div>
           {(txType === "COUPON" || txType === "DIVIDEND") && (
             <p className="text-xs text-gray-400 pt-0.5">
-              La ritenuta fiscale (12,5% BTP / 26% altri) è calcolata automaticamente nella sezione Fiscale.
+              {t("transactionForm.taxNote")}
             </p>
           )}
         </div>
       )}
 
-      <Input label="Note (opzionale)" {...register("notes")} />
+      <Input label={t("transactionForm.notes")} {...register("notes")} />
 
       <Button type="submit" loading={isPending} disabled={!selectedAsset} className="w-full">
-        Salva transazione
+        {t("transactionForm.submit")}
       </Button>
     </form>
   );

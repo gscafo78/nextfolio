@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Plus, Trash2, X, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { alertService, type AlertOut, type AlertType, type AlertCreate } from "@/services/alert";
 import { assetService, type Asset } from "@/services/transactions";
 import { Button } from "@/components/ui/Button";
@@ -8,13 +9,6 @@ import { Input } from "@/components/ui/Input";
 import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const ALERT_LABELS: Record<AlertType, string> = {
-  PRICE_ABOVE: "Prezzo sopra",
-  PRICE_BELOW: "Prezzo sotto",
-  CHANGE_PCT_UP: "Variazione + oltre",
-  CHANGE_PCT_DOWN: "Variazione − oltre",
-};
 
 const ALERT_ICONS: Record<AlertType, React.ReactNode> = {
   PRICE_ABOVE: <ArrowUp className="w-4 h-4 text-green-500" />,
@@ -30,15 +24,6 @@ function thresholdLabel(alert: AlertOut) {
   return `${alert.threshold.toLocaleString("it-IT", { maximumFractionDigits: 4 })}${suffix}`;
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} min fa`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h fa`;
-  return new Date(iso).toLocaleDateString("it-IT");
-}
-
 // ── Asset autocomplete ────────────────────────────────────────────────────────
 
 function AssetSearch({
@@ -51,6 +36,7 @@ function AssetSearch({
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const { t } = useTranslation();
 
   const { data: results = [] } = useQuery({
     queryKey: ["asset-search", q],
@@ -74,12 +60,12 @@ function AssetSearch({
   return (
     <div className="relative">
       <Input
-        label="Asset"
+        label={t("common.asset")}
         value={q}
         onChange={(e) => handleInput(e.target.value)}
         onFocus={() => q.length >= 2 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
-        placeholder="Cerca per nome, ticker o ISIN..."
+        placeholder={t("alerts.searchPlaceholder")}
       />
       {open && results.length > 0 && (
         <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
@@ -107,6 +93,9 @@ function CreateModal({ onClose }: { onClose: () => void }) {
   const [alertType, setAlertType] = useState<AlertType>("PRICE_ABOVE");
   const [threshold, setThreshold] = useState("");
   const [error, setError] = useState("");
+  const { t } = useTranslation();
+
+  const ALERT_TYPES: AlertType[] = ["PRICE_ABOVE", "PRICE_BELOW", "CHANGE_PCT_UP", "CHANGE_PCT_DOWN"];
 
   const mutation = useMutation({
     mutationFn: (body: AlertCreate) => alertService.create(body),
@@ -114,15 +103,15 @@ function CreateModal({ onClose }: { onClose: () => void }) {
       qc.invalidateQueries({ queryKey: ["alerts"] });
       onClose();
     },
-    onError: () => setError("Errore durante la creazione dell'alert."),
+    onError: () => setError(t("alerts.createError")),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!asset) return setError("Seleziona un asset.");
+    if (!asset) return setError(t("alerts.selectAsset"));
     const val = parseFloat(threshold.replace(",", "."));
-    if (isNaN(val) || val <= 0) return setError("Inserisci una soglia valida.");
+    if (isNaN(val) || val <= 0) return setError(t("alerts.invalidThreshold"));
     mutation.mutate({ asset_id: asset.id, alert_type: alertType, threshold: val });
   };
 
@@ -130,7 +119,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Nuovo alert</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t("alerts.add")}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -140,38 +129,38 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           <AssetSearch value={asset} onChange={setAsset} />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo di alert</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("alerts.alertType")}</label>
             <select
               value={alertType}
               onChange={(e) => setAlertType(e.target.value as AlertType)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
-              {(Object.keys(ALERT_LABELS) as AlertType[]).map((t) => (
-                <option key={t} value={t}>
-                  {ALERT_LABELS[t]}
+              {ALERT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`alerts.conditions.${type}`)}
                 </option>
               ))}
             </select>
           </div>
 
           <Input
-            label={`Soglia ${isPct(alertType) ? "(%)" : "(€)"}`}
+            label={t("alerts.threshold", { unit: isPct(alertType) ? "(%)" : "(€)" })}
             type="number"
             step="any"
             min="0"
             value={threshold}
             onChange={(e) => setThreshold(e.target.value)}
-            placeholder={isPct(alertType) ? "es. 5" : "es. 42.50"}
+            placeholder={isPct(alertType) ? t("alerts.placeholderPct") : t("alerts.placeholderEur")}
           />
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-1">
             <Button type="button" variant="secondary" onClick={onClose}>
-              Annulla
+              {t("common.cancel")}
             </Button>
             <Button type="submit" loading={mutation.isPending}>
-              Crea alert
+              {t("alerts.create")}
             </Button>
           </div>
         </form>
@@ -184,6 +173,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 function AlertCard({ alert }: { alert: AlertOut }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
 
   const toggleMutation = useMutation({
     mutationFn: () => alertService.update(alert.id, { is_active: !alert.is_active }),
@@ -196,6 +186,15 @@ function AlertCard({ alert }: { alert: AlertOut }) {
   });
 
   const wasTriggered = !!alert.last_triggered_at;
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return t("alerts.minutesAgo", { minutes: mins });
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return t("alerts.hoursAgo", { hours: hrs });
+    return new Date(iso).toLocaleDateString("it-IT");
+  }
 
   return (
     <div
@@ -213,12 +212,12 @@ function AlertCard({ alert }: { alert: AlertOut }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5">
-          {ALERT_LABELS[alert.alert_type]}{" "}
+          {t(`alerts.conditions.${alert.alert_type}`)}{" "}
           <span className="font-medium text-gray-700">{thresholdLabel(alert)}</span>
         </p>
         {wasTriggered && (
           <p className="text-xs text-amber-600 mt-0.5">
-            Scattato {timeAgo(alert.last_triggered_at!)}
+            {t("alerts.triggeredAt", { time: timeAgo(alert.last_triggered_at!) })}
           </p>
         )}
       </div>
@@ -226,14 +225,14 @@ function AlertCard({ alert }: { alert: AlertOut }) {
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => toggleMutation.mutate()}
-          title={alert.is_active ? "Disabilita" : "Abilita"}
+          title={alert.is_active ? t("common.disable") : t("common.enable")}
           className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
         >
           {alert.is_active ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
         </button>
         <button
           onClick={() => deleteMutation.mutate()}
-          title="Elimina"
+          title={t("common.delete")}
           className="p-1.5 rounded hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
         >
           <Trash2 className="w-4 h-4" />
@@ -247,6 +246,7 @@ function AlertCard({ alert }: { alert: AlertOut }) {
 
 export function Alert() {
   const [creating, setCreating] = useState(false);
+  const { t } = useTranslation();
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["alerts"],
@@ -260,45 +260,45 @@ export function Alert() {
 
   return (
     <>
-      <TopBar title="Alert" />
+      <TopBar title={t("alerts.title")} />
       <main className="flex-1">
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-end">
         <Button onClick={() => setCreating(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Nuovo alert
+          {t("alerts.add")}
         </Button>
       </div>
 
       {/* Badge riepilogo */}
       <div className="flex gap-3 text-sm">
         <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-          {active.length} attivi
+          {active.length} {t("alerts.active")}
         </span>
         {triggered.length > 0 && (
           <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full">
-            {triggered.length} scattati
+            {triggered.length} {t("alerts.triggered")}
           </span>
         )}
         {inactive.length > 0 && (
           <span className="bg-gray-100 text-gray-400 px-3 py-1 rounded-full">
-            {inactive.length} disabilitati
+            {inactive.length} {t("alerts.disabled")}
           </span>
         )}
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-sm text-gray-500">Caricamento...</div>
+        <div className="text-center py-12 text-sm text-gray-500">{t("common.loading")}</div>
       ) : alerts.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
           <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">Nessun alert configurato</p>
+          <p className="text-sm font-medium text-gray-500">{t("alerts.noAlerts")}</p>
           <p className="text-xs text-gray-400 mt-1">
-            Crea un alert per ricevere una notifica quando un asset supera la soglia impostata.
+            {t("alerts.description")}
           </p>
           <Button className="mt-4" onClick={() => setCreating(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Crea il primo alert
+            {t("alerts.createFirst")}
           </Button>
         </div>
       ) : (
@@ -306,7 +306,7 @@ export function Alert() {
           {active.length > 0 && (
             <section>
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Attivi
+                {t("alerts.active")}
               </h2>
               <div className="space-y-2">
                 {active.map((a) => (
@@ -319,7 +319,7 @@ export function Alert() {
           {inactive.length > 0 && (
             <section>
               <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Disabilitati
+                {t("alerts.disabled")}
               </h2>
               <div className="space-y-2">
                 {inactive.map((a) => (
@@ -332,8 +332,7 @@ export function Alert() {
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        Gli alert vengono controllati ogni 5 minuti durante l'orario di mercato.
-        Cooldown di 4 ore tra un'attivazione e la successiva.
+        {t("alerts.checkNote")}
       </p>
 
       {creating && <CreateModal onClose={() => setCreating(false)} />}

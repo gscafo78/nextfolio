@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { PieChart as PieIcon, ChevronDown, ChevronRight, Pencil, X, Check, Globe } from "lucide-react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type AllocationItem, type PositionOut, type ETFHoldingOut, type CountryItem } from "@/services/portfolio";
@@ -59,11 +60,12 @@ function buildExchangeItems(positions: PositionOut[], total: number): Allocation
 function StackedAllocationBar({ items, total }: { items: AllocationItem[]; total: number }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-baseline justify-between mb-3">
-        <span className="text-sm font-semibold text-gray-700">Composizione portafoglio</span>
+        <span className="text-sm font-semibold text-gray-700">{t("allocation.portfolioShare")}</span>
         <span className="text-sm text-gray-500 tabular-nums">{zenMode ? "•••••" : `€ ${fmt(total)}`}</span>
       </div>
 
@@ -177,6 +179,7 @@ function EtfHoldingRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const zenMode = useZenMode();
+  const { t } = useTranslation();
   return (
     <>
       <tr
@@ -193,12 +196,12 @@ function EtfHoldingRow({
             <span className="text-sm font-semibold text-gray-900">{etf.symbol}</span>
             {etf.is_override && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
-                override
+                {t("allocation.overrideLabel")}
               </span>
             )}
             {etf.countries_override && etf.countries_override.length > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium flex items-center gap-0.5">
-                <Globe className="w-2.5 h-2.5" />paesi
+                <Globe className="w-2.5 h-2.5" />{t("allocation.countriesLabel")}
               </span>
             )}
           </div>
@@ -235,9 +238,9 @@ function EtfHoldingRow({
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50 text-gray-500">
-                        <th className="px-3 py-1.5 text-left font-medium">Simbolo</th>
-                        <th className="px-3 py-1.5 text-left font-medium hidden sm:table-cell">Nome</th>
-                        <th className="px-3 py-1.5 text-right font-medium">Peso</th>
+                        <th className="px-3 py-1.5 text-left font-medium">{t("allocation.symbol")}</th>
+                        <th className="px-3 py-1.5 text-left font-medium hidden sm:table-cell">{t("common.name")}</th>
+                        <th className="px-3 py-1.5 text-right font-medium">{t("allocation.weight")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -262,7 +265,7 @@ function EtfHoldingRow({
                 </div>
               ) : (
                 <p className="text-xs text-gray-400 italic py-1">
-                  Nessun holding disponibile.{isSuperAdmin ? " Usa l'override manuale per aggiungerne." : ""}
+                  {t("allocation.noHoldings")}{isSuperAdmin ? ` ${t("allocation.useOverride")}` : ""}
                 </p>
               )}
 
@@ -270,7 +273,7 @@ function EtfHoldingRow({
               {etf.countries_override && etf.countries_override.length > 0 && (
                 <div className="rounded-lg border border-blue-100 bg-blue-50/40 overflow-hidden">
                   <div className="px-3 py-1.5 text-[10px] font-semibold text-blue-600 uppercase tracking-wide border-b border-blue-100">
-                    Allocazione geografica
+                    {t("allocation.geoAllocation")}
                   </div>
                   <table className="w-full text-xs">
                     <tbody>
@@ -304,6 +307,7 @@ function EtfHoldingRow({
 }
 
 function EtfHoldingsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+  const { t } = useTranslation();
   const [editTarget, setEditTarget] = useState<ETFHoldingOut | null>(null);
 
   const { data: etfHoldings, isLoading } = useQuery({
@@ -319,9 +323,9 @@ function EtfHoldingsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-700">Holdings ETF / Fondi</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t("allocation.etfHoldings")}</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            Composizione interna dei fondi in portafoglio
+            {t("allocation.etfHoldingsDesc")}
           </p>
         </div>
       </div>
@@ -329,10 +333,10 @@ function EtfHoldingsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <table className="w-full">
           <thead>
             <tr className="text-xs text-gray-500 bg-gray-50 border-b border-gray-100">
-              <th className="px-4 py-2 text-left font-medium">Simbolo</th>
-              <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">Nome</th>
-              <th className="px-4 py-2 text-right font-medium">Valore</th>
-              <th className="px-4 py-2 text-right font-medium">N° holdings</th>
+              <th className="px-4 py-2 text-left font-medium">{t("allocation.symbol")}</th>
+              <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{t("common.name")}</th>
+              <th className="px-4 py-2 text-right font-medium">{t("common.value")}</th>
+              <th className="px-4 py-2 text-right font-medium">{t("allocation.holdingsCount")}</th>
               {isSuperAdmin && <th className="px-4 py-2 w-10" />}
             </tr>
           </thead>
@@ -364,6 +368,7 @@ function EtfHoldingsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"holdings" | "paesi">("holdings");
+  const { t } = useTranslation();
 
   const [holdingsText, setHoldingsText] = useState<string>(() => {
     if (etf.is_override && etf.holdings.length > 0) {
@@ -430,7 +435,7 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Override dati — {etf.symbol}</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t("allocation.overrideData")} — {etf.symbol}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{etf.name}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
@@ -449,7 +454,7 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
           {tab === "holdings" ? (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Una per riga: <code className="bg-gray-100 px-1 rounded">SIMBOLO|Nome|peso%</code>
+                {t("allocation.overrideHint")}
               </label>
               <textarea
                 className="w-full h-52 text-xs font-mono border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
@@ -457,13 +462,13 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
                 onChange={(e) => setHoldingsText(e.target.value)}
                 placeholder={"AAPL|Apple Inc|6.5\nMSFT|Microsoft Corp|6.2\n..."}
               />
-              <p className="text-xs text-gray-400 mt-1">Lascia vuoto per rimuovere l&apos;override.</p>
+              <p className="text-xs text-gray-400 mt-1">{t("allocation.overrideRemove")}</p>
             </div>
           ) : (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Una per riga: <code className="bg-gray-100 px-1 rounded">ISO2|peso%</code>
-                <span className="ml-2 text-gray-400">(es. US|65.2, JP|6.1)</span>
+                {t("allocation.countriesHint")}
+                <span className="ml-2 text-gray-400">{t("allocation.countriesExample")}</span>
               </label>
               <textarea
                 className="w-full h-52 text-xs font-mono border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
@@ -471,15 +476,15 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
                 onChange={(e) => setCountriesText(e.target.value)}
                 placeholder={"US|65.20\nJP|6.10\nGB|4.20\nFR|3.10\n..."}
               />
-              <p className="text-xs text-gray-400 mt-1">Lascia vuoto per rimuovere. I pesi vengono normalizzati automaticamente.</p>
+              <p className="text-xs text-gray-400 mt-1">{t("allocation.countriesNote")}</p>
             </div>
           )}
-          {mutation.isError && <p className="text-xs text-red-600">Errore nel salvataggio. Riprova.</p>}
+          {mutation.isError && <p className="text-xs text-red-600">{t("allocation.overrideError")}</p>}
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
-            Annulla
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
@@ -487,7 +492,7 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60"
           >
             <Check className="w-4 h-4" />
-            {mutation.isPending ? "Salvataggio..." : "Salva Override"}
+            {mutation.isPending ? t("common.prepare") : t("allocation.saveOverride")}
           </button>
         </div>
       </div>
@@ -525,6 +530,7 @@ function _tealScale(pct: number): string {
 }
 
 function WorldMapSection() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["country-allocation"],
     queryFn: () => portfolioService.getCountryAllocation(),
@@ -549,10 +555,10 @@ function WorldMapSection() {
   const { totals } = data ?? { totals: { developed_pct: 0, emerging_pct: 0, other_pct: 0, no_data_pct: 100 } };
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Mappa Geografica</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">{t("allocation.geoMap")}</h3>
       {!hasData ? (
         <div className="rounded-lg bg-slate-50 flex items-center justify-center h-40 text-sm text-gray-400">
-          Nessun dato geografico disponibile. Avvia l&apos;arricchimento degli asset per popolare la mappa.
+          {t("allocation.geoNoData")}
         </div>
       ) : (
       <div
@@ -606,19 +612,19 @@ function WorldMapSection() {
       )}
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
         <div>
-          <div className="text-xs text-gray-400">Mercati Sviluppati</div>
+          <div className="text-xs text-gray-400">{t("allocation.developedMarkets")}</div>
           <div className="text-sm font-bold text-blue-700">{fmt(totals.developed_pct, 2)} %</div>
         </div>
         <div>
-          <div className="text-xs text-gray-400">Mercati Emergenti</div>
+          <div className="text-xs text-gray-400">{t("allocation.emergingMarkets")}</div>
           <div className="text-sm font-bold text-emerald-700">{fmt(totals.emerging_pct, 2)} %</div>
         </div>
         <div>
-          <div className="text-xs text-gray-400">Altri Mercati</div>
+          <div className="text-xs text-gray-400">{t("allocation.otherMarkets")}</div>
           <div className="text-sm font-bold text-amber-700">{fmt(totals.other_pct, 2)} %</div>
         </div>
         <div>
-          <div className="text-xs text-gray-400">Dati non disponibili</div>
+          <div className="text-xs text-gray-400">{t("allocation.noData")}</div>
           <div className="text-sm font-bold text-gray-400">{fmt(totals.no_data_pct, 2)} %</div>
         </div>
       </div>
@@ -630,6 +636,7 @@ function WorldMapSection() {
 
 export function Allocation() {
   const { isSuperAdmin } = useAuth();
+  const { t } = useTranslation();
 
   const { data: dashboard } = useQuery({
     queryKey: ["portfolio-dashboard"],
@@ -651,13 +658,13 @@ export function Allocation() {
 
   return (
     <>
-      <TopBar title="Allocazioni" />
+      <TopBar title={t("nav.allocation")} />
       <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {isEmpty ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
             <PieIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aggiungi transazioni per vedere l&apos;allocazione.</p>
+            <p className="text-sm">{t("allocation.noTransactions")}</p>
           </div>
         ) : (
           <>
@@ -666,11 +673,11 @@ export function Allocation() {
 
             {/* Per Piattaforma / Valuta / Asset Class / Borsa */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <SmallDonutCard title="Per Piattaforma" items={allocation.by_account} />
-              <SmallDonutCard title="Per Valuta" items={allocation.by_currency} />
-              <SmallDonutCard title="Per Classe di Asset" items={allocation.by_type} />
+              <SmallDonutCard title={t("allocation.byPlatform")} items={allocation.by_account} />
+              <SmallDonutCard title={t("allocation.byCurrency")} items={allocation.by_currency} />
+              <SmallDonutCard title={t("allocation.byAssetClass")} items={allocation.by_type} />
               {exchangeItems.length > 0 && (
-                <SmallDonutCard title="Per Borsa" items={exchangeItems} />
+                <SmallDonutCard title={t("allocation.byExchange")} items={exchangeItems} />
               )}
             </div>
 
@@ -684,15 +691,15 @@ export function Allocation() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {allocation.by_sector && allocation.by_sector.filter(s => s.label !== "Non classificato").length > 0 && (
                   <SmallDonutCard
-                    title="Per Settore"
+                    title={t("performance.allocationSector")}
                     items={allocation.by_sector.filter(s => s.label !== "Non classificato")}
                   />
                 )}
                 {continentItems.length > 0 && (
-                  <SmallDonutCard title="Per Continente" items={continentItems} />
+                  <SmallDonutCard title={t("performance.allocationContinent")} items={continentItems} />
                 )}
                 {holdingItems.length > 0 && (
-                  <SmallDonutCard title="Per Holding" items={holdingItems} />
+                  <SmallDonutCard title={t("performance.allocationHolding")} items={holdingItems} />
                 )}
               </div>
             )}

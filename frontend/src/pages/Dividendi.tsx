@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, Cell,
 } from "recharts";
 import { Coins, TrendingUp, TrendingDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { api } from "@/services/api";
@@ -48,6 +49,7 @@ function fmt(v: number, d = 2) {
 export function Dividendi() {
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
+  const { t } = useTranslation();
 
   const { data, isLoading } = useQuery<DividendAnalysis>({
     queryKey: ["dividend-analysis"],
@@ -61,9 +63,9 @@ export function Dividendi() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Dividendi & Cedole" />
+        <TopBar title={t("dividends.title")} />
         <main className="flex-1 p-4 md:p-6 flex items-center justify-center">
-          <p className="text-sm text-gray-400">Caricamento...</p>
+          <p className="text-sm text-gray-400">{t("common.loading")}</p>
         </main>
       </>
     );
@@ -76,36 +78,36 @@ export function Dividendi() {
 
   return (
     <>
-      <TopBar title="Dividendi & Cedole" />
+      <TopBar title={t("dividends.title")} />
       <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {isEmpty ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
             <Coins className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nessun dividendo o cedola registrati.</p>
+            <p className="text-sm">{t("dividends.noData")}</p>
           </div>
         ) : (
           <>
             {/* KPI */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Totale incassato</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{t("dividends.totalIncome")}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{zen(`€ ${fmt(data!.total_income_eur)}`)}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Anno corrente</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{t("dividends.currentYear")}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
                   {zen(`€ ${fmt((data!.by_year.find((y) => y.year === new Date().getFullYear())?.amount_eur ?? 0))}`)}
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Media annua</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{t("dividends.avgAnnual")}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
                   {zen(`€ ${fmt(data!.by_year.length > 0 ? data!.total_income_eur / data!.by_year.length : 0)}`)}
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Asset pagatori</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{t("dividends.payingAssets")}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{data!.yield_on_cost.length}</p>
               </div>
             </div>
@@ -113,7 +115,7 @@ export function Dividendi() {
             {/* Grafico mensile */}
             {monthlyData.length > 1 && (
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">Reddito mensile (ultimi 24 mesi)</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">{t("dividends.monthlyIncome")}</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -137,7 +139,7 @@ export function Dividendi() {
                     />
                     <Tooltip
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                      formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, "Incassato"]}
+                      formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, t("dividends.incomeLabel")]}
                     />
                     <Bar dataKey="amount_eur" radius={[3, 3, 0, 0]}>
                       {monthlyData.map((_, i) => (
@@ -153,15 +155,15 @@ export function Dividendi() {
             {data!.by_year.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-700">Reddito per anno</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t("dividends.incomeByYear")}</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-50">
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-left">Anno</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Importo EUR</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Crescita YoY</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-left">{t("dividends.year")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.amountEur")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.yoyGrowth")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -195,17 +197,17 @@ export function Dividendi() {
             {data!.yield_on_cost.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-700">Yield on Cost per asset</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Reddito totale / costo d&apos;acquisto storico</p>
+                  <h3 className="text-sm font-semibold text-gray-700">{t("dividends.yieldOnCost")}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{t("dividends.yocDesc")}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-50">
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-left">Asset</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Costo d&apos;acquisto</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">Reddito totale</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">YoC %</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-left">{t("common.asset")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.costBasis")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.totalIncome")}</th>
+                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.yocPct")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
