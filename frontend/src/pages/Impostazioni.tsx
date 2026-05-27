@@ -378,28 +378,18 @@ function PreferenceSection() {
             <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{t("settings.language")}</p>
             <p className="text-xs text-gray-400 dark:text-slate-500">{t("settings.languageDesc")}</p>
           </div>
-          <div className="flex gap-1">
-            {LANGUAGES.map((lang) => {
-              const isActive = (settings.language ?? "it") === lang.code;
-              return (
-                <button
-                  key={lang.code}
-                  title={lang.native}
-                  onClick={() => {
-                    i18n.changeLanguage(lang.code);
-                    updateMutation.mutate({ language: lang.code });
-                  }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                    isActive
-                      ? "bg-brand-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                  }`}
-                >
-                  {lang.label}
-                </button>
-              );
-            })}
-          </div>
+          <select
+            value={settings.language ?? "it"}
+            onChange={(e) => {
+              i18n.changeLanguage(e.target.value);
+              updateMutation.mutate({ language: e.target.value });
+            }}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>{lang.label} — {lang.native}</option>
+            ))}
+          </select>
         </div>
       </div>
     </section>
