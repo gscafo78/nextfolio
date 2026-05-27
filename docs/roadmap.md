@@ -522,6 +522,146 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
+## FASE 8 — UX / UI Polish e funzionalità extra ✅
+**Obiettivo: coerenza visiva, micro-interazioni, privacy e miglioramenti UX trasversali**
+
+### 8.1 Layout e navigazione
+
+- [x] **TopBar consistente su tutte le pagine** — titolo della pagina corrente in ogni vista autenticata (Alert, Fiscale, Strumenti, Import, Admin, Transazioni, Performance, Allocazioni, Dividendi, Dashboard)
+- [x] **Rimozione titoli duplicati** — eliminati gli `<h1>` interni alle pagine che ridondavano con la TopBar
+- [x] **Pagina Import/Export unificata** — `ExportCard` e `RestoreCard` spostati da Strumenti a Import; label sidebar aggiornata a "Importa / Esporta"
+
+### 8.2 Paginazione Transazioni
+
+- [x] Selettore righe per pagina (10 / 25 / 50 / 100, default 10) allineato a destra nella barra filtri
+- [x] Navigazione ← / → con contatore "X–Y di Z"
+- [x] Reset automatico alla prima pagina al cambio di filtro o page size
+
+### 8.3 Allocazioni interattive
+
+- [x] **Stacked allocation bar** — barra segmentata per conto/piattaforma in sostituzione della barra statica al 100%; al hover i segmenti non attivi si attenuano; tooltip con nome e %
+- [x] **Mini progress bar nelle leggende** — ogni voce dei `SmallDonutCard` mostra una barra orizzontale relativa al valore massimo del gruppo
+
+### 8.4 Zen Mode — modalità privacy *(full-stack)*
+
+- [x] Backend: colonna `zen_mode` (Boolean, default `false`) su `user_settings` — migration `0013_zen_mode`
+- [x] Schema `UserSettingsOut` / `UserSettingsUpdate` aggiornati con `zen_mode`
+- [x] `ThemeContext.tsx` — `AppSettingsContext` espone `useZenMode()` dallo stesso query di `useTheme()`
+- [x] Toggle iOS-style in Impostazioni → Preferenze con label e descrizione
+- [x] Mascheramento **`"•••••"`** su tutte le pagine con valori EUR:
+  - **Dashboard** — KPI, breakdown per-conto, tabella posizioni, colonna P&L
+  - **Transazioni** — totali, commissioni, footer, card riepilogo per conto
+  - **Performance** — KPI, tabella posizioni (PMC, valore, P&L unrealized/realized/daily), footer totale, dividendi, tooltip e asse Y del grafico
+  - **Allocazioni** — totale stacked bar, tooltip donut, valore ETF holdings
+  - **Dividendi** — KPI, asse Y grafico, tooltip, tabella per anno, yield on cost
+  - **Fiscale** — KPI, Bracket, Row, GainBadge, EventsTable, IncomeSection, SellSimulator, storico minusvalenze
+  - **HoldingDetailModal** — header valore corrente, overview stats, tab Attività, tab Conti
+- [x] Le percentuali non vengono mai mascherate
+
+### 8.5 Login page redesign
+
+- [x] **Split layout** — pannello sinistro dark con brand (nascosto su mobile), pannello destro bianco con form
+- [x] Pannello sinistro: sfondo navy profondo (`#05101f → #0b1a30`), texture dot-grid, glow orbs blu/smeraldo, card portafoglio con live-dot pulsante, headline con gradient, feature pills, ticker strip, grafico area SVG (portafoglio vs investito) decorativo in fondo
+- [x] Pannello destro: heading "Bentornato", form pulito, errori in pill-banner, arrow sul CTA; step 2FA con card icona arrotondata; footer copyright
+- [x] Responsive: su mobile il pannello sinistro scompare, compare il logo compatto verticale
+
+### 8.6 Favicon e branding
+
+- [x] **Nuovo favicon SVG** — `/public/favicon.svg`: dark navy rounded square, 3 barre crescenti (blu → smeraldo), linea trend bianca, dot smeraldo con glow in cima
+- [x] `index.html` aggiornato: `<link rel="icon" type="image/svg+xml">` come prima scelta, PNG 32x32 come fallback per browser legacy
+
+### 8.7 Fix Tailwind palette brand *(bug fix)*
+
+- [x] Aggiunte le sfumature mancanti nel palette `brand` in `tailwind.config.js`: **200, 300, 400, 900** — le classi `bg-brand-400`, `text-brand-400`, ecc. non generavano CSS senza di esse, rendendo le barre di allocazione invisibili
+
+---
+
+## FASE 9 — Internazionalizzazione (i18n) 🌍 ⬜
+**Obiettivo: UI completamente multilingua (IT, EN, FR, DE), lingua selezionabile dalle impostazioni utente**
+
+> Librerie: **`i18next`** + **`react-i18next`** + **`i18next-browser-languagedetector`**
+> Approccio: namespace unico `common`, file JSON per lingua, cambio senza ricarica pagina.
+
+### 9.1 Backend
+
+- [ ] Migration `0014_language`: colonna `language` (String 5, default `"it"`) su `user_settings`
+- [ ] `UserSettingsOut` e `UserSettingsUpdate`: aggiungere campo `language: str | None`
+- [ ] Messaggi di errore backend: lasciati in inglese tecnico (già gestiti come codici nel frontend) — refactoring completo rimandato
+
+### 9.2 Setup i18n (Frontend)
+
+- [ ] Installare dipendenze: `i18next react-i18next i18next-browser-languagedetector`
+- [ ] Creare `src/i18n.ts` — configurazione con:
+  - Namespace: `common` (unico namespace per semplicità)
+  - Lingua di fallback: `"it"`
+  - Rilevamento automatico da `localStorage["nf-lang"]`
+  - Import lazy delle risorse JSON
+- [ ] Struttura cartelle:
+  ```
+  src/locales/
+    it/common.json   ← lingua di default (sorgente)
+    en/common.json
+    fr/common.json
+    de/common.json
+  ```
+- [ ] Integrare `i18next.changeLanguage()` in `AppSettingsContext` — lingua applicata al mount e ad ogni cambio impostazione
+- [ ] `src/i18n.ts` importato in `src/main.tsx` prima del render
+
+### 9.3 Struttura chiavi di traduzione
+
+```json
+{
+  "nav": { "dashboard": "Dashboard", "transactions": "Transazioni", ... },
+  "common": { "save": "Salva", "cancel": "Annulla", "loading": "Caricamento...", ... },
+  "dashboard": { "totalValue": "Valore portafoglio", "totalPnl": "P&L totale", ... },
+  "transactions": { "addTransaction": "Aggiungi transazione", "type": "Tipo", ... },
+  "performance": { "openPositions": "Posizioni aperte", "unrealizedPnl": "P&L non realizzato", ... },
+  "allocation": { "portfolioComposition": "Composizione portafoglio", ... },
+  "dividends": { "totalIncome": "Totale incassato", "currentYear": "Anno corrente", ... },
+  "tax": { "taxDue": "Imposta dovuta", "capitalGains": "Plusvalenze totali", ... },
+  "settings": { "preferences": "Preferenze", "theme": "Tema", "zenMode": "Zen Mode", "language": "Lingua", ... },
+  "errors": { "invalidCredentials": "Credenziali non valide", "invalidCode": "Codice non valido", ... },
+  "auth": { "welcome": "Bentornato", "signIn": "Accedi", "forgotPassword": "Password dimenticata?", ... }
+}
+```
+
+### 9.4 Migrazione stringhe UI
+
+- [ ] `src/components/layout/Sidebar.tsx` — label navigazione
+- [ ] `src/components/layout/TopBar.tsx` — titoli pagina
+- [ ] `src/pages/Login.tsx` + `ForgotPassword.tsx` + `ResetPassword.tsx`
+- [ ] `src/pages/Dashboard.tsx` — KPI label, colonne tabella, header sezioni
+- [ ] `src/pages/Transazioni.tsx` — filtri, colonne, form modifica, footer
+- [ ] `src/pages/Performance.tsx` — KPI, label grafici, sezioni
+- [ ] `src/pages/Allocation.tsx` — titoli card, label legenda
+- [ ] `src/pages/Dividendi.tsx` — KPI, label tabella
+- [ ] `src/pages/Fiscale.tsx` — bracket label, simulatore, storico
+- [ ] `src/pages/Alert.tsx` — form, badge stato
+- [ ] `src/pages/Impostazioni.tsx` — sezioni, label campo, descrizioni
+- [ ] `src/pages/Import.tsx` + `Strumenti.tsx` + `Admin.tsx`
+- [ ] `src/components/transactions/TransactionForm.tsx` — label, validazioni
+- [ ] `src/components/portfolio/HoldingDetailModal.tsx` — tab, label stat
+
+### 9.5 Selezione lingua in Impostazioni
+
+- [ ] Sezione "Lingua" in Impostazioni → Preferenze (sotto tema, sopra Zen Mode)
+- [ ] UI: 4 pill-button affiancati con codice ISO + nome nativo (`IT · Italiano`, `EN · English`, `FR · Français`, `DE · Deutsch`)
+- [ ] `onChange` chiama `i18next.changeLanguage()` immediatamente (senza attendere il salvataggio backend) → cambio istantaneo
+- [ ] `updateSettings({ language })` salva su backend; `staleTime: Infinity` sul query `my-settings`
+
+### 9.6 Formato date e numeri per lingua
+
+- [ ] `date-fns/locale` — importare `enUS`, `fr`, `de`, `it` e selezionare in base alla lingua corrente
+  - Usato in: Transazioni, Performance (tooltip), HoldingDetailModal, Dividendi
+- [ ] Numeri: `toLocaleString()` con `locale` dinamico (es. `"en-US"` → `1,234.56`, `"it-IT"` → `1.234,56`)
+  - Wrapper helper `fmtNum(v, locale)` centralizzato in `src/utils/format.ts`
+
+---
+
+**Nota sull'approccio:** l'italiano è la lingua sorgente (tutti i JSON `it/common.json` vengono scritti per primi). Le traduzioni EN/FR/DE sono generate in un secondo momento — finché non disponibili, `i18next` usa il fallback italiano. Non sono necessarie tutte e quattro le lingue per il primo rilascio.
+
+---
+
 ## FASE 7 — Qualità e rilascio ✅
 **Durata stimata: 1–2 settimane**
 **Obiettivo: test, sicurezza, deploy**
@@ -669,6 +809,7 @@ docker compose build
 | 5 | Tax engine italiano | ✅ Completata | 🟠 Alta | 2 sett. |
 | 6 | Features avanzate | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 7 | Testing + deploy | ✅ Completata (core) | 🟢 Normale | 1–2 sett. |
+| 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), HTTPS (infra), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
@@ -711,6 +852,13 @@ docker compose build
 | Pannello email admin (config, test, welcome, reset link) | 4.X.6 | Operazioni email manuali per il superadmin senza accesso a shell |
 | Logo SVG Nextfolio in Sidebar | 4.X.7 | Branding coerente con header email; "Next" bianco + "Folio" verde su sfondo slate-900 |
 | Tema dark / light / system (class-based Tailwind) | 4.X.7 | Preferenza persistita su backend (`user_settings.theme`), localStorage per FOUC prevention, cambio immediato senza attesa refetch |
+| TopBar consistente + rimozione titoli duplicati | 8.1 | Coerenza visiva su tutte le pagine autenticate; una sola fonte di verità per il titolo |
+| Paginazione Transazioni (righe per pagina) | 8.2 | Gestione grandi volumi di transazioni senza degradare le performance del DOM |
+| Stacked allocation bar + mini progress bar legenda | 8.3 | Visualizzazione allocazione per conto più intuitiva; replace della barra statica al 100% che non trasmetteva informazione reale |
+| Zen Mode (privacy toggle full-stack) | 8.4 | Ispirato a Ghostfolio; permette screenshot/condivisione del portafoglio senza esporre valori assoluti; percentuali sempre visibili |
+| Login page redesign — stile broker premium | 8.5 | Primo impatto professionale; layout split con pannello brand dark e grafico decorativo SVG |
+| Favicon SVG (barre crescenti + trend line) | 8.6 | Favicon riconoscibile a 16×16; SVG preferito dai browser moderni con PNG fallback |
+| Fix palette `brand` Tailwind (200/300/400/900) | 8.7 | Bug silenzioso: le classi senza sfumatura definita non generano CSS; rendeva invisibili barre e indicatori |
 
 ### Decisioni architetturali
 
