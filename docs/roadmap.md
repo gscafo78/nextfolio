@@ -756,13 +756,24 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [ ] `DEBUG=false` già impostato nel `docker-compose.yml` ✅
 - [ ] Verificare che `APP_URL` sia il dominio pubblico (usato nei link email reset password)
 
-### 11.4 Database e migration
+### 11.4 Database, migration e primo utente
 
-- [ ] Prima avvio: `docker compose run --rm backend alembic upgrade head` — applica tutte le migration
-- [ ] Verificare che tutte le migration 0001–0014 siano applicate senza errori
-- [ ] Primo utente: `POST /auth/register` → diventa SUPERADMIN automaticamente
-- [ ] Bloccare endpoint `/auth/register` dopo il primo utente (già implementato)
-- [ ] Testare reset password con SMTP produzione
+- [x] Prima avvio: `docker compose run --rm backend alembic upgrade head` — applica tutte le migration
+- [x] Tutte le migration 0001–0014 applicate senza errori
+
+**Creazione primo utente SUPERADMIN** (la rotta `/register` non esiste nel frontend — usare curl):
+```bash
+curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
+  -H "Host: nextfolio.myhomecloud.it" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"tua@email.com","password":"Password123!","name":"Nome"}' \
+  | python3 -m json.tool
+```
+> Il backend accetta la registrazione solo se non esiste ancora nessun utente; il primo diventa SUPERADMIN automaticamente. Il flag `Host:` è obbligatorio perché il backend valida `ALLOWED_HOSTS`.
+
+- [x] Primo utente SUPERADMIN creato
+- [x] Endpoint `/auth/register` bloccato dopo il primo utente (già implementato)
+- [x] Reset password testato con SMTP produzione (Mailjet)
 
 ### 11.5 Backup automatico
 
@@ -788,7 +799,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 - [ ] ✅ Tutte le pagine funzionanti su desktop Chrome/Firefox/Safari
 - [ ] ✅ Tutte le pagine funzionanti su mobile iOS Safari e Android Chrome
-- [ ] ✅ Login, 2FA, reset password funzionanti end-to-end
+- [x] ✅ Login, 2FA, reset password funzionanti end-to-end
 - [ ] ✅ Import CSV (Fineco / Degiro) testato con file reale
 - [ ] ✅ Market data: prezzi aggiornati per almeno 1 asset azionario, 1 ETF, 1 BTP, 1 crypto
 - [ ] ✅ Zen Mode: mascheramento EUR verificato su tutte le pagine
@@ -841,6 +852,90 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] `docker-compose.yml` production: porte solo su 127.0.0.1:80
 - [x] Variabili d'ambiente documentate in `.env.example`
 - [x] Script `scripts/backup-postgres.sh`: dump gzip + rotazione automatica
+
+---
+
+## FASE 12 — Registrazione pubblica opzionale con verifica email ⬜
+**Prerequisiti: SMTP configurato (già fatto), FASE 11 completata**
+**Obiettivo: il superadmin può abilitare la registrazione autonoma degli utenti, con conferma obbligatoria via email (OTP 6 cifre)**
+
+> Flusso: l'utente inserisce email + password → il backend invia un codice OTP a 6 cifre (valido 15 min) → l'utente inserisce il codice → account creato con ruolo USER.
+> La registrazione pubblica è **disabilitata di default** e attivabile solo dal superadmin.
+
+### 12.1 Backend
+
+**Migration:**
+- [ ] Migration `0015_registration_settings`: tabella `app_settings` (key VARCHAR PK, value TEXT) oppure colonna `allow_public_registration` (Boolean, default `false`) su una tabella config
+- [ ] Migration: aggiungere colonne su `users`: `email_verified` (Boolean, default `true` per utenti creati da admin), `email_verification_token` (String, nullable), `email_verification_expires` (DateTime, nullable)
+
+**Endpoint admin:**
+- [ ] `GET /admin/settings` — legge le impostazioni globali (incluso `allow_public_registration`)
+- [ ] `PATCH /admin/settings` — aggiorna impostazioni (solo superadmin); campo: `allow_public_registration: bool`
+
+**Endpoint registrazione pubblica:**
+- [ ] `GET /auth/registration-status` — risponde `{"allowed": true/false}` (pubblico, senza auth) — usato dal frontend per mostrare/nascondere il link di registrazione
+- [ ] `POST /auth/register` — modificare la logica esistente:
+  - Se `allow_public_registration = false` AND esistono già utenti → HTTP 403 (comportamento attuale)
+  - Se `allow_public_registration = true` → accetta la registrazione, genera OTP 6 cifre, salva hash su DB, invia email con codice, restituisce `{"requires_verification": true, "email": "..."}`
+  - Il primo utente (DB vuoto) → SUPERADMIN senza verifica (comportamento attuale)
+- [ ] `POST /auth/verify-email` — body: `{"email": "...", "code": "123456"}` → verifica hash OTP, attiva account, restituisce access+refresh token
+- [ ] `POST /auth/resend-verification` — reinvia OTP (rate-limited: max 3 per ora per email)
+- [ ] `services/email.py`: aggiungere `send_verification_code(email, code, name)` con template HTML
+
+**OTP:**
+- Codice: 6 cifre numeriche (`secrets.randbelow(1_000_000)` zero-padded)
+- Salvare l'hash `bcrypt(code)` su DB (non il codice in chiaro)
+- Scadenza: 15 minuti
+- Tentativo fallito: non rivelare se l'email esiste (risposta generica)
+
+### 12.2 Frontend
+
+**Pagina `/register` (da aggiungere in `App.tsx`):**
+- [ ] Aggiungere rotta `<Route path="/register" element={<Register />} />` in `App.tsx` (dopo `/login`)
+- [ ] `src/pages/Register.tsx` — form a 2 step:
+  - **Step 1**: email + password + conferma password + nome → `POST /auth/register`
+    - Se `requires_verification: true` → vai a step 2
+    - Se errore 403 (registrazione disabilitata) → mostra messaggio "Registrazione non disponibile"
+  - **Step 2**: campo OTP 6 cifre con input numerico, countdown 15 min, link "Rinvia codice" (dopo 60s) → `POST /auth/verify-email`
+    - Successo → redirect a `/` (utente già loggato con token ricevuto)
+- [ ] Layout uguale a Login (split panel, form a destra)
+- [ ] Link "Non hai un account? Registrati" nel Login — visibile solo se `GET /auth/registration-status` → `allowed: true`
+- [ ] Aggiungere chiavi i18n: `auth.register`, `auth.createAccount`, `auth.verifyEmail`, `auth.enterCode`, `auth.resendCode`, `auth.codeExpires`
+
+**Pannello Admin — sezione Impostazioni globali:**
+- [ ] Nuova sezione "Registrazione" in `Admin.tsx` (o in `Impostazioni.tsx` sezione superadmin):
+  - Toggle iOS-style: **Registrazione pubblica** — attiva/disattiva con `PATCH /admin/settings`
+  - Descrizione: "Se attiva, chiunque può registrarsi con verifica email. I nuovi utenti avranno ruolo USER."
+  - Badge stato: `Attiva` (verde) / `Disattiva` (grigio)
+
+### 12.3 Sicurezza
+
+- [ ] Rate limiting su `POST /auth/register` (già presente via `slowapi`): max 5 req/ora per IP
+- [ ] Rate limiting su `POST /auth/verify-email`: max 10 tentativi per email per ora
+- [ ] Rate limiting su `POST /auth/resend-verification`: max 3 per email per ora
+- [ ] Non rivelare se un'email è già registrata (risposta identica per email esistenti/nuove)
+- [ ] Pulizia automatica: task Celery giornaliero che elimina utenti non verificati dopo 24h
+
+### 12.4 Checklist implementazione
+
+```
+Backend:
+  [ ] Migration 0015
+  [ ] GET /auth/registration-status
+  [ ] POST /auth/register (aggiornato)
+  [ ] POST /auth/verify-email
+  [ ] POST /auth/resend-verification
+  [ ] GET /admin/settings + PATCH /admin/settings
+  [ ] send_verification_code() in email.py
+  [ ] Task Celery cleanup utenti non verificati
+
+Frontend:
+  [ ] Register.tsx (step 1 + step 2)
+  [ ] Route /register in App.tsx
+  [ ] Link condizionale in Login.tsx
+  [ ] Sezione toggle in Admin.tsx
+  [ ] Chiavi i18n (it/en/fr/de)
+```
 
 ---
 
@@ -958,8 +1053,9 @@ docker compose build
 | 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
 | **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | 🔄 **In corso** | 🔴 **Critica** | **< 1 sett.** |
+| **12** | **Registrazione pubblica opzionale con verifica email** | ⬜ Pianificata | 🟠 Alta | 2–3 giorni |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → **FASE 11 (produzione)** — `docker-compose.yml` aggiornato per Cloudflare Tunnel; prossimo passo: creare `.env`, applicare migration, primo deploy.
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → **FASE 11 (produzione)** 🔄 → **FASE 12 (registrazione pubblica)**
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
