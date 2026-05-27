@@ -639,5 +639,10 @@
     "noPriceHistory": "Aucun historique de prix. Lancez un backfill depuis le tableau de bord.",
     "loadError": "Erreur lors du chargement des données.",
     "trend": "Tendance"
+  },
+  "pwa": {
+    "installTitle": "Installer Nextfolio",
+    "installDesc": "Ajouter à l'écran d'accueil pour un accès rapide",
+    "install": "Installer"
   }
 }

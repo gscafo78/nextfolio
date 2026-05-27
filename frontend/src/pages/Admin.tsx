@@ -71,8 +71,8 @@ function EditModal({ user, onClose }: EditModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t("admin.editUser")}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -167,8 +167,8 @@ function CreateModal({ onClose }: CreateModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t("admin.createUser")}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -359,7 +359,7 @@ function WelcomeEmailModal({ user, onClose }: { user: UserAdminOut; onClose: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900">{t("admin.sendWelcome")}</h3>
@@ -467,33 +467,39 @@ export function Admin() {
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-left">
                 <th className="px-4 py-3 font-medium text-gray-600">{t("admin.name")}</th>
-                <th className="px-4 py-3 font-medium text-gray-600">{t("admin.email")}</th>
+                <th className="hidden sm:table-cell px-4 py-3 font-medium text-gray-600">{t("admin.email")}</th>
                 <th className="px-4 py-3 font-medium text-gray-600">{t("admin.role")}</th>
-                <th className="px-4 py-3 font-medium text-gray-600">{t("admin.status")}</th>
-                <th className="px-4 py-3 font-medium text-gray-600">{t("admin.twoFactor")}</th>
-                <th className="px-4 py-3 font-medium text-gray-600">{t("admin.created")}</th>
+                <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-600">{t("admin.status")}</th>
+                <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-600">{t("admin.twoFactor")}</th>
+                <th className="hidden lg:table-cell px-4 py-3 font-medium text-gray-600">{t("admin.created")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none">{u.name}</div>
+                    <div className="sm:hidden text-xs text-gray-400 truncate max-w-[120px]">{u.email}</div>
+                    <div className="md:hidden mt-0.5">
+                      <Badge active={u.is_active} />
+                    </div>
+                  </td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-gray-600 truncate max-w-[160px]">{u.email}</td>
                   <td className="px-4 py-3">
                     <RoleBadge role={u.role} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden md:table-cell px-4 py-3">
                     <Badge active={u.is_active} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden md:table-cell px-4 py-3">
                     {u.two_factor_enabled ? (
                       <ShieldCheck className="w-4 h-4 text-green-600" />
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="hidden lg:table-cell px-4 py-3 text-gray-500">
                     {new Date(u.created_at).toLocaleDateString(getIntlLocale(i18n.language))}
                   </td>
                   <td className="px-4 py-3">

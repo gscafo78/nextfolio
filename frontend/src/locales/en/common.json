@@ -639,5 +639,10 @@
     "noPriceHistory": "No price history. Start a backfill from the Dashboard.",
     "loadError": "Error loading data.",
     "trend": "Trend"
+  },
+  "pwa": {
+    "installTitle": "Install Nextfolio",
+    "installDesc": "Add to Home Screen for quick access",
+    "install": "Install"
   }
 }

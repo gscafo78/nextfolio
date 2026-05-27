@@ -639,5 +639,10 @@
     "noPriceHistory": "Kein Kursverlauf. Starten Sie einen Backfill vom Dashboard.",
     "loadError": "Fehler beim Laden der Daten.",
     "trend": "Verlauf"
+  },
+  "pwa": {
+    "installTitle": "Nextfolio installieren",
+    "installDesc": "Zum Startbildschirm hinzufügen für schnellen Zugriff",
+    "install": "Installieren"
   }
 }

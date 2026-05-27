@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
+import { InstallBanner } from "@/components/InstallBanner";
 
 export function MainLayout() {
   return (
@@ -10,6 +11,7 @@ export function MainLayout() {
         <Outlet />
       </div>
       <BottomNav />
+      <InstallBanner />
     </div>
   );
 }

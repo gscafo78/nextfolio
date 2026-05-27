@@ -150,37 +150,37 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-600">
-                <th className="px-4 py-3 font-medium">{t("common.date")}</th>
-                <th className="px-4 py-3 font-medium">{t("common.asset")}</th>
-                <th className="px-4 py-3 font-medium">{t("common.type")}</th>
-                <th className="px-4 py-3 font-medium">{t("common.quantity")}</th>
-                <th className="px-4 py-3 font-medium text-right">{t("tax.cost")}</th>
-                <th className="px-4 py-3 font-medium text-right">{t("tax.proceeds")}</th>
-                <th className="px-4 py-3 font-medium text-right">{t("tax.gainLoss")}</th>
-                <th className="px-4 py-3 font-medium text-right">{t("tax.rate", { pct: "" }).trim()}</th>
+                <th className="px-3 md:px-4 py-3 font-medium">{t("common.date")}</th>
+                <th className="px-3 md:px-4 py-3 font-medium">{t("common.asset")}</th>
+                <th className="hidden sm:table-cell px-4 py-3 font-medium">{t("common.type")}</th>
+                <th className="hidden md:table-cell px-4 py-3 font-medium">{t("common.quantity")}</th>
+                <th className="hidden md:table-cell px-4 py-3 font-medium text-right">{t("tax.cost")}</th>
+                <th className="px-3 md:px-4 py-3 font-medium text-right">{t("tax.proceeds")}</th>
+                <th className="px-3 md:px-4 py-3 font-medium text-right">{t("tax.gainLoss")}</th>
+                <th className="hidden sm:table-cell px-4 py-3 font-medium text-right">{t("tax.rate", { pct: "" }).trim()}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sorted.map((ev, i) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  <td className="px-3 md:px-4 py-3 text-gray-500 whitespace-nowrap text-xs md:text-sm">
                     {new Date(ev.date).toLocaleDateString(getIntlLocale(i18n.language))}
                   </td>
-                  <td className="px-4 py-3 font-medium text-gray-900 max-w-[180px] truncate">
+                  <td className="px-3 md:px-4 py-3 font-medium text-gray-900 max-w-[120px] md:max-w-[180px] truncate">
                     {ev.asset_name}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{t(`transactions.types.${ev.tx_type}`, { defaultValue: ev.tx_type })}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="hidden sm:table-cell px-4 py-3 text-gray-600">{t(`transactions.types.${ev.tx_type}`, { defaultValue: ev.tx_type })}</td>
+                  <td className="hidden md:table-cell px-4 py-3 text-gray-500">
                     {ev.quantity != null ? ev.quantity.toLocaleString(getIntlLocale(i18n.language)) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-500">
+                  <td className="hidden md:table-cell px-4 py-3 text-right text-gray-500">
                     {ev.cost_eur != null ? (zenMode ? "•••••" : eur(ev.cost_eur)) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-600">{zenMode ? "•••••" : eur(ev.proceeds_eur)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 md:px-4 py-3 text-right text-gray-600">{zenMode ? "•••••" : eur(ev.proceeds_eur)}</td>
+                  <td className="px-3 md:px-4 py-3 text-right">
                     <GainBadge value={ev.gain_loss_eur} />
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-gray-500">
+                  <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-gray-500">
                     {ev.tax_bracket === "government_bond" ? "12.5%" : ev.tax_bracket === "standard" ? "26%" : ev.tax_bracket}
                   </td>
                 </tr>

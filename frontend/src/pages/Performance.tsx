@@ -764,14 +764,14 @@ export function Performance() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-50 text-left">
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.asset")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.qty")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.avgCost")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentPrice")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentValue")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.unrealizedPnl")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.realizedPnl")}</th>
-                      <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.dailyChange")}</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.asset")}</th>
+                      <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.qty")}</th>
+                      <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.avgCost")}</th>
+                      <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentPrice")}</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.currentValue")}</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.unrealizedPnl")}</th>
+                      <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.realizedPnl")}</th>
+                      <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("performance.dailyChange")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -782,17 +782,20 @@ export function Performance() {
                   {positions.length > 0 && summary && (
                     <tfoot>
                       <tr className="border-t border-gray-200 bg-gray-50">
-                        <td colSpan={4} className="px-5 py-2 text-xs text-gray-400">{t("performance.totalPortfolio")}</td>
-                        <td className="px-5 py-2 text-right text-sm font-semibold text-gray-900">
+                        <td className="px-3 md:px-5 py-2 text-xs text-gray-400">{t("performance.totalPortfolio")}</td>
+                        <td className="hidden md:table-cell" />
+                        <td className="hidden md:table-cell" />
+                        <td className="hidden md:table-cell" />
+                        <td className="px-3 md:px-5 py-2 text-right text-sm font-semibold text-gray-900">
                           {zen(`€ ${fmt(summary.total_value_eur)}`)}
                         </td>
-                        <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.unrealized_pnl_eur)}`}>
+                        <td className={`px-3 md:px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.unrealized_pnl_eur)}`}>
                           {zen(`€ ${fmtSign(summary.unrealized_pnl_eur)}`)}
                         </td>
-                        <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.realized_pnl_eur)}`}>
+                        <td className={`hidden md:table-cell px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.realized_pnl_eur)}`}>
                           {zen(`€ ${fmtSign(summary.realized_pnl_eur)}`)}
                         </td>
-                        <td className={`px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.daily_change_eur)}`}>
+                        <td className={`hidden md:table-cell px-5 py-2 text-right text-sm font-semibold ${colorClass(summary.daily_change_eur)}`}>
                           {zen(`€ ${fmtSign(summary.daily_change_eur)}`)}
                         </td>
                       </tr>
@@ -819,7 +822,7 @@ export function Performance() {
                         <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.date")}</th>
                         <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.type")}</th>
                         <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.asset")}</th>
-                        <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.account")}</th>
+                        <th className="hidden md:table-cell px-5 py-3 text-xs font-medium text-gray-400 uppercase">{t("common.account")}</th>
                         <th className="px-5 py-3 text-xs font-medium text-gray-400 uppercase text-right">{t("dividends.amountEur")}</th>
                       </tr>
                     </thead>
@@ -838,7 +841,7 @@ export function Performance() {
                             <div className="font-medium text-gray-900">{d.symbol}</div>
                             <div className="text-xs text-gray-400 truncate max-w-[180px]">{d.name}</div>
                           </td>
-                          <td className="px-5 py-3 text-xs text-gray-500">{d.account_name}</td>
+                          <td className="hidden md:table-cell px-5 py-3 text-xs text-gray-500">{d.account_name}</td>
                           <td className="px-5 py-3 text-right font-medium text-green-600">
                             {zenMode ? "•••••" : `+ € ${fmt(d.amount_eur)}`}
                           </td>
@@ -867,7 +870,7 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
   const zen = (v: string) => zenMode ? "•••••" : v;
   return (
     <tr className="hover:bg-gray-50 transition-colors">
-      <td className="px-5 py-3">
+      <td className="px-3 md:px-5 py-3">
         <div className="flex items-center gap-1.5">
           <span className="font-medium text-gray-900">{pos.symbol}</span>
           {isConcentrated && (
@@ -876,16 +879,16 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
             </span>
           )}
         </div>
-        <div className="text-xs text-gray-400 truncate max-w-[200px]">{pos.name}</div>
-        <div className="text-xs text-gray-300">{t(`performance.assetTypes.${pos.asset_type}`) || pos.asset_type} · {pos.exchange}</div>
+        <div className="text-xs text-gray-400 truncate max-w-[140px] md:max-w-[200px]">{pos.name}</div>
+        <div className="text-xs text-gray-300 hidden md:block">{t(`performance.assetTypes.${pos.asset_type}`) || pos.asset_type} · {pos.exchange}</div>
       </td>
-      <td className="px-5 py-3 text-right text-gray-600">
+      <td className="hidden md:table-cell px-5 py-3 text-right text-gray-600">
         {pos.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })}
       </td>
-      <td className="px-5 py-3 text-right text-gray-600 font-mono text-xs">
+      <td className="hidden md:table-cell px-5 py-3 text-right text-gray-600 font-mono text-xs">
         {zen(`€ ${fmt(pos.pmc_eur, 2)}`)}
       </td>
-      <td className="px-5 py-3 text-right">
+      <td className="hidden md:table-cell px-5 py-3 text-right">
         {hasPrices ? (
           <div>
             <div className="text-gray-700 font-mono text-xs">
@@ -901,10 +904,10 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
           </div>
         ) : <Minus className="w-3 h-3 text-gray-300 ml-auto" />}
       </td>
-      <td className="px-5 py-3 text-right font-medium text-gray-900">
+      <td className="px-3 md:px-5 py-3 text-right font-medium text-gray-900">
         {hasPrices ? zen(`€ ${fmt(pos.current_value_eur!)}`) : "—"}
       </td>
-      <td className="px-5 py-3 text-right">
+      <td className="px-3 md:px-5 py-3 text-right">
         {pos.unrealized_pnl_eur !== null ? (
           <div>
             <div className={`text-xs font-semibold ${colorClass(pos.unrealized_pnl_eur)}`}>
@@ -918,12 +921,12 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
           </div>
         ) : <Minus className="w-3 h-3 text-gray-300 ml-auto" />}
       </td>
-      <td className={`px-5 py-3 text-right text-xs font-semibold ${colorClass(pos.realized_pnl_eur)}`}>
+      <td className={`hidden md:table-cell px-5 py-3 text-right text-xs font-semibold ${colorClass(pos.realized_pnl_eur)}`}>
         {pos.realized_pnl_eur !== 0
           ? zen(`€ ${fmtSign(pos.realized_pnl_eur)}`)
           : <span className="text-gray-300">—</span>}
       </td>
-      <td className="px-5 py-3 text-right">
+      <td className="hidden md:table-cell px-5 py-3 text-right">
         {pos.change_pct !== null && pos.current_value_eur !== null ? (
           <span className={`flex items-center justify-end gap-1 text-xs font-semibold ${colorClass(pos.change_pct)}`}>
             {pos.change_pct >= 0
