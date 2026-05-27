@@ -10,6 +10,7 @@ import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";
 import { HoldingDetailModal } from "@/components/portfolio/HoldingDetailModal";
+import { AccountFavicon } from "@/components/AccountFavicon";
 
 type SortField = "allocation" | "value" | "change" | "performance" | "name";
 type SortDir   = "asc" | "desc";
@@ -313,13 +314,13 @@ export function Dashboard() {
   return (
     <>
       <TopBar title="Dashboard" />
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* Greeting + period selector */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Ciao, {user?.name} 👋</h2>
-            <p className="text-gray-500 mt-0.5 text-sm">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Ciao, {user?.name} 👋</h2>
+            <p className="hidden md:block text-gray-500 mt-0.5 text-sm">
               {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
@@ -374,7 +375,10 @@ export function Dashboard() {
                       <div className="flex items-start justify-between">
                         <div className="min-w-0">
                           <p className="text-xs text-gray-400 truncate">{acc.broker ?? "—"}</p>
-                          <p className="text-sm font-semibold text-gray-900 truncate">{acc.name}</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5">
+                            <AccountFavicon url={acc.url} size={4} />
+                            {acc.name}
+                          </p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-brand-500 flex-shrink-0 mt-0.5" />
                       </div>
@@ -411,18 +415,18 @@ export function Dashboard() {
 
             {/* Holdings table */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="px-4 md:px-5 py-3 md:py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-gray-900">Holdings</h3>
                   <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 </div>
-                <div className="flex items-center gap-3">
-                  {backfillDone && <span className="text-xs text-green-600">{backfillDone}</span>}
+                <div className="flex items-center gap-2 md:gap-3">
+                  {backfillDone && <span className="text-xs text-green-600 hidden md:inline">{backfillDone}</span>}
                   <button onClick={() => { setBackfillDone(null); runBackfill(); }} disabled={backfillPending}
                     className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 disabled:opacity-50 transition-colors"
-                    title="Scarica storico prezzi dalla data del primo acquisto">
+                    title="Aggiorna storico prezzi">
                     <RefreshCw className={`w-3.5 h-3.5 ${backfillPending ? "animate-spin" : ""}`} />
-                    Aggiorna storico
+                    <span className="hidden md:inline">Aggiorna storico</span>
                   </button>
                   <div className="flex rounded-full border border-gray-200 overflow-hidden text-xs font-medium">
                     <button onClick={() => setShowClosed(false)}
@@ -438,84 +442,139 @@ export function Dashboard() {
               </div>
 
               {!showClosed && (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-50 bg-gray-50/50 text-left">
-                      <SortTh field="name" current={sortField} dir={sortDir} onSort={handleSort} className="pl-5">Nome</SortTh>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Prima attività</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Quantità</th>
-                      <SortTh field="value" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Valore</SortTh>
-                      <SortTh field="allocation" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Allocaz.</SortTh>
-                      <SortTh field="change" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Variazione</SortTh>
-                      <SortTh field="performance" current={sortField} dir={sortDir} onSort={handleSort} className="pr-5 text-right">Performance</SortTh>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
+                <>
+                  {/* Mobile: card list */}
+                  <div className="md:hidden divide-y divide-gray-50">
                     {positionsLoading
-                      ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={7} />)
+                      ? Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="flex items-center justify-between px-4 py-3.5 animate-pulse">
+                            <div className="space-y-1.5">
+                              <div className="h-3.5 w-36 bg-gray-100 rounded" />
+                              <div className="h-2.5 w-16 bg-gray-100 rounded" />
+                            </div>
+                            <div className="space-y-1.5 items-end flex flex-col">
+                              <div className="h-3.5 w-20 bg-gray-100 rounded" />
+                              <div className="h-2.5 w-12 bg-gray-100 rounded" />
+                            </div>
+                          </div>
+                        ))
                       : sortedPositions.map((pos) => {
                           const alloc = totalValue > 0 && pos.current_value_eur != null
                             ? (pos.current_value_eur / totalValue) * 100 : null;
-                          const dateStr = firstBuyDate[pos.asset_id];
                           return (
-                            <tr
+                            <button
                               key={pos.asset_id}
-                              className="hover:bg-gray-50/70 transition-colors cursor-pointer"
-                              onDoubleClick={() => setSelectedAssetId(pos.asset_id)}
-                              title="Doppio click per i dettagli"
+                              onClick={() => setSelectedAssetId(pos.asset_id)}
+                              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left"
                             >
-                              <td className="pl-5 pr-4 py-3.5">
-                                <div className="font-medium text-gray-900 truncate max-w-[220px]">{pos.name}</div>
-                                <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
-                              </td>
-                              <td className="px-4 py-3.5 text-right text-xs text-gray-400">
-                                {dateStr ? new Date(dateStr).toLocaleDateString("it-IT") : "—"}
-                              </td>
-                              <td className="px-4 py-3.5 text-right text-gray-600 tabular-nums">
-                                {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })}
-                              </td>
-                              <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
-                                {pos.current_value_eur != null
-                                  ? `€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                  : <span className="text-gray-300 font-normal">N/D</span>}
-                              </td>
-                              <td className="px-4 py-3.5 text-right">
-                                {alloc != null ? (
-                                  <div className="flex items-center justify-end gap-2">
-                                    <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
-                                      <div className="h-full bg-brand-400 rounded-full" style={{ width: `${Math.min(alloc, 100)}%` }} />
-                                    </div>
-                                    <span className="text-xs text-gray-600 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
-                                  </div>
-                                ) : <span className="text-gray-300 text-xs">—</span>}
-                              </td>
-                              <td className="px-4 py-3.5 text-right tabular-nums">
-                                {pos.periodPnlEur != null ? (
-                                  <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                    {pos.periodPnlEur >= 0 ? "+ " : "− "}
-                                    {Math.abs(pos.periodPnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </span>
-                                ) : <span className="text-gray-300 text-xs">—</span>}
-                              </td>
-                              <td className="pr-5 pl-4 py-3.5 text-right tabular-nums">
-                                {pos.periodPnlPct != null ? (
-                                  <span className={`text-sm font-semibold ${pos.periodPnlPct >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                    {pos.periodPnlPct >= 0 ? "+" : ""}{pos.periodPnlPct.toFixed(2)} %
-                                  </span>
-                                ) : <span className="text-gray-300 text-xs">—</span>}
-                              </td>
-                            </tr>
+                              <div className="min-w-0 flex-1 mr-4">
+                                <div className="font-medium text-gray-900 truncate text-sm">{pos.name}</div>
+                                <div className="text-xs text-gray-400 mt-0.5">
+                                  {pos.symbol}{alloc != null ? ` · ${alloc.toFixed(1)}%` : ""}
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <div className="font-semibold text-gray-900 text-sm tabular-nums">
+                                  {pos.current_value_eur != null
+                                    ? `€ ${pos.current_value_eur.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`
+                                    : <span className="text-gray-300 font-normal text-xs">N/D</span>}
+                                </div>
+                                <div className={`text-xs tabular-nums font-medium mt-0.5 ${
+                                  pos.periodPnlPct != null
+                                    ? (pos.periodPnlPct >= 0 ? "text-green-600" : "text-red-500")
+                                    : "text-gray-300"
+                                }`}>
+                                  {pos.periodPnlPct != null
+                                    ? `${pos.periodPnlPct >= 0 ? "+" : ""}${pos.periodPnlPct.toFixed(2)}%`
+                                    : "—"}
+                                </div>
+                              </div>
+                            </button>
                           );
                         })}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop: full table */}
+                  <table className="hidden md:table w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-50 bg-gray-50/50 text-left">
+                        <SortTh field="name" current={sortField} dir={sortDir} onSort={handleSort} className="pl-5">Nome</SortTh>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Prima attività</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase text-right">Quantità</th>
+                        <SortTh field="value" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Valore</SortTh>
+                        <SortTh field="allocation" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Allocaz.</SortTh>
+                        <SortTh field="change" current={sortField} dir={sortDir} onSort={handleSort} className="text-right">Variazione</SortTh>
+                        <SortTh field="performance" current={sortField} dir={sortDir} onSort={handleSort} className="pr-5 text-right">Performance</SortTh>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {positionsLoading
+                        ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={7} />)
+                        : sortedPositions.map((pos) => {
+                            const alloc = totalValue > 0 && pos.current_value_eur != null
+                              ? (pos.current_value_eur / totalValue) * 100 : null;
+                            const dateStr = firstBuyDate[pos.asset_id];
+                            return (
+                              <tr
+                                key={pos.asset_id}
+                                className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                                onDoubleClick={() => setSelectedAssetId(pos.asset_id)}
+                                title="Doppio click per i dettagli"
+                              >
+                                <td className="pl-5 pr-4 py-3.5">
+                                  <div className="font-medium text-gray-900 truncate max-w-[220px]">{pos.name}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
+                                </td>
+                                <td className="px-4 py-3.5 text-right text-xs text-gray-400">
+                                  {dateStr ? new Date(dateStr).toLocaleDateString("it-IT") : "—"}
+                                </td>
+                                <td className="px-4 py-3.5 text-right text-gray-600 tabular-nums">
+                                  {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })}
+                                </td>
+                                <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
+                                  {pos.current_value_eur != null
+                                    ? `€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    : <span className="text-gray-300 font-normal">N/D</span>}
+                                </td>
+                                <td className="px-4 py-3.5 text-right">
+                                  {alloc != null ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
+                                        <div className="h-full bg-brand-400 rounded-full" style={{ width: `${Math.min(alloc, 100)}%` }} />
+                                      </div>
+                                      <span className="text-xs text-gray-600 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
+                                    </div>
+                                  ) : <span className="text-gray-300 text-xs">—</span>}
+                                </td>
+                                <td className="px-4 py-3.5 text-right tabular-nums">
+                                  {pos.periodPnlEur != null ? (
+                                    <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                      {pos.periodPnlEur >= 0 ? "+ " : "− "}
+                                      {Math.abs(pos.periodPnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  ) : <span className="text-gray-300 text-xs">—</span>}
+                                </td>
+                                <td className="pr-5 pl-4 py-3.5 text-right tabular-nums">
+                                  {pos.periodPnlPct != null ? (
+                                    <span className={`text-sm font-semibold ${pos.periodPnlPct >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                      {pos.periodPnlPct >= 0 ? "+" : ""}{pos.periodPnlPct.toFixed(2)} %
+                                    </span>
+                                  ) : <span className="text-gray-300 text-xs">—</span>}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                    </tbody>
+                  </table>
+                </>
               )}
 
               {showClosed && (
                 closedRows.length === 0 ? (
                   <div className="p-10 text-center text-sm text-gray-400">Nessuna posizione chiusa.</div>
                 ) : (
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="border-b border-gray-50 bg-gray-50/50 text-left">
                         <th className="pl-5 pr-4 py-3 text-xs font-medium text-gray-400 uppercase">Nome</th>
@@ -560,6 +619,7 @@ export function Dashboard() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )
               )}
             </div>

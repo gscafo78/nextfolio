@@ -13,6 +13,7 @@ from app.services.account import (
     get_accounts,
     update_account,
 )
+from app.services.audit import DELETE_ACCOUNT, log_action
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
@@ -74,4 +75,12 @@ async def delete(
             409,
             f"Il conto ha {tx_count} transazioni. Elimina prima le transazioni o spostale."
         )
+    await log_action(
+        db,
+        user_id=current_user.id,
+        action=DELETE_ACCOUNT,
+        entity_type="account",
+        entity_id=account_id,
+        detail={"name": account.name, "broker": account.broker},
+    )
     await delete_account(db, account)

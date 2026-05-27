@@ -42,6 +42,14 @@ services:
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: dev-secret-key-change-in-production
       CORS_ORIGINS: http://localhost:5173
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      OPENFIGI_APY_KEY: ${OPENFIGI_APY_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAILS_FROM: ${EMAILS_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost:5173}
     volumes:
       - ./backend:/app
     depends_on:
@@ -61,6 +69,8 @@ services:
       DATABASE_URL_SYNC: postgresql://nextfolio:nextfolio@postgres:5432/nextfolio
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: dev-secret-key-change-in-production
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      OPENFIGI_APY_KEY: ${OPENFIGI_APY_KEY:-}
     volumes:
       - ./backend:/app
     depends_on:

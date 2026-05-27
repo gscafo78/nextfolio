@@ -55,7 +55,31 @@ export interface AllocationOut {
   by_type: AllocationItem[];
   by_currency: AllocationItem[];
   by_account: AllocationItem[];
+  by_sector: AllocationItem[];
+  by_continent: AllocationItem[];
   total_value_eur: number;
+}
+
+export interface ETFHoldingItem {
+  symbol: string;
+  name: string;
+  weight: number;
+}
+
+export interface CountryItem {
+  code: string;
+  name: string;
+  weight: number;
+}
+
+export interface ETFHoldingOut {
+  asset_id: number;
+  symbol: string;
+  name: string;
+  value_eur: number | null;
+  holdings: ETFHoldingItem[];
+  is_override: boolean;
+  countries_override: CountryItem[] | null;
 }
 
 export interface DashboardOut {
@@ -102,6 +126,11 @@ export interface HoldingAccountOut {
   pct: number | null;
 }
 
+export interface SectorItem {
+  name: string;
+  weight: number;
+}
+
 export interface HoldingDetailOut {
   asset_id: number;
   symbol: string;
@@ -128,6 +157,24 @@ export interface HoldingDetailOut {
   price_history: HoldingPricePoint[];
   activities: HoldingActivityOut[];
   accounts: HoldingAccountOut[];
+  sectors: SectorItem[] | null;
+  countries: CountryItem[] | null;
+}
+
+export interface RiskMetricsOut {
+  period: string;
+  trading_days: number;
+  annualized_volatility_pct: number;
+  max_drawdown_pct: number;
+  max_drawdown_start: string | null;
+  max_drawdown_end: string | null;
+  sharpe_ratio: number | null;
+  sortino_ratio: number | null;
+  calmar_ratio: number | null;
+  twrr_annualized_pct: number;
+  best_day_pct: number;
+  worst_day_pct: number;
+  positive_days_pct: number;
 }
 
 export const portfolioService = {
@@ -165,6 +212,41 @@ export const portfolioService = {
 
   async getHoldingDetail(assetId: number): Promise<HoldingDetailOut> {
     const { data } = await api.get<HoldingDetailOut>(`/portfolio/holding/${assetId}`);
+    return data;
+  },
+
+  async getEtfHoldings(): Promise<ETFHoldingOut[]> {
+    const { data } = await api.get<ETFHoldingOut[]>("/portfolio/etf-holdings");
+    return data;
+  },
+
+  async getRisk(period: string, accountId?: number): Promise<RiskMetricsOut> {
+    const { data } = await api.get<RiskMetricsOut>("/portfolio/risk", {
+      params: { period, ...(accountId != null ? { account_id: accountId } : {}) },
+    });
+    return data;
+  },
+
+  async getXirr(): Promise<{ xirr_pct: number | null }> {
+    const { data } = await api.get<{ xirr_pct: number | null }>("/portfolio/xirr");
+    return data;
+  },
+
+  async getBenchmark(index: string, period: string): Promise<{ index: string; ticker: string; period: string; series: { date: string; value: number }[] }> {
+    const { data } = await api.get("/portfolio/benchmark", { params: { index, period } });
+    return data;
+  },
+
+  async getCorrelation(period: string): Promise<{ labels: string[]; matrix: number[][]; period: string }> {
+    const { data } = await api.get("/portfolio/correlation", { params: { period } });
+    return data;
+  },
+
+  async getCountryAllocation(): Promise<{
+    countries: { code: string; name: string; value_eur: number; pct: number; market_type: "developed" | "emerging" | "other" }[];
+    totals: { developed_pct: number; emerging_pct: number; other_pct: number; no_data_pct: number };
+  }> {
+    const { data } = await api.get("/portfolio/country-allocation");
     return data;
   },
 };

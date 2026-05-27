@@ -14,6 +14,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.account import Account
 from app.models.asset import Asset, AssetType, PriceHistory
 from app.models.transaction import Transaction, TransactionType
+from app.services.market_data.enricher import enrich_asset
 from app.services.market_data.updater import (
     fetch_asset_history,
     invalidate_perf_cache,
@@ -183,3 +184,33 @@ def backfill_asset_history(asset_id: int, period: str = "5y"):
             logger.info(f"backfill {asset.symbol} ({period}): {written} righe")
             return written
     return _run(_inner())
+
+
+@celery_app.task(name="app.tasks.prices.enrich_all_assets", bind=True, max_retries=1)
+def enrich_all_assets(self):
+    """Enrichment bulk di tutti gli asset con dati settoriali/geografici/holdings."""
+    async def _inner():
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Asset).where(
+                    Asset.type.in_([
+                        AssetType.STOCK, AssetType.ETF, AssetType.BOND, AssetType.REIT
+                    ])
+                )
+            )
+            assets = list(result.scalars())
+            enriched = 0
+            for asset in assets:
+                try:
+                    ok = await enrich_asset(db, asset)
+                    if ok:
+                        enriched += 1
+                except Exception as e:
+                    logger.warning(f"enrich_all: {asset.symbol} fallito: {e}")
+            logger.info(f"enrich_all_assets: {enriched}/{len(assets)} asset arricchiti")
+            return enriched
+    try:
+        return _run(_inner())
+    except Exception as exc:
+        logger.error(f"enrich_all_assets fallito: {exc}")
+        raise self.retry(exc=exc, countdown=120)

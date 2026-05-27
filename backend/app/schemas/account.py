@@ -7,6 +7,7 @@ class AccountCreate(BaseModel):
     name: str
     type: AccountType = AccountType.BROKERAGE
     broker: str | None = None
+    url: str | None = None
     currency: str = "EUR"
 
 
@@ -14,6 +15,7 @@ class AccountUpdate(BaseModel):
     name: str | None = None
     type: AccountType | None = None
     broker: str | None = None
+    url: str | None = None
     currency: str | None = None
 
 
@@ -22,6 +24,7 @@ class AccountOut(BaseModel):
     name: str
     type: AccountType
     broker: str | None
+    url: str | None
     currency: str
 
     model_config = {"from_attributes": True}

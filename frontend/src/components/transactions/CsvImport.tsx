@@ -4,10 +4,11 @@ import { Upload } from "lucide-react";
 import { accountService, transactionService, type BrokerFormat } from "@/services/transactions";
 import { Button } from "@/components/ui/Button";
 
-const BROKERS: { value: BrokerFormat; label: string }[] = [
+const BROKERS: { value: BrokerFormat; label: string; hint?: string }[] = [
   { value: "fineco", label: "Fineco" },
   { value: "directa", label: "Directa Plus" },
   { value: "degiro", label: "Degiro" },
+  { value: "ibkr", label: "Interactive Brokers", hint: "Activity Statement CSV (Flex Query)" },
 ];
 
 interface CsvImportProps {

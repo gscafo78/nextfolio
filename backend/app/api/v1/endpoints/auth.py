@@ -6,6 +6,7 @@ from app.core.deps import get_current_user
 from app.core.security import (
     create_2fa_session_token,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -13,7 +14,9 @@ from app.core.security import (
 )
 from app.models.user import User, UserRole
 from app.schemas.user import (
+    ForgotPasswordRequest,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenResponse,
     TwoFactorSetupOut,
     TwoFactorVerify,
@@ -21,6 +24,7 @@ from app.schemas.user import (
     UserOut,
     UserRegister,
 )
+from app.services.email import send_password_reset
 from app.services.two_factor import generate_secret, get_provisioning_uri, verify_code
 from app.services.user import count_users, create_user, get_user_by_email, get_user_by_id, update_user
 
@@ -140,3 +144,30 @@ async def disable_2fa(
     if not verify_code(current_user.two_factor_secret, body.code):
         raise HTTPException(400, "Codice non valido")
     return await update_user(db, current_user, two_factor_enabled=False, two_factor_secret=None)
+
+
+# ── Password reset ────────────────────────────────────────────────────────────
+
+@router.post("/forgot-password", status_code=202)
+async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Invia email di reset password. Risponde sempre 202 per non rivelare se l'email esiste."""
+    user = await get_user_by_email(db, body.email)
+    if user and user.is_active:
+        token = create_password_reset_token(str(user.id))
+        try:
+            await send_password_reset(user.email, token)
+        except Exception:
+            pass  # non rivelare errori SMTP all'utente
+    return {"detail": "Se l'email esiste, riceverai un link di reset."}
+
+
+@router.post("/reset-password", status_code=200)
+async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    payload = decode_token(body.token)
+    if payload.get("type") != "password_reset" or not payload.get("sub"):
+        raise HTTPException(400, "Link non valido o scaduto")
+    user = await get_user_by_id(db, int(payload["sub"]))
+    if not user or not user.is_active:
+        raise HTTPException(400, "Link non valido o scaduto")
+    await update_user(db, user, password_hash=hash_password(body.new_password))
+    return {"detail": "Password aggiornata con successo."}

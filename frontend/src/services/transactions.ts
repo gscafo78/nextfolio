@@ -4,7 +4,7 @@ export type AssetType = "STOCK" | "ETF" | "BOND" | "CRYPTO" | "COMMODITY" | "REI
 export type Exchange = "MIL" | "EuroTLX" | "MOT" | "XETRA" | "NYSE" | "NASDAQ" | "CRYPTO" | "OTHER";
 export type TransactionType = "BUY" | "SELL" | "DIVIDEND" | "COUPON" | "FEE" | "INTEREST";
 export type AccountType = "BROKERAGE" | "BANK" | "CRYPTO" | "PENSION" | "OTHER";
-export type BrokerFormat = "fineco" | "directa" | "degiro";
+export type BrokerFormat = "fineco" | "directa" | "degiro" | "ibkr";
 
 export interface Asset {
   id: number;
@@ -24,6 +24,7 @@ export interface Account {
   name: string;
   type: AccountType;
   broker: string | null;
+  url: string | null;
   currency: string;
   transaction_count: number;
 }
@@ -120,12 +121,12 @@ export const accountService = {
     return data;
   },
 
-  async create(body: { name: string; type?: AccountType; broker?: string; currency?: string }): Promise<Account> {
+  async create(body: { name: string; type?: AccountType; broker?: string; url?: string; currency?: string }): Promise<Account> {
     const { data } = await api.post<Account>("/accounts", body);
     return data;
   },
 
-  async update(id: number, body: { name?: string; type?: AccountType; broker?: string; currency?: string }): Promise<Account> {
+  async update(id: number, body: { name?: string; type?: AccountType; broker?: string; url?: string; currency?: string }): Promise<Account> {
     const { data } = await api.patch<Account>(`/accounts/${id}`, body);
     return data;
   },

@@ -14,10 +14,12 @@ from app.schemas.portfolio import (
     AllocationOut,
     DashboardOut,
     DividendOut,
+    ETFHoldingOut,
     HoldingDetailOut,
     PerformanceOut,
     PortfolioSummaryOut,
     PositionOut,
+    RiskMetricsOut,
 )
 from app.services.market_data.updater import (
     get_cached_perf,
@@ -87,7 +89,9 @@ async def _fetch_prices_parallel(
     return price_map
 from app.services.portfolio.allocation import calculate_allocation
 from app.services.portfolio.performance import get_portfolio_performance
+from app.services.portfolio.risk import compute_risk_metrics
 from app.services.portfolio.positions import calculate_positions
+from app.services.portfolio.xirr import xirr as compute_xirr
 from app.services.transaction import get_transactions
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
@@ -279,7 +283,14 @@ async def get_dashboard(
 
     # ── Allocation ────────────────────────────────────────────────────────────
     asset_info = {
-        a.id: {"type": a.type if isinstance(a.type, str) else a.type.value, "currency": a.currency}
+        a.id: {
+            "type": a.type if isinstance(a.type, str) else a.type.value,
+            "currency": a.currency,
+            "sectors": a.sectors,
+            "countries": a.countries,
+            "sectors_override": a.sectors_override,
+            "countries_override": a.countries_override,
+        }
         for a in assets_list
     }
     accounts_result = await db.execute(select(Account).where(Account.user_id == current_user.id))
@@ -384,6 +395,220 @@ async def get_performance(
     return result
 
 
+# ── Metriche di rischio ───────────────────────────────────────────────────────
+
+
+@router.get("/risk", response_model=RiskMetricsOut)
+async def get_risk_metrics(
+    period: str = Query("3y", pattern=r"^(1m|3m|6m|1y|3y|max)$"),
+    account_id: int | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    transactions = await _load_all_transactions(db, current_user.id)
+    if account_id is not None:
+        transactions = [tx for tx in transactions if tx.account_id == account_id]
+    perf = await get_portfolio_performance(db, transactions, period)
+    return compute_risk_metrics(period, perf.series)
+
+
+# ── XIRR ─────────────────────────────────────────────────────────────────────
+
+
+@router.get("/xirr")
+async def get_xirr(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Calcola XIRR (tasso interno di rendimento su flussi irregolari).
+    Cash flow: ogni BUY = uscita negativa, ogni SELL/DIVIDEND/COUPON = entrata positiva.
+    Il valore corrente del portafoglio viene aggiunto come incasso finale alla data odierna.
+    """
+    from datetime import date as date_type
+    from app.models.transaction import TransactionType
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    if not transactions:
+        return {"xirr_pct": None}
+
+    cashflows: list[tuple] = []
+    for tx in transactions:
+        total = tx.quantity * tx.price * tx.exchange_rate
+        if tx.type == TransactionType.BUY:
+            cashflows.append((tx.date, -(total + tx.fee)))
+        elif tx.type == TransactionType.SELL:
+            cashflows.append((tx.date, total - tx.fee))
+        elif tx.type in (TransactionType.DIVIDEND, TransactionType.COUPON, TransactionType.INTEREST):
+            cashflows.append((tx.date, total))
+
+    if not cashflows:
+        return {"xirr_pct": None}
+
+    # Aggiungi il valore corrente del portafoglio come flusso finale
+    positions = calculate_positions(transactions)
+    asset_ids = list(positions.keys())
+    assets_result = await db.execute(select(Asset).where(Asset.id.in_(asset_ids)))
+    asset_map = {a.id: a for a in assets_result.scalars()}
+    price_map = await _fetch_prices_parallel(db, asset_map)
+
+    current_value = 0.0
+    for asset_id, lot_data in positions.items():
+        price_data = price_map.get(asset_id)
+        if price_data:
+            qty = lot_data["quantity"]
+            price_eur = price_data["price"] * price_data.get("exchange_rate", 1.0)
+            current_value += qty * price_eur
+
+    if current_value > 0:
+        cashflows.append((date_type.today(), current_value))
+
+    cashflows.sort(key=lambda x: x[0])
+    result = compute_xirr(cashflows)
+    return {"xirr_pct": result}
+
+
+# ── Benchmark ────────────────────────────────────────────────────────────────
+
+
+@router.get("/benchmark")
+async def get_benchmark(
+    index: str = Query("MSCI_WORLD", pattern=r"^(MSCI_WORLD|FTSE_MIB|SP500|NASDAQ)$"),
+    period: str = Query("1y", pattern=r"^(1w|1m|3m|6m|1y|3y|max)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Serie normalizzata a 100 per l'indice scelto nel periodo selezionato."""
+    import asyncio
+    from datetime import date as date_type, timedelta
+    from functools import partial
+
+    INDEX_TICKERS = {
+        "MSCI_WORLD": "IWDA.AS",
+        "FTSE_MIB": "FTSEMIB.MI",
+        "SP500": "^GSPC",
+        "NASDAQ": "^IXIC",
+    }
+    PERIOD_DAYS = {"1w": 7, "1m": 30, "3m": 90, "6m": 180, "1y": 365, "3y": 1095, "max": 3650}
+
+    ticker_sym = INDEX_TICKERS[index]
+    days = PERIOD_DAYS[period]
+    start = date_type.today() - timedelta(days=days)
+    start_str = start.strftime("%Y-%m-%d")
+
+    def _fetch():
+        import yfinance as yf
+        t = yf.Ticker(ticker_sym)
+        hist = t.history(start=start_str)
+        if hist.empty:
+            return []
+        close = hist["Close"].dropna()
+        if close.empty:
+            return []
+        base = float(close.iloc[0])
+        if base == 0:
+            return []
+        return [
+            {"date": str(idx.date()), "value": round(float(v) / base * 100, 4)}
+            for idx, v in close.items()
+        ]
+
+    loop = asyncio.get_event_loop()
+    series = await loop.run_in_executor(None, partial(_fetch))
+    return {"index": index, "ticker": ticker_sym, "period": period, "series": series}
+
+
+# ── Correlazione ─────────────────────────────────────────────────────────────
+
+
+@router.get("/correlation")
+async def get_correlation(
+    period: str = Query("1y", pattern=r"^(3m|6m|1y|3y|max)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Matrice di correlazione Pearson dei rendimenti giornalieri tra le posizioni."""
+    import math
+    from datetime import date as date_type, timedelta
+
+    PERIOD_DAYS = {"3m": 90, "6m": 180, "1y": 365, "3y": 1095, "max": 3650}
+    days = PERIOD_DAYS[period]
+    start = date_type.today() - timedelta(days=days)
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    positions = calculate_positions(transactions)
+    asset_ids = list(positions.keys())
+
+    if not asset_ids:
+        return {"labels": [], "matrix": []}
+
+    # Carica price_history per tutti gli asset nel periodo
+    result = await db.execute(
+        select(PriceHistory)
+        .where(PriceHistory.asset_id.in_(asset_ids))
+        .where(PriceHistory.date >= start)
+        .order_by(PriceHistory.date)
+    )
+    rows = list(result.scalars())
+
+    # Raggruppa per asset_id
+    price_series: dict[int, dict] = {aid: {} for aid in asset_ids}
+    for row in rows:
+        price_series[row.asset_id][row.date] = row.close
+
+    # Filtra asset con almeno 10 prezzi
+    valid_ids = [aid for aid, prices in price_series.items() if len(prices) >= 10]
+    if not valid_ids:
+        return {"labels": [], "matrix": []}
+
+    # Carica simboli
+    assets_result = await db.execute(select(Asset).where(Asset.id.in_(valid_ids)))
+    asset_map = {a.id: a.symbol for a in assets_result.scalars()}
+
+    # Calcola rendimenti giornalieri per ogni asset
+    def daily_returns(prices: dict) -> list[float]:
+        sorted_dates = sorted(prices.keys())
+        returns = []
+        for i in range(1, len(sorted_dates)):
+            prev = prices[sorted_dates[i - 1]]
+            curr = prices[sorted_dates[i]]
+            if prev > 0:
+                returns.append((curr - prev) / prev)
+        return returns
+
+    returns_map: dict[int, list[float]] = {}
+    for aid in valid_ids:
+        r = daily_returns(price_series[aid])
+        if len(r) >= 5:
+            returns_map[aid] = r
+
+    final_ids = list(returns_map.keys())
+    if not final_ids:
+        return {"labels": [], "matrix": []}
+
+    labels = [asset_map.get(aid, str(aid)) for aid in final_ids]
+
+    def pearson(x: list[float], y: list[float]) -> float:
+        n = min(len(x), len(y))
+        if n < 3:
+            return 0.0
+        x, y = x[-n:], y[-n:]
+        mx = sum(x) / n
+        my = sum(y) / n
+        num = sum((xi - mx) * (yi - my) for xi, yi in zip(x, y))
+        sx = math.sqrt(sum((xi - mx) ** 2 for xi in x))
+        sy = math.sqrt(sum((yi - my) ** 2 for yi in y))
+        if sx == 0 or sy == 0:
+            return 1.0 if sx == sy else 0.0
+        return round(num / (sx * sy), 4)
+
+    matrix = [
+        [pearson(returns_map[ai], returns_map[aj]) for aj in final_ids]
+        for ai in final_ids
+    ]
+    return {"labels": labels, "matrix": matrix, "period": period}
+
+
 # ── Allocazione ──────────────────────────────────────────────────────────────
 
 
@@ -403,7 +628,14 @@ async def get_allocation(
     asset_map = {a.id: a for a in assets_list}
 
     asset_info = {
-        a.id: {"type": a.type if isinstance(a.type, str) else a.type.value, "currency": a.currency}
+        a.id: {
+            "type": a.type if isinstance(a.type, str) else a.type.value,
+            "currency": a.currency,
+            "sectors": a.sectors,
+            "countries": a.countries,
+            "sectors_override": a.sectors_override,
+            "countries_override": a.countries_override,
+        }
         for a in assets_list
     }
 
@@ -471,6 +703,253 @@ async def get_dividends(
         ))
 
     return sorted(dividends, key=lambda d: d.date, reverse=True)
+
+
+@router.get("/dividend-analysis")
+async def get_dividend_analysis(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Analisi approfondita dei dividendi/cedole:
+    - totale per anno
+    - totale per mese (calendario)
+    - yield on cost per posizione (dividendi totali / costo di acquisto)
+    - crescita anno su anno
+    """
+    from collections import defaultdict
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    income_types = {TransactionType.DIVIDEND, TransactionType.COUPON, TransactionType.INTEREST}
+
+    # Raggruppa per anno e per mese
+    by_year: dict[int, float] = defaultdict(float)
+    by_month: dict[str, float] = defaultdict(float)
+    by_asset: dict[int, float] = defaultdict(float)
+
+    for tx in transactions:
+        if tx.type not in income_types:
+            continue
+        amount = tx.quantity * tx.price * tx.exchange_rate - tx.fee
+        by_year[tx.date.year] += amount
+        month_key = tx.date.strftime("%Y-%m")
+        by_month[month_key] += amount
+        by_asset[tx.asset_id] += amount
+
+    # Costo di acquisto per asset (per yield on cost)
+    positions = calculate_positions(transactions)
+    assets_result = await db.execute(select(Asset).where(Asset.id.in_(list(by_asset.keys()))))
+    asset_map = {a.id: a for a in assets_result.scalars()}
+
+    yield_on_cost = []
+    for asset_id, income_total in by_asset.items():
+        pos = positions.get(asset_id)
+        asset = asset_map.get(asset_id)
+        if not asset:
+            continue
+        cost = pos.total_invested_eur if pos else 0.0
+        yoc = round(income_total / cost * 100, 4) if cost > 0 else None
+        yield_on_cost.append({
+            "asset_id": asset_id,
+            "symbol": asset.symbol,
+            "name": asset.name,
+            "total_income_eur": round(income_total, 2),
+            "cost_basis_eur": round(cost, 2),
+            "yield_on_cost_pct": yoc,
+        })
+    yield_on_cost.sort(key=lambda x: x["total_income_eur"], reverse=True)
+
+    # Crescita anno su anno
+    sorted_years = sorted(by_year.keys())
+    yoy_growth = []
+    for i, year in enumerate(sorted_years):
+        amount = round(by_year[year], 2)
+        prev = by_year.get(sorted_years[i - 1], 0) if i > 0 else None
+        growth_pct = round((amount - prev) / prev * 100, 2) if (prev and prev > 0) else None
+        yoy_growth.append({"year": year, "amount_eur": amount, "growth_pct": growth_pct})
+
+    monthly_series = [
+        {"month": k, "amount_eur": round(v, 2)}
+        for k, v in sorted(by_month.items())
+    ]
+
+    return {
+        "total_income_eur": round(sum(by_year.values()), 2),
+        "by_year": yoy_growth,
+        "by_month": monthly_series,
+        "yield_on_cost": yield_on_cost,
+    }
+
+
+@router.get("/country-allocation")
+async def get_country_allocation(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = None,
+):
+    """Allocazione geografica del portafoglio per paese (con classificazione MSCI)."""
+
+    DEVELOPED = {"AU","AT","BE","CA","DK","FI","FR","DE","HK","IE","IL","IT","JP","NL","NZ","NO","PT","SG","ES","SE","CH","GB","US"}
+    EMERGING = {"BR","CL","CN","CO","CZ","EG","GR","HU","IN","ID","KR","KW","MY","MX","MA","PE","PH","PL","QA","SA","ZA","TW","TH","TR","AE"}
+
+    NAME_TO_ISO2: dict[str, str] = {
+        "United States": "US", "USA": "US",
+        "Germany": "DE",
+        "France": "FR",
+        "United Kingdom": "GB", "UK": "GB",
+        "Japan": "JP",
+        "Canada": "CA",
+        "Switzerland": "CH",
+        "Australia": "AU",
+        "Netherlands": "NL",
+        "Sweden": "SE",
+        "Denmark": "DK",
+        "Norway": "NO",
+        "Finland": "FI",
+        "Belgium": "BE",
+        "Italy": "IT",
+        "Spain": "ES",
+        "Portugal": "PT",
+        "Austria": "AT",
+        "Ireland": "IE",
+        "Singapore": "SG",
+        "Hong Kong": "HK",
+        "New Zealand": "NZ",
+        "Israel": "IL",
+        "China": "CN",
+        "India": "IN",
+        "Brazil": "BR",
+        "South Korea": "KR", "Korea": "KR",
+        "Taiwan": "TW",
+        "Mexico": "MX",
+        "South Africa": "ZA",
+        "Russia": "RU",
+        "Indonesia": "ID",
+        "Thailand": "TH",
+        "Malaysia": "MY",
+        "Poland": "PL",
+        "Turkey": "TR",
+        "Saudi Arabia": "SA",
+        "United Arab Emirates": "AE", "UAE": "AE",
+        "Egypt": "EG",
+        "Argentina": "AR",
+        "Chile": "CL",
+        "Colombia": "CO",
+        "Peru": "PE",
+        "Philippines": "PH",
+        "Czech Republic": "CZ",
+        "Hungary": "HU",
+        "Greece": "GR",
+        "Morocco": "MA",
+        "Kuwait": "KW",
+        "Qatar": "QA",
+        "Luxembourg": "LU",
+        "Denmark": "DK",
+        "Romania": "RO",
+        "Ukraine": "UA",
+        "Pakistan": "PK",
+        "Bangladesh": "BD",
+        "Vietnam": "VN",
+        "Nigeria": "NG",
+        "Kenya": "KE",
+        "United States of America": "US",
+    }
+
+    COUNTRY_NAMES: dict[str, str] = {
+        "US": "Stati Uniti", "DE": "Germania", "FR": "Francia", "GB": "Regno Unito",
+        "JP": "Giappone", "CA": "Canada", "CH": "Svizzera", "AU": "Australia",
+        "NL": "Paesi Bassi", "SE": "Svezia", "DK": "Danimarca", "NO": "Norvegia",
+        "FI": "Finlandia", "BE": "Belgio", "IT": "Italia", "ES": "Spagna",
+        "PT": "Portogallo", "AT": "Austria", "IE": "Irlanda", "SG": "Singapore",
+        "HK": "Hong Kong", "NZ": "Nuova Zelanda", "IL": "Israele",
+        "CN": "Cina", "IN": "India", "BR": "Brasile", "KR": "Corea del Sud",
+        "TW": "Taiwan", "MX": "Messico", "ZA": "Sudafrica", "RU": "Russia",
+        "ID": "Indonesia", "TH": "Tailandia", "MY": "Malesia", "PL": "Polonia",
+        "TR": "Turchia", "SA": "Arabia Saudita", "AE": "Emirati Arabi", "EG": "Egitto",
+        "AR": "Argentina", "CL": "Cile", "CO": "Colombia", "PE": "Perù",
+        "PH": "Filippine", "CZ": "Rep. Ceca", "HU": "Ungheria", "GR": "Grecia",
+        "MA": "Marocco", "KW": "Kuwait", "QA": "Qatar", "LU": "Lussemburgo",
+        "RO": "Romania", "UA": "Ucraina", "PK": "Pakistan", "VN": "Vietnam",
+        "NG": "Nigeria", "KE": "Kenya",
+        "SK": "Slovacchia", "LV": "Lettonia", "LT": "Lituania", "SI": "Slovenia", "EE": "Estonia",
+        "HR": "Croazia", "BG": "Bulgaria", "RS": "Serbia", "BA": "Bosnia", "MK": "Macedonia",
+        "IS": "Islanda", "CY": "Cipro", "MT": "Malta", "LI": "Liechtenstein",
+    }
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    positions = calculate_positions(transactions)
+    if not positions:
+        return {"countries": [], "totals": {"developed_pct": 0.0, "emerging_pct": 0.0, "other_pct": 0.0, "no_data_pct": 100.0}}
+
+    result = await db.execute(select(Asset).where(Asset.id.in_(list(positions.keys()))))
+    assets_map = {a.id: a for a in result.scalars().all()}
+
+    price_map = await _fetch_prices_parallel(db, assets_map, background_tasks)
+
+    total_portfolio_eur = 0.0
+    country_values: dict[str, float] = {}
+    valued_eur = 0.0
+
+    for asset_id, pos in positions.items():
+        asset = assets_map.get(asset_id)
+        if not asset:
+            continue
+        data = price_map.get(asset_id)
+        price = data.get("price") if data else None
+        fx = data.get("exchange_rate", 1.0) if data else 1.0
+        value_eur = pos.quantity * price * fx if price is not None else pos.total_invested_eur
+        total_portfolio_eur += value_eur
+
+        raw_countries = asset.countries_override if asset.countries_override is not None else asset.countries
+        if not raw_countries:
+            continue
+
+        # Normalizza i pesi a 1.0 (gestisce input approssimativi)
+        weight_sum = sum(float(c.get("weight", 0)) for c in raw_countries)
+        if weight_sum <= 0:
+            continue
+
+        valued_eur += value_eur
+        for c in raw_countries:
+            code = str(c.get("code", "")).strip()
+            weight = float(c.get("weight", 0)) / weight_sum  # normalizzato
+            if len(code) == 2:
+                iso2 = code.upper()
+            else:
+                iso2 = NAME_TO_ISO2.get(code, "XX")
+            if iso2 == "XX":
+                continue
+            country_values[iso2] = country_values.get(iso2, 0.0) + value_eur * weight
+
+    if total_portfolio_eur == 0:
+        return {"countries": [], "totals": {"developed_pct": 0.0, "emerging_pct": 0.0, "other_pct": 0.0, "no_data_pct": 100.0}}
+
+    countries_out = []
+    for iso2, val in sorted(country_values.items(), key=lambda kv: kv[1], reverse=True):
+        pct = round(val / total_portfolio_eur * 100, 4)
+        market_type = "developed" if iso2 in DEVELOPED else ("emerging" if iso2 in EMERGING else "other")
+        countries_out.append({
+            "code": iso2,
+            "name": COUNTRY_NAMES.get(iso2, iso2),
+            "value_eur": round(val, 2),
+            "pct": pct,
+            "market_type": market_type,
+        })
+
+    developed_val = sum(v for k, v in country_values.items() if k in DEVELOPED)
+    emerging_val = sum(v for k, v in country_values.items() if k in EMERGING)
+    other_val = sum(v for k, v in country_values.items() if k not in DEVELOPED and k not in EMERGING)
+    no_data_val = max(0.0, total_portfolio_eur - valued_eur)
+
+    return {
+        "countries": countries_out,
+        "totals": {
+            "developed_pct": round(developed_val / total_portfolio_eur * 100, 2),
+            "emerging_pct": round(emerging_val / total_portfolio_eur * 100, 2),
+            "other_pct": round(other_val / total_portfolio_eur * 100, 2),
+            "no_data_pct": round(no_data_val / total_portfolio_eur * 100, 2),
+        },
+    }
 
 
 @router.get("/holding/{asset_id}", response_model=HoldingDetailOut)
@@ -604,7 +1083,93 @@ async def get_holding_detail(
         price_history=price_history,
         activities=activities,
         accounts=holding_accounts,
+        sectors=_build_sector_items(asset),
+        countries=_build_country_items(asset),
     )
+
+
+def _build_sector_items(asset) -> list | None:
+    from app.schemas.portfolio import SectorItem
+    raw = asset.sectors_override if asset.sectors_override is not None else asset.sectors
+    if not raw:
+        return None
+    return [SectorItem(name=s.get("name", ""), weight=float(s.get("weight", 0))) for s in raw]
+
+
+def _build_country_items(asset) -> list | None:
+    from app.schemas.portfolio import CountryItem
+    raw = asset.countries_override if asset.countries_override is not None else asset.countries
+    if not raw:
+        return None
+    return [CountryItem(code=c.get("code", ""), name=c.get("name", ""), weight=float(c.get("weight", 0))) for c in raw]
+
+
+# ── ETF Holdings (look-through) ───────────────────────────────────────────────
+
+
+@router.get("/etf-holdings", response_model=list[ETFHoldingOut])
+async def get_etf_holdings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = None,
+):
+    """Restituisce le posizioni ETF/BOND con le rispettive holdings (top 10)."""
+    from app.models.asset import AssetType
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    positions = calculate_positions(transactions)
+    if not positions:
+        return []
+
+    result = await db.execute(select(Asset).where(Asset.id.in_(list(positions.keys()))))
+    assets_list = result.scalars().all()
+    asset_map_obj = {a.id: a for a in assets_list}
+
+    price_map = await _fetch_prices_parallel(db, asset_map_obj, background_tasks)
+
+    out: list[ETFHoldingOut] = []
+    for asset_id, pos in positions.items():
+        asset = asset_map_obj.get(asset_id)
+        if not asset:
+            continue
+        asset_type = asset.type if isinstance(asset.type, str) else asset.type.value
+        if asset_type not in ("ETF", "BOND"):
+            continue
+
+        # Override ha priorità sui dati auto-enriched
+        raw_holdings = asset.holdings_override if asset.holdings_override is not None else (asset.holdings or [])
+
+        data = price_map.get(asset_id)
+        price = data.get("price") if data else None
+        fx = data.get("exchange_rate", 1.0) if data else 1.0
+        value_eur = round(pos.quantity * price * fx, 2) if price is not None else None
+
+        from app.schemas.portfolio import ETFHoldingItem
+        from app.schemas.portfolio import CountryItem
+        co = asset.countries_override
+        countries_out = [
+            CountryItem(code=c.get("code",""), name=c.get("name",""), weight=float(c.get("weight",0)))
+            for c in co
+        ] if co else None
+
+        out.append(ETFHoldingOut(
+            asset_id=asset_id,
+            symbol=asset.symbol,
+            name=asset.name,
+            value_eur=value_eur,
+            holdings=[
+                ETFHoldingItem(
+                    symbol=h.get("symbol", ""),
+                    name=h.get("name", ""),
+                    weight=float(h.get("weight", 0)),
+                )
+                for h in raw_holdings
+            ],
+            is_override=asset.holdings_override is not None,
+            countries_override=countries_out,
+        ))
+
+    return sorted(out, key=lambda x: x.value_eur or 0, reverse=True)
 
 
 @router.post("/backfill-history", status_code=202)

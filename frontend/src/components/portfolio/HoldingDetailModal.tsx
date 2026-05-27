@@ -4,10 +4,13 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import { X, TrendingUp, TrendingDown } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { portfolioService } from "@/services/portfolio";
+import { accountService } from "@/services/transactions";
+import { AccountFavicon } from "@/components/AccountFavicon";
+import { AssetEditModal } from "./AssetEditModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +44,7 @@ type Tab = "overview" | "activities" | "accounts";
 
 export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("overview");
+  const [showEdit, setShowEdit] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -54,22 +58,35 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
     staleTime: 60_000,
   });
 
-  const chartData = (data?.price_history ?? []).map((p) => ({
-    ...p,
-    dateLabel: format(parseISO(String(p.date)), "MMM yy", { locale: it }),
-  }));
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: accountService.list,
+    staleTime: 300_000,
+  });
+  const accountUrlById = Object.fromEntries(accounts.map((a) => [a.id, a.url]));
+
+  const chartData = (data?.price_history ?? []).map((p, i, arr) => {
+    const year = String(p.date).slice(0, 4);
+    const prevYear = i > 0 ? String(arr[i - 1].date).slice(0, 4) : null;
+    return { ...p, dateLabel: year !== prevYear ? year : "" };
+  });
   const isPositive = (data?.unrealized_pnl_eur ?? 0) >= 0;
   const chartColor = isPositive ? "#10b981" : "#ef4444";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
+    <div className="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="relative z-10 h-full w-full max-w-[440px] bg-white flex flex-col shadow-2xl border-l border-gray-200 overflow-hidden">
+      {/* Panel: bottom sheet on mobile, side panel on desktop */}
+      <div className="relative z-10 h-[88vh] md:h-full w-full md:max-w-[440px] bg-white flex flex-col shadow-2xl md:border-l border-t md:border-t-0 border-gray-200 overflow-hidden rounded-t-2xl md:rounded-none">
+
+        {/* Drag handle (mobile only) */}
+        <div className="md:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
 
         {/* Header */}
-        <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+        <div className="px-6 pt-3 md:pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               {data && (
@@ -82,12 +99,21 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
               </h2>
               {data?.isin && <p className="text-xs text-gray-400 mt-0.5">{data.isin}</p>}
             </div>
-            <button
-              onClick={onClose}
-              className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowEdit(true)}
+                title="Modifica titolo"
+                className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Valore corrente */}
@@ -258,13 +284,15 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     <StatCard label="Borsa" value={data.exchange} />
                   </div>
 
-                  {/* Settori e Paesi — placeholder fino a enrichment */}
-                  <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center space-y-1">
-                    <p className="text-xs font-medium text-gray-400">Settori e Paesi</p>
-                    <p className="text-xs text-gray-300">
-                      Disponibili dopo l'enrichment TrackInsight (Fase 4.Z)
-                    </p>
-                  </div>
+                  {/* Settori */}
+                  {data.sectors && data.sectors.length > 0 && (
+                    <WeightList title="Settori" items={data.sectors.map(s => ({ label: s.name, weight: s.weight }))} />
+                  )}
+
+                  {/* Paesi */}
+                  {data.countries && data.countries.length > 0 && (
+                    <WeightList title="Paesi" items={data.countries.map(c => ({ label: c.name || c.code, weight: c.weight }))} />
+                  )}
                 </div>
               )}
 
@@ -289,7 +317,10 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                           {fmt(a.price, 4)} {a.price_currency}
                           {a.fee > 0 && <span className="text-gray-400"> · fee € {fmt(a.fee)}</span>}
                         </p>
-                        <p className="text-xs text-gray-400">{a.account_name}</p>
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <AccountFavicon url={accountUrlById[a.account_id]} size={3} />
+                          {a.account_name}
+                        </p>
                       </div>
                       <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
                         € {fmt(a.total_eur)}
@@ -307,7 +338,10 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                   ) : data.accounts.map((acc) => (
                     <div key={acc.account_id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-sm font-semibold text-gray-800">{acc.account_name}</span>
+                        <span className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                          <AccountFavicon url={accountUrlById[acc.account_id]} size={4} />
+                          {acc.account_name}
+                        </span>
                         {acc.value_eur != null && (
                           <span className="text-sm font-bold text-gray-900">€ {fmt(acc.value_eur)}</span>
                         )}
@@ -344,6 +378,23 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
           </div>
         )}
       </div>
+
+      {showEdit && data && (
+        <AssetEditModal
+          assetId={assetId}
+          initialData={{
+            name: data.name,
+            symbol: data.symbol,
+            yahoo_ticker: null,
+            isin: data.isin ?? null,
+            asset_type: data.asset_type,
+            exchange: data.exchange,
+            currency: data.currency,
+          }}
+          onClose={() => setShowEdit(false)}
+          onSaved={() => setShowEdit(false)}
+        />
+      )}
     </div>
   );
 }
@@ -359,6 +410,30 @@ function StatCard({ label, value, positive }: { label: string; value: string; po
       }`}>
         {value}
       </p>
+    </div>
+  );
+}
+
+function WeightList({ title, items }: { title: string; items: { label: string; weight: number }[] }) {
+  const top = items.slice(0, 8).sort((a, b) => b.weight - a.weight);
+  const maxW = top[0]?.weight ?? 1;
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-2">
+      <p className="text-xs font-semibold text-gray-500">{title}</p>
+      {top.map((item, i) => (
+        <div key={i}>
+          <div className="flex justify-between text-xs text-gray-600 mb-0.5">
+            <span className="truncate max-w-[70%]">{item.label}</span>
+            <span className="tabular-nums text-gray-500">{(item.weight * 100).toFixed(1)}%</span>
+          </div>
+          <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-brand-500"
+              style={{ width: `${(item.weight / maxW) * 100}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

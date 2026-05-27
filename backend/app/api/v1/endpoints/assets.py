@@ -6,6 +6,7 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.asset import AssetCreate, AssetOut, AssetSearch, AssetUpdate
 from app.services.asset import create_asset, get_asset_by_id, search_assets, update_asset
+from app.services.market_data.enricher import enrich_asset
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -51,3 +52,17 @@ async def create(
     _: User = Depends(get_current_user),
 ):
     return await create_asset(db, body)
+
+
+@router.post("/{asset_id}/enrich", response_model=AssetOut)
+async def enrich(
+    asset_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Arricchisce un asset con dati settoriali/geografici/holdings da Yahoo Finance."""
+    asset = await get_asset_by_id(db, asset_id)
+    if not asset:
+        raise HTTPException(404, "Asset non trovato")
+    await enrich_asset(db, asset)
+    return asset

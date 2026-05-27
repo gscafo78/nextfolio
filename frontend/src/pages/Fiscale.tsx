@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info } from "lucide-react";
-import { taxService, type AnnualTaxReport, type TaxEvent } from "@/services/tax";
+import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History } from "lucide-react";
+import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
+import { portfolioService } from "@/services/portfolio";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,284 @@ function IncomeSection({ report }: { report: AnnualTaxReport }) {
   );
 }
 
+// ── Simulatore vendita ────────────────────────────────────────────────────────
+
+function SimResultCard({
+  label,
+  value,
+  positive,
+  negative,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  positive?: boolean;
+  negative?: boolean;
+  highlight?: boolean;
+}) {
+  const valueClass = highlight
+    ? "text-brand-700 font-bold"
+    : positive
+    ? "text-green-600 font-semibold"
+    : negative
+    ? "text-red-600 font-semibold"
+    : "text-gray-900 font-semibold";
+
+  return (
+    <div className={`rounded-lg px-3 py-2.5 ${highlight ? "bg-brand-50 border border-brand-200" : "bg-gray-50"}`}>
+      <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+      <p className={`text-sm ${valueClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function SellSimulator() {
+  const [assetId, setAssetId] = useState<number | "">("");
+  const [quantityStr, setQuantityStr] = useState("");
+  const [result, setResult] = useState<SimulateSellOut | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: positions = [] } = useQuery({
+    queryKey: ["positions"],
+    queryFn: portfolioService.getPositions,
+  });
+
+  const selectedPos = positions.find((p) => p.asset_id === assetId);
+  const maxQty = selectedPos?.quantity ?? null;
+
+  async function handleSimulate() {
+    if (!assetId || !quantityStr) return;
+    const qty = parseFloat(quantityStr.replace(",", "."));
+    if (isNaN(qty) || qty <= 0) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const out = await taxService.simulateSell(assetId as number, qty);
+      setResult(out);
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? "Errore nella simulazione");
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator className="w-4 h-4 text-brand-600" />
+        <h2 className="text-sm font-semibold text-gray-700">Simulatore vendita</h2>
+        <span className="text-xs text-gray-400">— impatto fiscale stimato (FIFO)</span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <select
+          value={assetId}
+          onChange={(e) => {
+            setAssetId(e.target.value ? Number(e.target.value) : "");
+            setResult(null);
+            setQuantityStr("");
+          }}
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+        >
+          <option value="">Seleziona un asset...</option>
+          {positions.map((p) => (
+            <option key={p.asset_id} value={p.asset_id}>
+              {p.symbol} — {p.name} ({p.quantity.toLocaleString("it-IT")} quote)
+            </option>
+          ))}
+        </select>
+
+        <div className="relative sm:w-36">
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="Quantità"
+            value={quantityStr}
+            onChange={(e) => {
+              setQuantityStr(e.target.value);
+              setResult(null);
+            }}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          {maxQty != null && (
+            <button
+              onClick={() => setQuantityStr(String(maxQty))}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-brand-600 hover:text-brand-700 font-medium"
+            >
+              max
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={handleSimulate}
+          disabled={!assetId || !quantityStr || loading}
+          className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? "Calcolo..." : "Calcola"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-gray-700">
+              {result.asset_name}{" "}
+              <span className="text-gray-400 font-normal">
+                × {result.quantity.toLocaleString("it-IT")} quote
+              </span>
+            </p>
+            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+              {result.tax_bracket === "government_bond" ? "Titoli di Stato 12.5%" : "Standard 26%"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <SimResultCard label="Prezzo corrente" value={eur(result.current_price_eur)} />
+            <SimResultCard label="Ricavo vendita" value={eur(result.proceeds_eur)} />
+            <SimResultCard label="Costo base FIFO" value={eur(result.cost_basis_eur)} />
+            <SimResultCard
+              label="Gain / Loss"
+              value={(result.gain_loss_eur >= 0 ? "+" : "") + eur(result.gain_loss_eur)}
+              positive={result.gain_loss_eur > 0.005}
+              negative={result.gain_loss_eur < -0.005}
+            />
+            <SimResultCard
+              label="Imposta stimata"
+              value={eur(result.estimated_tax_eur)}
+              negative={result.estimated_tax_eur > 0}
+            />
+            <SimResultCard
+              label="Netto dopo tasse"
+              value={eur(result.net_proceeds_eur)}
+              highlight
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Storico minusvalenze ──────────────────────────────────────────────────────
+
+function CarryforwardHistory({ years }: { years: number[] }) {
+  const [open, setOpen] = useState(false);
+
+  // Carica i report per tutti gli anni disponibili (lazy)
+  const queries = useQuery({
+    queryKey: ["tax-carryforward-history", years],
+    queryFn: async () => {
+      const reports = await Promise.all(years.map((y) => taxService.getReport(y)));
+      return reports;
+    },
+    enabled: open && years.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const reports = queries.data ?? [];
+
+  // Costruisce la storia delle minusvalenze anno per anno
+  const history = years
+    .map((year, i) => {
+      const r = reports[i];
+      if (!r) return null;
+      return {
+        year,
+        losses_std: r.losses_standard,
+        losses_govt: r.losses_govt,
+        carry_applied_std: r.carryforward_applied_standard,
+        carry_applied_govt: r.carryforward_applied_govt,
+        carry_new_std: r.new_carryforward_standard,
+        carry_new_govt: r.new_carryforward_govt,
+        available_std: r.prior_carryforward_standard.reduce((s, e) => s + e.amount, 0),
+        available_govt: r.prior_carryforward_govt.reduce((s, e) => s + e.amount, 0),
+        expiring: r.prior_carryforward_standard
+          .filter((e) => e.expires_year === year + 1)
+          .reduce((s, e) => s + e.amount, 0),
+      };
+    })
+    .filter(Boolean);
+
+  if (years.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-5 py-4"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-semibold text-gray-700">Storico minusvalenze multi-anno</span>
+          <span className="text-xs text-gray-400">(Art. 68 TUIR — compensabili entro 4 anni)</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100">
+          {queries.isLoading ? (
+            <div className="px-5 py-6 text-center text-sm text-gray-400">Caricamento...</div>
+          ) : history.length === 0 ? (
+            <div className="px-5 py-6 text-center text-sm text-gray-400">Nessun dato.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-400 uppercase">
+                    <th className="px-5 py-2.5 text-left">Anno</th>
+                    <th className="px-5 py-2.5 text-right">Minus. maturate (std)</th>
+                    <th className="px-5 py-2.5 text-right">Minus. maturate (TdS)</th>
+                    <th className="px-5 py-2.5 text-right">Compensate (std)</th>
+                    <th className="px-5 py-2.5 text-right">Residuo disponibile</th>
+                    <th className="px-5 py-2.5 text-right">In scadenza</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {[...history].reverse().map((h) => h && (
+                    <tr key={h.year} className="hover:bg-gray-50">
+                      <td className="px-5 py-3 font-semibold text-gray-900">{h.year}</td>
+                      <td className={`px-5 py-3 text-right text-xs ${h.losses_std > 0 ? "text-red-600 font-medium" : "text-gray-300"}`}>
+                        {h.losses_std > 0 ? `− ${eur(h.losses_std)}` : "—"}
+                      </td>
+                      <td className={`px-5 py-3 text-right text-xs ${h.losses_govt > 0 ? "text-red-500" : "text-gray-300"}`}>
+                        {h.losses_govt > 0 ? `− ${eur(h.losses_govt)}` : "—"}
+                      </td>
+                      <td className={`px-5 py-3 text-right text-xs ${h.carry_applied_std > 0 ? "text-green-600 font-medium" : "text-gray-300"}`}>
+                        {h.carry_applied_std > 0 ? `+ ${eur(h.carry_applied_std)}` : "—"}
+                      </td>
+                      <td className={`px-5 py-3 text-right text-xs font-semibold ${(h.available_std + h.available_govt) > 0 ? "text-amber-600" : "text-gray-300"}`}>
+                        {(h.available_std + h.available_govt) > 0
+                          ? eur(h.available_std + h.available_govt)
+                          : "—"}
+                      </td>
+                      <td className={`px-5 py-3 text-right text-xs ${h.expiring > 0 ? "text-red-500 font-semibold" : "text-gray-300"}`}>
+                        {h.expiring > 0 ? `⚠ ${eur(h.expiring)}` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="px-5 py-3 text-xs text-gray-400 bg-gray-50 border-t border-gray-100">
+                Le minusvalenze standard (26%) e titoli di Stato (12,5%) sono in zainetti separati e non compensabili tra loro.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export function Fiscale() {
@@ -288,6 +567,9 @@ export function Fiscale() {
           ))}
         </select>
       </div>
+
+      {/* Simulatore vendita */}
+      <SellSimulator />
 
       {isLoading ? (
         <div className="text-center py-16 text-sm text-gray-500">Calcolo in corso...</div>
@@ -355,6 +637,9 @@ export function Fiscale() {
 
           {/* Income */}
           <IncomeSection report={report} />
+
+          {/* Storico minusvalenze */}
+          <CarryforwardHistory years={availableYears} />
 
           {/* Disclaimer */}
           <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-700">

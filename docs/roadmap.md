@@ -161,7 +161,7 @@ Data,Descrizione,Divisa,Importo,Tipo
 
 - [x] **Yahoo Finance** (`yfinance`) — azioni Borsa Italiana (suffix `.MI`), ETF, mercati esteri
 - [x] **CoinGecko API** — criptovalute (free tier, bulk fetch, storico)
-- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato a Fase 6)*
+- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato — richiede API key a pagamento)*
 - [x] **Borsa Italiana API** (`grafici.borsaitaliana.it`) — fonte primaria per asset italiani con ISIN: azioni XMIL, ETF EuroTLX, BTP/obbligazioni MOT *(aggiunta extra — ispirata da ghostfolio-feeder)*
 - [x] Fallback logic: Borsa Italiana → Yahoo Finance → errore gestito
 
@@ -220,18 +220,18 @@ Crypto                                 →  CoinGecko
 - [x] **P&L realizzato** — gain/loss su posizioni chiuse con metodo **FIFO**
 - [x] **P&L non realizzato** — gain/loss su posizioni aperte (vs PMC)
 - [x] **TWRR** (Time-Weighted Rate of Return) — prodotto dei sub-return giornalieri
-- [ ] **IRR / XIRR** — per investimenti con cash flow irregolari *(rimandato)*
+- [x] **IRR / XIRR** — per investimenti con cash flow irregolari *(backend + Performance page)*
 - [x] **Dividend yield** — reddito da dividendi e cedole (lista separata)
 - [x] **Performance per periodo**: 1S, 1M, 3M, 6M, 1A, 3A, Max
 
 ### 4.2 Analisi allocazione
 
 - [x] Allocazione per **tipo asset** (azioni, ETF, obbligazioni, crypto, altro)
-- [ ] Allocazione per **settore** *(richiede enrichment TrackInsight — vedi Fase 4.Z)*
-- [ ] Allocazione per **area geografica / paese** *(richiede enrichment TrackInsight — vedi Fase 4.Z)*
+- [x] Allocazione per **settore** *(implementata in Fase 4.Z — look-through via Yahoo Finance)*
+- [x] Allocazione per **continente** *(look-through via `_COUNTRY_TO_CONTINENT`)*
 - [x] Allocazione per **valuta** (EUR, USD, GBP...)
 - [x] Allocazione per **broker/conto**
-- [ ] Concentrazione per singolo titolo (alert se > 10%) *(rimandato a Fase 6)*
+- [x] Concentrazione per singolo titolo (badge warning se > 10%)
 
 ### 4.3 API performance
 
@@ -240,16 +240,19 @@ Crypto                                 →  CoinGecko
 - [x] `GET /api/v1/portfolio/allocation` — breakdown per tipo/valuta/conto
 - [x] `GET /api/v1/portfolio/positions` — posizioni aperte con PMC, P&L, cambio giornaliero
 - [x] `GET /api/v1/portfolio/dividends` — storico dividendi, cedole e interessi ricevuti
+- [x] `GET /api/v1/portfolio/benchmark?index=MSCI_WORLD&period=1y` — serie normalizzata a 100
+- [x] `GET /api/v1/portfolio/correlation?period=1y` — matrice correlazione Pearson fra posizioni
 
 ### 4.4 Frontend — Pagina Performance e grafici
 
 - [x] **Grafico a torta** — allocazione per tipo asset, valuta, conto (Recharts `PieChart`)
 - [x] **Grafico area** — andamento valore portafoglio + capitale investito nel tempo
-- [ ] **Bar chart** — performance mensile / annuale *(rimandato)*
+- [x] **Bar chart** — performance mensile / annuale (Recharts `BarChart`)
 - [x] **Tabella posizioni** — asset, qtà, PMC, prezzo attuale, valore, P&L%, P&L€, P&L realizzato
-- [x] KPI: P&L totale, P&L non realizzato, P&L realizzato, TWRR %
+- [x] KPI: P&L totale, P&L non realizzato, P&L realizzato, TWRR %, IRR %
 - [x] **Tabella dividendi** — storico con importo EUR, tipo (dividendo/cedola/interesse), conto
-- [ ] Benchmark FTSE MIB / MSCI World *(rimandato a Fase 6)*
+- [x] **Benchmark overlay** — MSCI World / FTSE MIB sovrapposto al grafico performance
+- [x] **Matrice correlazione** — heatmap interattiva delle correlazioni tra posizioni
 
 ### 4.5 Frontend — Pagina Allocazioni ✅ *(aggiunta extra)*
 
@@ -260,6 +263,9 @@ Crypto                                 →  CoinGecko
 - [x] Donut **Per Classe di Asset** — ripartizione per tipo ETF/Obbligazioni/... (`by_type`)
 - [x] Donut grande **Per Holding** — ogni singola posizione con etichette esterne e legenda
 - [x] Donut **Per Borsa** — ripartizione per exchange (MIL, XETRA, MOT...)
+- [x] Donut **Per Continente** — look-through via `_COUNTRY_TO_CONTINENT`
+- [x] Tabella **Holdings ETF/Fondi** — composizione interna espandibile per ETF
+- [x] **Override manuale** holdings/settori/paesi per asset (solo superadmin)
 
 ---
 
@@ -290,6 +296,8 @@ Crypto                                 →  CoinGecko
 - [x] `DELETE /admin/users/{id}` — elimina utente (non se stesso)
 - [x] Frontend: pagina `/admin` con tabella utenti, modal crea, modal modifica, elimina con conferma
 - [x] Sidebar: link "Amministrazione" visibile solo ai Superadmin
+- [x] **Audit log** — tabella `audit_logs` (migration 0010), sezione collassabile con filtro in Admin
+- [x] `PATCH /admin/assets/{id}/profile` — override manuale settori/paesi/holdings per ETF
 
 ### 4.X.4 Impostazioni personali (tutti gli utenti)
 
@@ -304,68 +312,95 @@ users           + role (SUPERADMIN|USER), two_factor_secret, two_factor_enabled
 user_settings   (id, user_id, theme, display_currency, updated_at)
 ```
 
----
+### 4.X.5 Account URL e favicon ✅ *(aggiunta extra)*
 
-## FASE 4.Z — Asset enrichment (Ghostfolio-style) ⏳
-**Obiettivo: arricchire gli asset con dati settoriali, geografici e holdings degli ETF**
+- [x] Campo `url` (String 500, nullable) sulla tabella `accounts` — migration 0012
+- [x] `url` aggiunto a `AccountCreate`, `AccountUpdate`, `AccountOut` (Pydantic)
+- [x] Frontend: campo URL nel form crea/modifica conto (Impostazioni)
+- [x] Componente `AccountFavicon.tsx` — recupera favicon via **Google Favicons API** (`/s2/favicons?domain=...&sz=32`), gestisce assenza con `onError` silenzioso
+- [x] Favicon mostrata prima del nome account in: **Impostazioni** (AccountRow), **Transazioni** (summary cards + righe mobile + colonna desktop), **Dashboard** (breakdown per-conto), **HoldingDetailModal** (tab Attività e tab Conti)
+- [x] Nome conto cliccabile come link esterno se URL presente
 
-> Ispirato all'architettura di Ghostfolio, che usa **TrackInsight** (NASDAQ ETF Database)
-> come fonte principale per paese, settore e sottostanti degli ETF.
+### 4.X.6 Sistema email SMTP ✅ *(aggiunta extra)*
 
-### Come funziona in Ghostfolio (riferimento)
+**Backend:**
+- [x] Configurazione SMTP in `config.py`: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAILS_FROM`, `APP_URL`; proprietà `email_configured: bool`
+- [x] `services/email.py` — invio asincrono via `smtplib` + STARTTLS wrappato con `run_in_executor`; template HTML condiviso (`_base(title, body)`)
+- [x] Funzioni: `send_password_reset(email, token)`, `send_welcome(email, name, temp_password)`, `send_test(to)`
+- [x] `create_password_reset_token(user_id)` in `security.py` — JWT 1h tipo `"password_reset"`
+- [x] `POST /auth/forgot-password` — risponde sempre 202 (no timing leak), invia email solo se utente esiste
+- [x] `POST /auth/reset-password` — verifica token JWT, aggiorna password
+- [x] `GET /admin/email/config` — stato configurazione SMTP (host, porta, mittente)
+- [x] `POST /admin/email/test` — invia email di test a indirizzo specificato
+- [x] `POST /admin/email/welcome/{user_id}` — invia email di benvenuto con password temporanea
+- [x] `POST /admin/email/reset-link/{user_id}` — invia link reset password all'utente
 
-1. Per ogni asset viene salvato un `symbol_mapping` es. `{"TRACKINSIGHT": "IE00B4L5Y983"}`
-2. Un job "Gather Profile Data" chiama l'API TrackInsight con l'ISIN
-3. I risultati vengono salvati come JSON sul profilo dell'asset:
-   ```json
-   {
-     "countries":  [{"code": "US", "weight": 0.65}, {"code": "JP", "weight": 0.07}],
-     "sectors":    [{"name": "Technology", "weight": 0.24}, {"name": "Financials", "weight": 0.14}],
-     "holdings":   [{"symbol": "AAPL", "name": "Apple Inc", "weight": 0.04}]
-   }
-   ```
-4. Il portfolio engine fa il "look-through": `position_weight × etf_holding_weight`
-5. Un modello `SymbolProfileOverride` permette correzioni manuali per ETF non coperti
+**Frontend:**
+- [x] Pagina `ForgotPassword.tsx` (`/forgot-password`) — form email + stato successo
+- [x] Pagina `ResetPassword.tsx` (`/reset-password?token=...`) — form nuova password + redirect a `/login` dopo 3s
+- [x] Link "Password dimenticata?" nel Login
+- [x] `AdminPage`: pulsanti per inviare email benvenuto (con modal password temporanea) e link reset per ogni utente
+- [x] `EmailSection` in Impostazioni (solo superadmin): stato SMTP, dettagli configurazione, invio email di test
 
-### 4.Z.1 Database
+### 4.X.7 Tema dark / light / sistema ✅ *(aggiunta extra)*
 
-- [ ] Migration 0006: aggiungere campi JSON su `assets`:
-  - `countries JSONB` — `[{"code": "US", "weight": 0.65}, ...]`
-  - `sectors JSONB` — `[{"name": "Technology", "weight": 0.24}, ...]`
-  - `holdings JSONB` — `[{"symbol": "AAPL", "name": "Apple Inc", "weight": 0.04}, ...]`
-  - `data_provider_map JSONB` — `{"TRACKINSIGHT": "IE00B4L5Y983", "YAHOO": "SWDA.MI"}`
-- [ ] Tabella `asset_profile_overrides` (asset_id FK, countries, sectors, holdings, updated_at)
-
-### 4.Z.2 Backend — Enrichment service
-
-- [ ] `TrackInsightEnricher` — client HTTP per `https://www.trackinsight.com/data-api/`
-  - `fetch_profile(isin)` → paesi, settori, top holdings con pesi
-  - Fallback su Yahoo Finance per `sector` dei singoli titoli (`Sector` nel `info` dict)
-- [ ] `GET /api/v1/assets/{id}/enrich` — trigger manuale enrichment singolo asset (admin)
-- [ ] Task Celery `enrich_all_assets` — enrichment bulk su tutti gli asset (on-demand)
-- [ ] API `PATCH /api/v1/assets/{id}/profile` — override manuale paesi/settori/holdings (admin)
-
-### 4.Z.3 Backend — Calcolo look-through
-
-- [ ] Aggiornare `calculate_allocation()` per gestire `by_sector`, `by_country`, `by_continent`
-  - Per ogni posizione ETF: iterare su `holdings` e moltiplicare per `position_weight`
-  - Aggregare per settore e paese attraverso tutti gli ETF del portafoglio
-- [ ] Tabella ISO paese → continente (mapping statico, ~250 righe)
-- [ ] `AllocationOut` esteso: aggiungere `by_sector`, `by_country`, `by_continent`, `etf_holdings`
-
-### 4.Z.4 Frontend — Grafici aggiuntivi su pagina Allocazioni
-
-- [ ] Donut **Per Settore** (Technology, Financials, Healthcare...)
-- [ ] Donut **Per Continente** (Nord America, Europa, Asia-Pacifico, Mercati Emergenti)
-- [ ] Donut **Per Mercato** (Developed Markets, Emerging Markets, Other)
-- [ ] **Mappa Regioni** — world map SVG colorata per peso geografico
-- [ ] Donut **Per Paese** (US, JP, UK, FR, DE...)
-- [ ] Tabella **By ETF Holding** — top sottostanti con valore e % look-through
-- [ ] Sezione admin per editare manualmente `countries/sectors/holdings` di un asset
+- [x] `darkMode: "class"` in `tailwind.config.js` — attiva varianti `dark:` basate su classe CSS
+- [x] Script anti-FOUC in `index.html` — legge `localStorage["nf-theme"]` prima che React monti e aggiunge `dark` sull'`<html>` se necessario
+- [x] `ThemeContext.tsx` — `applyTheme(mode)` esportata: togola classe `dark` su `document.documentElement` e persiste in `localStorage`; `ThemeProvider` legge `my-settings`, applica il tema solo dopo il caricamento (evita flash), registra listener `prefers-color-scheme` in modalità "system"
+- [x] `index.css` — override `@layer utilities` con selettori `.dark .bg-*` / `.dark .text-*` / `.dark .border-*` / `.dark select,input,textarea` (specificità 0,2,0 > 0,1,0)
+- [x] Tutti i componenti layout aggiornati con classi `dark:`: `Sidebar`, `TopBar`, `BottomNav`, `MainLayout`, `Input`, `Button` (variante secondary)
+- [x] Selezione tema immediata: `onChange` nel dropdown chiama `applyTheme()` istantaneamente prima di salvare sul backend
+- [x] Logo SVG (`assets/logo.svg`) in Sidebar — `Next` bianco + `Folio` verde (#6ee7b7) su sfondo scuro #0f172a, sostituisce la scritta "Nextfolio" in entrambi i temi
 
 ---
 
-## FASE 4.W — Performance & ottimizzazioni backend
+## FASE 4.Z — Asset enrichment ✅
+**Obiettivo: arricchire gli asset con dati settoriali, holdings degli ETF e look-through allocazione**
+
+> Fonte: **Yahoo Finance** (`yf.Ticker.get_funds_data()` per ETF, `yf.Ticker.info` per azioni).
+> TrackInsight API inaccessibile (403), rimpiazzata con Yahoo Finance nativamente.
+
+### 4.Z.1 Database ✅
+
+- [x] Migration 0009: campi JSONB su `assets`:
+  - `sectors` — `[{"name": "Technology", "weight": 0.24}, ...]`
+  - `countries` — `[{"code": "US", "name": "United States", "weight": 1.0}]`
+  - `holdings` — `[{"symbol": "AAPL", "name": "Apple Inc", "weight": 0.04}]`
+  - `enriched_at` — timestamp ultimo arricchimento
+- [x] Migration 0011: campi JSONB override su `assets`:
+  - `sectors_override`, `countries_override`, `holdings_override`
+
+### 4.Z.2 Backend — Enrichment service ✅
+
+- [x] `enrich_asset()` in `services/market_data/enricher.py`:
+  - ETF/Bond: `get_funds_data().sector_weightings` + `top_holdings` (top 10)
+  - Stock/REIT: `info.sector` + `info.country`
+  - ISIN resolver: **OpenFIGI** (primario) → Yahoo search (fallback)
+- [x] `services/market_data/openfigi.py` — client OpenFIGI con `resolve_isin` / `resolve_isins_bulk`
+  - Mappa exchCode → suffisso Yahoo (LN→.L, GR→.DE, IM→.MI, FP→.PA, ...)
+  - Selezione exchange ottimale per tipo asset (ETF→London/XETRA, BOND→XETRA/London)
+- [x] `OPENFIGI_APY_KEY` in settings + docker-compose.dev.yml
+- [x] `POST /api/v1/assets/{id}/enrich` — enrichment singolo
+- [x] `POST /api/v1/admin/enrich-assets` — enrichment bulk in background (admin)
+- [x] Task Celery `enrich_all_assets`
+
+### 4.Z.3 Backend — Calcolo look-through ✅
+
+- [x] `calculate_allocation()` con `by_sector` (look-through: `position_value × sector_weight`)
+- [x] `calculate_allocation()` con `by_continent` (look-through via `_COUNTRY_TO_CONTINENT`)
+- [x] `GET /portfolio/etf-holdings` — composizione holdings ETF con override support
+- [x] `AllocationOut.by_sector`, `by_continent`: `list[AllocationItem]`
+
+### 4.Z.4 Frontend — Grafici pagina Allocazioni ✅
+
+- [x] Donut **Per Settore** — visibile se dati disponibili (look-through ETF)
+- [x] Donut **Per Continente** — look-through via `_COUNTRY_TO_CONTINENT`
+- [x] Tabella **Holdings ETF** — espandibile per fondo, top 20 holdings
+- [x] **Override modal** — solo superadmin, formato `SYMBOL|Nome|peso%`
+
+---
+
+## FASE 4.W — Performance & ottimizzazioni backend ✅
 
 > Obiettivo: ridurre la latenza degli endpoint `/portfolio/*` percepita al refresh della Dashboard.
 
@@ -379,63 +414,24 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 | D | Dashboard fa 4+ chiamate HTTP separate al caricamento | 🟡 Bonus UX | frontend |
 
 ### 4.W.1 Fix A — `asyncio.gather` sui lookup prezzi ✅
+- [x] `_fetch_prices_parallel(db, asset_map)`: gather Redis in parallelo, fallback DB solo su cache miss
+- **Risultato atteso**: con cache Redis calda, latenza da O(N×1ms) a O(1ms)
 
-- [x] Aggiunta `_fetch_prices_parallel(db, asset_map)`: fase 1 tutti i lookup Redis in parallelo con `asyncio.gather`, fase 2 fallback DB sequenziale solo per cache miss
-- [x] `/positions` — rimosso loop sequenziale, usa `_fetch_prices_parallel`
-- [x] `/summary` — idem
-- [x] `/allocation` — idem
-- **Risultato atteso**: con cache Redis calda (caso normale), latenza scende da O(N×1ms) a O(1ms)
-
-### 4.W.2 Fix B — `MGET` bulk Redis + fallback non-bloccante ✅
-
-- [x] `get_cached_prices_bulk(asset_ids)` in `updater.py` con `r.mget(*keys)` → 1 connessione TCP invece di N
-- [x] Cache miss → fallback istantaneo su `price_history` DB (nessun fetch live nel path della request)
-- [x] `BackgroundTasks` FastAPI lancia un singolo task parallelo (`asyncio.gather`) per warm-up cache post-risposta
-- [x] TTL dinamico: 5 min durante orario di borsa (9:00–17:30), **4 ore** fuori orario/weekend
-- [x] Celery Beat: aggiunto `update-stock-prices-premarket` (8:45) e `update-stock-prices-postmarket` (18:05)
-- [x] Fix `yahoo_ticker` esplicito: quando impostato dall'utente usa `Exchange.OTHER` (nessun suffisso)
-- [x] `yfinance` wrappato in `run_in_executor` → non blocca più l'event loop asyncio durante fetch in background
-- **Risultato misurato (25/05/2026)**:
-  - Cache fredda: ~90–150ms (era ~2s)
-  - Cache calda: ~25ms (era invariata ma ora garantita anche fuori orario)
+### 4.W.2 Fix B — `MGET` bulk Redis ✅
+- [x] `get_cached_prices_bulk(asset_ids)` con `r.mget(*keys)` → 1 connessione TCP
+- [x] TTL dinamico: 5 min mercato aperto, 4 ore fuori orario/weekend
+- **Risultato**: cache fredda ~90–150ms (era ~2s), cache calda ~25ms
 
 ### 4.W.3 Fix C — Cache Redis per `/performance` ✅
-
-- [x] Serializzare `PerformanceOut` come JSON in Redis con chiave `perf:{user_id}:{period}:{account_id}`
-- [x] TTL 5 minuti (allineato al task `update_prices_eod`)
-- [x] Invalidare la cache quando Celery pubblica nuovi prezzi (`update_prices_eod` chiama `invalidate_perf_cache(user_id)`)
-- **Risultato**: `period=1y` 224ms cold → 7ms warm (32×); `period=3y` 377ms cold → 7ms warm (54×)
+- [x] Chiave `perf:{user_id}:{period}:{account_id}`, TTL 5 min
+- **Risultato**: `period=1y` 224ms cold → 7ms warm (32×)
 
 ### 4.W.4 Fix D — Endpoint aggregato `/portfolio/dashboard` ✅
+- [x] `GET /portfolio/dashboard` — `{summary, positions, allocation}` in 1 chiamata
+- **Risultato**: ~15ms warm (vs ~65ms×N separati)
 
-- [x] `GET /portfolio/dashboard` — risponde con `{summary, positions, allocation}` in una sola chiamata (1 DB session, 1 Redis MGET)
-- [x] Dashboard page: `getPositions()` → `getDashboard()` (1 query invece di 1)
-- [x] Performance page: `getSummary() + getPositions() + getAllocation()` → `getDashboard()` (3 query → 1)
-- [x] Allocation page: `getAllocation() + getPositions()` → `getDashboard()` (2 query → 1)
-- **Risultato**: ~15ms warm (vs ~65ms×N separati); 1 DB session, 1 Redis MGET, 0 round-trip extra
-
-### 4.W.5 Fix E — Arrotondamento valute a 2 decimali in visualizzazione ✅
-
-> **Obiettivo**: uniformare tutti i valori monetari visualizzati a 2 cifre decimali su ogni pagina.
-> Gli input (inserimento transazioni) continuano ad accettare fino a 6 cifre decimali per la quantità e il prezzo unitario.
-
-**Scope frontend (display-only):**
-- [x] Performance — tabella posizioni: PMC e prezzo corrente `fmt(v, 4)` → `fmt(v, 2)`
-- [x] HoldingDetailModal — StatCards PMC, prezzo mercato, min/max: `fmt(v, 4)` → `fmt(v, 2)`
-- [x] HoldingDetailModal — tab Attività: `fmt(a.price, 4)` → `fmt(a.price, 2)`
-- [x] HoldingDetailModal — tooltip grafico: `fmt(v, 4)` → `fmt(v, 2)`
-- [x] PriceTicker — live price: `maximumFractionDigits: 4` → `2`
-- [x] PriceChart — tooltip: `toFixed(4)` → `toFixed(2)`
-
-**Invariati (4 decimali giustificati):**
-- Tasso di cambio in Transazioni (`exchange_rate`) — necessita precisione
-- Quantità asset in Dashboard — crypto/frazioni richiedono max 6 decimali
-- Soglie alert in Alert.tsx — precisione richiesta dall'utente
-
-**Regola da applicare:**
-- Visualizzazione prezzi singoli (prezzo per unità): **2 decimali**
-- Quantità asset: **max 6 decimali** (crypto/frazioni), mantenere come da standard attuale
-- Tutti gli importi EUR: **2 decimali** (invariato, già corretto nella maggior parte dei componenti)
+### 4.W.5 Fix E — Arrotondamento valute a 2 decimali ✅
+- [x] Uniformati tutti i prezzi visualizzati a 2 decimali (4 decimali mantenuti solo per tasso di cambio)
 
 ---
 
@@ -457,11 +453,11 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ### 5.2 Calcolo FIFO
 
-- [x] Metodo **FIFO** per il calcolo del costo base *(semplificazione MVP — broker italiani usano PMC in regime amministrato)*
+- [x] Metodo **FIFO** per il calcolo del costo base
 - [x] Report per singola operazione con gain/loss dettagliato
 - [x] Simulatore "cosa succede se vendo ora?" (`GET /tax/simulate?asset_id=X&quantity=Y`)
-- [ ] Metodo **LIFO** *(regime dichiarativo — rimandato)*
-- [ ] **PMC** *(regime amministrato — rimandato)*
+- [ ] Metodo **LIFO** *(rimandato — regime dichiarativo)*
+- [ ] Metodo **PMC** *(rimandato — regime amministrato)*
 
 ### 5.3 API e report fiscali
 
@@ -469,12 +465,14 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] `GET /api/v1/tax/report?year=2024` — report annuale con zainetto cumulativo
 - [x] `GET /api/v1/tax/simulate?asset_id=1&quantity=10` — simulazione vendita
 - [x] Frontend: pagina Fiscale con selettore anno, KPI, due bracket, tabella eventi collassabile
-- [ ] **Export PDF/Excel** *(rimandato a Fase 6)*
-- [ ] **Storico minusvalenze multi-anno** *(vista dedicata — rimandato)*
+- [x] Frontend: **Simulatore vendita** — sezione in pagina Fiscale con dropdown asset e input quantità
+- [x] **Storico minusvalenze multi-anno** — vista dedicata in pagina Fiscale con carryforward visuale
+- [ ] **Export PDF** *(rimandato — richiede libreria reportlab)*
+- [x] Export Excel incluso nell'export generale (`GET /api/v1/portfolio/export`)
 
 ---
 
-## FASE 6 — Features avanzate
+## FASE 6 — Features avanzate ✅
 **Durata stimata: 2–3 settimane**
 **Obiettivo: funzionalità premium e UX avanzata**
 
@@ -486,86 +484,78 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] Task Celery `check_price_alerts` — ogni 5 min, confronta prezzo Redis con soglia
 - [x] CRUD REST: `GET/POST /alerts`, `PATCH/DELETE /alerts/{id}`
 - [x] Frontend: pagina Alert con autocomplete asset, sezioni attivi/disabilitati, badge "scattato"
-- [ ] Alert dividendo in arrivo *(rimandato)*
-- [ ] Notifiche email via `fastapi-mail` *(rimandato — richiede SMTP)*
-- [ ] Notifiche push via PWA *(rimandato a Fase 6.4)*
+- [ ] Alert dividendo in arrivo *(rimandato — richiede calendario dividendi esterno)*
+- [x] Notifiche email transazionali (reset password, benvenuto utente) — via `smtplib` + STARTTLS *(completato in 4.X.6)*
+- [ ] Notifiche email per price alert *(rimandato — SMTP pronto, manca integrazione con task Celery `check_price_alerts`)*
+- [ ] Notifiche push via PWA *(rimandato — richiede VAPID backend)*
 
-### 6.2 Strumenti di analisi
+### 6.2 Strumenti di analisi ✅
 
-- [ ] **Calcolatore PAC** — simulazione piano di accumulo con rendimento atteso
-- [ ] **Simulatore vendita** — impatto fiscale prima di vendere
-- [ ] **Correlazione asset** — matrice di correlazione fra i titoli in portafoglio
-- [ ] **Rischio portafoglio** — volatilità, Sharpe ratio, max drawdown
-- [ ] **Analisi dividendi** — calendario dividendi, yield on cost, crescita storica
+- [x] **Calcolatore PAC** — simulazione piano di accumulo con rendimento atteso (pagina `/strumenti`)
+- [x] **Simulatore vendita** — impatto fiscale prima di vendere (sezione in pagina Fiscale)
+- [x] **Correlazione asset** — matrice Pearson fra i titoli in portafoglio (heatmap)
+- [x] **Rischio portafoglio** — volatilità ann., max drawdown, Sharpe, Sortino, Calmar ratio
+- [x] **Analisi dividendi** — calendario mensile, yield on cost, crescita storica (pagina dedicata)
 
-### 6.3 Import/Export avanzato
+### 6.3 Import/Export avanzato ✅
 
 - [x] Import da **Fineco** (CSV estratto conto) *(completato in Fase 2)*
 - [x] Import da **Directa Plus** (CSV movimenti) *(completato in Fase 2)*
 - [x] Import da **Degiro** (CSV transazioni) *(completato in Fase 2)*
-- [ ] Import da **Interactive Brokers** (formato Flex Query)
-- [ ] Export portafoglio in formato Ghostfolio (compatibilità)
-- [ ] Export Excel con tutti i dati per uso personale
-- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato da Fase 3)*
+- [x] Import da **Interactive Brokers** (formato Flex Query CSV)
+- [x] Export Excel con tutti i dati per uso personale (fogli: Transazioni, Posizioni, Info)
+- [x] Export portafoglio in formato **Ghostfolio** (JSON compatibile)
+- [ ] **Metals-API / Open Metals** — oro, argento, commodity *(rimandato — API key a pagamento)*
 
-### 6.4 Mobile — Layout responsive e PWA
+### 6.4 Mobile — Layout responsive e PWA ✅
 
-> **Obiettivo**: Nextfolio deve essere pienamente usabile da smartphone, sia come web app nel browser che installata tramite PWA.
-
-#### Responsive design (priorità alta)
-
-- [ ] **Breakpoint mobile-first** — revisione generale del layout per schermi < 640px
-- [ ] **Sidebar** → sostituita da bottom navigation bar su mobile (icone: Dashboard, Performance, Allocazioni, Transazioni, Impostazioni)
-- [ ] **Dashboard** — grafico full-width, KPI cards in colonna singola, holdings in card verticali invece di tabella orizzontale
-- [ ] **Holdings table** — su mobile mostra solo Nome + Valore + Performance; colonne secondarie accessibili con swipe o drawer
-- [ ] **HoldingDetailModal** — già a pannello laterale, adattarlo a bottom sheet su mobile (full height, drag to dismiss)
-- [ ] **Transazioni** — tabella → lista card su mobile
-- [ ] **Grafici Recharts** — verificare leggibilità assi e tooltip su touch screen (tooltip on tap invece di hover)
-- [ ] **Allocazione** — donut chart ridimensionato, legenda sotto il grafico su mobile
-- [ ] **Form inserimento transazione** — input ottimizzati per tastiera numerica mobile (`inputMode="decimal"`)
-
-#### PWA (priorità media)
-
-- [ ] Configurare `vite-plugin-pwa` con Service Worker
-- [ ] `manifest.webmanifest`: nome, icone (192px, 512px), colori brand, `display: standalone`
-- [ ] Installazione su home screen iOS (Safari) e Android (Chrome)
-- [ ] Modalità offline: cache delle ultime posizioni e prezzi con Workbox (`StaleWhileRevalidate`)
-- [ ] Notifiche push per price alert (richiede backend endpoint VAPID)
+- [x] **Breakpoint mobile-first** — revisione generale del layout per schermi < 640px
+- [x] **Sidebar** → bottom navigation bar su mobile
+- [x] **Dashboard** — grafico full-width, KPI cards in colonna singola
+- [x] **Holdings table** — card verticali su mobile
+- [x] **HoldingDetailModal** — bottom sheet su mobile, side panel su desktop
+- [x] **Transazioni** — lista card su mobile
+- [x] **Allocazione** — donut chart ridimensionato, legenda sotto
+- [x] Form inserimento: `inputMode="decimal"` su tutti i campi numerici
+- [x] PWA: `vite-plugin-pwa`, manifest, icone, offline cache
+- [ ] Notifiche push per price alert *(rimandato — richiede VAPID)*
 
 ---
 
-## FASE 7 — Qualità e rilascio
+## FASE 7 — Qualità e rilascio ✅
 **Durata stimata: 1–2 settimane**
 **Obiettivo: test, sicurezza, deploy**
 
 ### 7.1 Testing
 
-- [ ] **Backend**: Pytest con test unitari su tax engine e calcoli P&L
-- [ ] **Backend**: Test di integrazione per le API (TestClient FastAPI)
-- [ ] **Frontend**: Vitest per utility functions e hooks
-- [ ] **Frontend**: Playwright per E2E (login, inserimento transazione, verifica P&L)
-- [ ] Coverage minimo: 80% backend, 60% frontend
+- [x] **Backend**: Pytest unit tests su tax engine — 77 test, 68 pass, 9 skip
+- [x] **Backend**: Pytest unit tests su calcolo FIFO posizioni
+- [x] **Backend**: Pytest unit tests su performance helpers
+- [x] **Backend**: Integration tests API shape validation
+- [x] **Bug fix**: `build_annual_reports` carryforward (Art. 68 TUIR)
+- [ ] **Frontend**: Vitest per utility functions *(rimandato)*
+- [ ] **Frontend**: Playwright E2E *(rimandato)*
 
 ### 7.2 Sicurezza
 
-- [x] Rate limiting sulle API (`slowapi`) *(completato in Fase 1)*
-- [x] Validazione input con Pydantic (nessun SQL injection possibile) *(completato in Fase 1)*
-- [ ] HTTPS obbligatorio in produzione
-- [x] Refresh token rotation *(completato in Fase 1)*
-- [x] CORS configurato per soli domini trusted *(completato in Fase 1)*
-- [x] 2FA TOTP opzionale (`pyotp`) con session_token separato per il challenge *(completato in Fase 4.X)*
-- [x] Ruoli SUPERADMIN/USER con dependency FastAPI `require_superadmin` *(completato in Fase 4.X)*
-- [x] Registrazione pubblica bloccata dopo il primo utente *(completato in Fase 4.X)*
-- [x] `bcrypt<4.0` per compatibilità con `passlib` *(fix applicato in Fase 4.X)*
-- [ ] Audit log per operazioni sensibili (cancellazione transazioni)
+- [x] Rate limiting sulle API (`slowapi`)
+- [x] Validazione input con Pydantic
+- [ ] HTTPS obbligatorio in produzione *(rimandato — gestito a livello infrastrutturale)*
+- [x] Refresh token rotation
+- [x] CORS configurato per soli domini trusted
+- [x] 2FA TOTP opzionale (`pyotp`)
+- [x] Ruoli SUPERADMIN/USER
+- [x] Registrazione pubblica bloccata dopo il primo utente
+- [x] `bcrypt<4.0` per compatibilità con `passlib`
+- [x] Audit log per operazioni sensibili
 
 ### 7.3 Docker e deploy
 
-- [ ] `Dockerfile` per frontend (nginx multi-stage build)
-- [ ] `Dockerfile` per backend (Python slim)
-- [ ] `docker-compose.yml` production con tutti i servizi
-- [x] Variabili d'ambiente documentate in `.env.example` *(completato in Fase 1)*
-- [ ] Script di backup PostgreSQL automatico
+- [x] `Dockerfile` per frontend (nginx multi-stage build)
+- [x] `Dockerfile` per backend (Python slim, alembic upgrade automatico)
+- [x] `docker-compose.yml` production: porte solo su 127.0.0.1:80
+- [x] Variabili d'ambiente documentate in `.env.example`
+- [x] Script `scripts/backup-postgres.sh`: dump gzip + rotazione automatica
 
 ---
 
@@ -590,6 +580,7 @@ pandas>=2.0.0
 numpy>=1.26.0
 slowapi>=0.1.9
 python-multipart>=0.0.9
+openpyxl>=3.1.0
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
 pytest-cov>=4.1.0
@@ -671,13 +662,15 @@ docker compose build
 | 2 | Asset + transazioni + FX | ✅ Completata | 🔴 Critica | 2–3 sett. |
 | 3 | Market data + prezzi + WebSocket | ✅ Completata | 🔴 Critica | 2 sett. |
 | 4 | Portfolio + performance | ✅ Completata | 🔴 Critica | 2–3 sett. |
-| 4.X | 2FA TOTP + ruoli + admin utenti | ✅ Completata | 🟠 Alta | — |
+| 4.X | 2FA TOTP + ruoli + admin utenti + email + tema + favicon | ✅ Completata | 🟠 Alta | — |
 | 4.5 | Pagina Allocazioni (frontend) | ✅ Completata | 🟠 Alta | — |
-| 4.W | Performance backend (gather, MGET, cache perf, dashboard) | ✅ Completata (Fix A ✅ Fix B ✅ Fix C ✅ Fix D ✅ Fix E ✅) | 🟠 Alta | 1 sett. |
-| 4.Z | Asset enrichment (settori, paesi, ETF holdings) | ⏳ In coda | 🟠 Alta | 2–3 sett. |
+| 4.W | Performance backend (gather, MGET, cache, dashboard) | ✅ Completata | 🟠 Alta | 1 sett. |
+| 4.Z | Asset enrichment (settori, continenti, ETF holdings, override) | ✅ Completata | 🟠 Alta | 2–3 sett. |
 | 5 | Tax engine italiano | ✅ Completata | 🟠 Alta | 2 sett. |
-| 6 | Features avanzate | 🔄 In corso | 🟡 Media | 2–3 sett. |
-| 7 | Testing + deploy | ⏳ In coda | 🟢 Normale | 1–2 sett. |
+| 6 | Features avanzate | ✅ Completata | 🟡 Media | 2–3 sett. |
+| 7 | Testing + deploy | ✅ Completata (core) | 🟢 Normale | 1–2 sett. |
+
+**Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), HTTPS (infra), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
 **Tempo totale stimato: 12–18 settimane** (sviluppo part-time)
 
@@ -697,8 +690,27 @@ docker compose build
 | TOTP 2FA opzionale (pyotp) + login a due step | 4.X | Sicurezza account; flusso session_token per non esporre credenziali nella challenge TOTP |
 | Ruoli SUPERADMIN/USER, pannello admin utenti | 4.X | Gestione multi-utente: solo il superadmin crea account; utenti normali configurano solo preferenze personali |
 | Tabella `user_settings` (tema, valuta display) | 4.X | Personalizzazione per-utente senza toccare il profilo principale |
-| Pagina `/allocazione` con 5 donut chart (holding, piattaforma, valuta, asset class, borsa) | 4.5 | Dashboard allocazione dedicata, ispirata a Ghostfolio; usa dati già disponibili senza enrichment |
-| Asset enrichment via TrackInsight (paesi, settori, holdings ETF) | 4.Z | Ghostfolio usa TrackInsight + JSON blob su `SymbolProfile`; stessa architettura adattata a FastAPI/SQLAlchemy |
+| Pagina `/allocazione` con donut chart (holding, piattaforma, valuta, asset class, borsa, settore, continente) | 4.5 | Dashboard allocazione dedicata, ispirata a Ghostfolio; look-through ETF |
+| Asset enrichment via Yahoo Finance (paesi, settori, holdings ETF) | 4.Z | Ghostfolio usa TrackInsight + JSON blob su `SymbolProfile`; stessa architettura adattata |
+| Audit log (`audit_logs`) | 4.X | Tracciabilità operazioni sensibili per ambienti multi-utente |
+| Override manuale settori/countries/holdings | 4.Z | Correzione manuale dati enrichment non accurati (ispirato a Ghostfolio) |
+| Export Excel (Transazioni, Posizioni, Info) | 6.3 | Backup e analisi offline dei dati |
+| Export formato Ghostfolio | 6.3 | Compatibilità e migrazione |
+| Import Interactive Brokers Flex Query | 6.3 | Broker più usato da investitori avanzati |
+| Calcolatore PAC + Simulatore vendita | 6.2 | Strumenti decisionali senza dipendenze esterne |
+| Risk metrics (volatilità, drawdown, Sharpe, Sortino, Calmar) | 6.2 | Analisi quantitativa del rischio |
+| IRR/XIRR | 4.1 | Misura di rendimento più accurata per cash flow irregolari |
+| Benchmark MSCI World / FTSE MIB | 4.4 | Confronto con indici di riferimento |
+| Correlazione asset (matrice Pearson) | 6.2 | Diversificazione e rischio concentrazione |
+| Analisi dividendi (calendario, yield on cost) | 6.2 | Visione income del portafoglio |
+| Concentrazione per singolo titolo (badge > 10%) | 4.2 | Alert visivo per rischio concentrazione |
+| Storico minusvalenze multi-anno | 5.3 | Compensazione Art. 68 TUIR su 4 anni |
+| Campo `url` su `accounts` + favicon Google Favicons API | 4.X.5 | Link diretto al conto broker; favicon come identificatore visivo ovunque appaia il nome conto |
+| Sistema SMTP completo (`smtplib` + STARTTLS) | 4.X.6 | Password reset self-service, email benvenuto per nuovi utenti, test configurazione; nessuna dipendenza esterna oltre stdlib |
+| Flusso reset password (`/forgot-password`, `/reset-password`) | 4.X.6 | Token JWT 1h tipo `password_reset`; risposta 202 costante per evitare user enumeration |
+| Pannello email admin (config, test, welcome, reset link) | 4.X.6 | Operazioni email manuali per il superadmin senza accesso a shell |
+| Logo SVG Nextfolio in Sidebar | 4.X.7 | Branding coerente con header email; "Next" bianco + "Folio" verde su sfondo slate-900 |
+| Tema dark / light / system (class-based Tailwind) | 4.X.7 | Preferenza persistita su backend (`user_settings.theme`), localStorage per FOUC prevention, cambio immediato senza attesa refetch |
 
 ### Decisioni architetturali
 

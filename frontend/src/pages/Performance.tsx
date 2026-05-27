@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, ReferenceLine, Cell as BarCell, LineChart, Line,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ArrowDownLeft } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ShieldAlert, AlertTriangle, GitFork } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { TopBar } from "@/components/layout/TopBar";
-import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut } from "@/services/portfolio";
+import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut, type PerformancePoint } from "@/services/portfolio";
 
 // ── Costanti ─────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,442 @@ function AllocationPie({ title, items }: { title: string; items: AllocationItem[
   );
 }
 
+const RISK_PERIODS = [
+  { value: "1m", label: "1M" },
+  { value: "3m", label: "3M" },
+  { value: "6m", label: "6M" },
+  { value: "1y", label: "1A" },
+  { value: "3y", label: "3A" },
+  { value: "max", label: "Max" },
+];
+
+function riskColor(value: number | null, good: "high" | "low"): string {
+  if (value === null) return "text-gray-400";
+  if (good === "high") return value >= 1 ? "text-green-600" : value >= 0 ? "text-amber-500" : "text-red-600";
+  return value <= -20 ? "text-red-600" : value <= -10 ? "text-amber-500" : "text-gray-700";
+}
+
+function RiskCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4">
+      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+      <p className={`text-xl font-bold ${color ?? "text-gray-900"}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function RiskMetricsSection() {
+  const [riskPeriod, setRiskPeriod] = useState("3y");
+
+  const { data: risk, isLoading } = useQuery({
+    queryKey: ["portfolio-risk", riskPeriod],
+    queryFn: () => portfolioService.getRisk(riskPeriod),
+  });
+
+  const fmtRatio = (v: number | null) => (v === null ? "—" : v.toFixed(2));
+  const fmtPct = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+        <ShieldAlert className="w-4 h-4 text-gray-400" />
+        <h3 className="text-sm font-semibold text-gray-700">Metriche di rischio</h3>
+        <div className="ml-auto flex gap-1">
+          {RISK_PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setRiskPeriod(p.value)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                riskPeriod === p.value
+                  ? "bg-brand-600 text-white"
+                  : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading || !risk ? (
+        <div className="p-6 text-center text-sm text-gray-400">Calcolo in corso...</div>
+      ) : risk.trading_days < 10 ? (
+        <div className="p-6 text-center text-sm text-gray-400">
+          Dati insufficienti per il periodo selezionato (minimo ~10 giorni di storico prezzi).
+        </div>
+      ) : (
+        <div className="p-5 space-y-4">
+          {/* Metriche principali */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <RiskCard
+              label="Volatilità ann."
+              value={`${risk.annualized_volatility_pct.toFixed(1)}%`}
+              sub="deviazione standard × √252"
+              color={
+                risk.annualized_volatility_pct > 25
+                  ? "text-red-600"
+                  : risk.annualized_volatility_pct > 15
+                  ? "text-amber-500"
+                  : "text-green-600"
+              }
+            />
+            <RiskCard
+              label="Max drawdown"
+              value={`${risk.max_drawdown_pct.toFixed(1)}%`}
+              sub={
+                risk.max_drawdown_start && risk.max_drawdown_end
+                  ? `${format(parseISO(risk.max_drawdown_start.toString()), "MMM yy", { locale: it })} → ${format(parseISO(risk.max_drawdown_end.toString()), "MMM yy", { locale: it })}`
+                  : "picco-valle"
+              }
+              color={riskColor(risk.max_drawdown_pct, "low")}
+            />
+            <RiskCard
+              label="Sharpe ratio"
+              value={fmtRatio(risk.sharpe_ratio)}
+              sub="rendimento / volatilità (rf=0%)"
+              color={riskColor(risk.sharpe_ratio, "high")}
+            />
+            <RiskCard
+              label="Sortino ratio"
+              value={fmtRatio(risk.sortino_ratio)}
+              sub="rendimento / downside deviation"
+              color={riskColor(risk.sortino_ratio, "high")}
+            />
+          </div>
+
+          {/* Metriche secondarie */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-gray-400 mb-0.5">Rendimento ann. (TWRR)</p>
+              <p className={`text-sm font-semibold ${risk.twrr_annualized_pct >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {fmtPct(risk.twrr_annualized_pct)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-gray-400 mb-0.5">Calmar ratio</p>
+              <p className={`text-sm font-semibold ${riskColor(risk.calmar_ratio, "high")}`}>
+                {fmtRatio(risk.calmar_ratio)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-gray-400 mb-0.5">Miglior giorno</p>
+              <p className="text-sm font-semibold text-green-600">+{risk.best_day_pct.toFixed(2)}%</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-gray-400 mb-0.5">Peggior giorno</p>
+              <p className="text-sm font-semibold text-red-600">{risk.worst_day_pct.toFixed(2)}%</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5 col-span-2 sm:col-span-2">
+              <p className="text-xs text-gray-400 mb-0.5">Giorni positivi</p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full"
+                    style={{ width: `${risk.positive_days_pct}%` }}
+                  />
+                </div>
+                <span className="text-sm font-semibold text-gray-700">{risk.positive_days_pct.toFixed(0)}%</span>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5 col-span-2 sm:col-span-2">
+              <p className="text-xs text-gray-400 mb-0.5">Giorni di trading analizzati</p>
+              <p className="text-sm font-semibold text-gray-700">{risk.trading_days.toLocaleString("it-IT")}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const BENCHMARK_OPTIONS = [
+  { value: "MSCI_WORLD", label: "MSCI World (IWDA)" },
+  { value: "FTSE_MIB", label: "FTSE MIB" },
+  { value: "SP500", label: "S&P 500" },
+  { value: "NASDAQ", label: "NASDAQ" },
+];
+
+const CORR_COLORS = [
+  "#1d4ed8", "#3b82f6", "#93c5fd", "#e0f2fe",
+  "#fef9c3", "#fde68a", "#f97316", "#dc2626",
+];
+
+function corrColor(v: number): string {
+  if (v >= 0.8) return "#1e3a5f";
+  if (v >= 0.5) return "#1d4ed8";
+  if (v >= 0.2) return "#60a5fa";
+  if (v >= -0.2) return "#d1d5db";
+  if (v >= -0.5) return "#fca5a5";
+  return "#dc2626";
+}
+
+// ── Bar chart mensile ─────────────────────────────────────────────────────────
+
+function buildMonthlyReturns(series: PerformancePoint[]): { month: string; pct: number }[] {
+  if (series.length < 2) return [];
+  const byMonth = new Map<string, PerformancePoint[]>();
+  for (const p of series) {
+    const key = p.date.toString().substring(0, 7);
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key)!.push(p);
+  }
+  const sortedKeys = [...byMonth.keys()].sort();
+  const result: { month: string; pct: number }[] = [];
+  for (const key of sortedKeys) {
+    const pts = byMonth.get(key)!.sort((a, b) => a.date.toString().localeCompare(b.date.toString()));
+    const first = pts[0];
+    const last = pts[pts.length - 1];
+    if (first.value_eur > 0) {
+      result.push({ month: key, pct: Math.round(((last.value_eur - first.value_eur) / first.value_eur) * 10000) / 100 });
+    }
+  }
+  return result;
+}
+
+function MonthlyBarChart({ series }: { series: PerformancePoint[] }) {
+  const data = buildMonthlyReturns(series);
+  if (data.length < 2) return null;
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">Performance mensile</h3>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <XAxis
+            dataKey="month"
+            tickFormatter={(d) => {
+              const [y, m] = d.split("-");
+              return `${m}/${y.slice(2)}`;
+            }}
+            tick={{ fontSize: 10, fill: "#94a3b8" }}
+            tickLine={false}
+            axisLine={false}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: "#94a3b8" }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v) => `${v}%`}
+            width={40}
+          />
+          <Tooltip
+            contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+            formatter={(v: number) => [`${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, "Rendimento"]}
+            labelFormatter={(d) => {
+              const [y, m] = d.split("-");
+              return `${m}/${y}`;
+            }}
+          />
+          <ReferenceLine y={0} stroke="#e2e8f0" />
+          <Bar dataKey="pct" radius={[2, 2, 0, 0]}>
+            {data.map((entry, i) => (
+              <BarCell key={i} fill={entry.pct >= 0 ? "#10b981" : "#ef4444"} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Sezione Benchmark ─────────────────────────────────────────────────────────
+
+function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint[]; period: string }) {
+  const [benchIndex, setBenchIndex] = useState("MSCI_WORLD");
+
+  const { data: bench, isLoading } = useQuery({
+    queryKey: ["benchmark", benchIndex, period],
+    queryFn: () => portfolioService.getBenchmark(benchIndex, period),
+    staleTime: 15 * 60 * 1000,
+  });
+
+  if (perfSeries.length < 2) return null;
+
+  // Normalizza la serie del portafoglio a 100
+  const base = perfSeries[0].value_eur;
+  const portfolioNorm = base > 0
+    ? perfSeries.map((p) => ({ date: p.date.toString(), portfolio: Math.round((p.value_eur / base) * 10000) / 100 }))
+    : [];
+
+  // Unisci con dati benchmark per data
+  const benchMap = new Map((bench?.series ?? []).map((s) => [s.date, s.value]));
+  const combined = portfolioNorm.map((p) => ({
+    date: p.date,
+    portfolio: p.portfolio,
+    benchmark: benchMap.get(p.date) ?? null,
+  }));
+
+  const benchYearTicks = combined
+    .filter((p, i) =>
+      i === 0 ||
+      new Date(p.date).getFullYear() !== new Date(combined[i - 1].date).getFullYear()
+    )
+    .map((p) => p.date);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">Confronto con indice</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Portafoglio e benchmark normalizzati a 100</p>
+        </div>
+        <select
+          value={benchIndex}
+          onChange={(e) => setBenchIndex(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          {BENCHMARK_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      {isLoading ? (
+        <div className="h-48 flex items-center justify-center text-xs text-gray-400">Caricamento...</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={combined} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis
+              dataKey="date"
+              ticks={benchYearTicks}
+              tick={{ fontSize: 10, fill: "#94a3b8" }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(d) => new Date(d).getFullYear().toString()}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: "#94a3b8" }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${v}`}
+              width={44}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+              formatter={(v: number, name: string) => [
+                `${v.toFixed(2)}`,
+                name === "portfolio" ? "Portafoglio" : BENCHMARK_OPTIONS.find((o) => o.value === benchIndex)?.label ?? "Benchmark",
+              ]}
+              labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: it })}
+            />
+            <Line type="monotone" dataKey="portfolio" stroke="#10b981" strokeWidth={2} dot={false} name="portfolio" />
+            <Line type="monotone" dataKey="benchmark" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="benchmark" connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+// ── Sezione Correlazione ──────────────────────────────────────────────────────
+
+function CorrelationSection() {
+  const [corrPeriod, setCorrPeriod] = useState("1y");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["correlation", corrPeriod],
+    queryFn: () => portfolioService.getCorrelation(corrPeriod),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const CORR_PERIODS = [
+    { value: "3m", label: "3M" },
+    { value: "6m", label: "6M" },
+    { value: "1y", label: "1A" },
+    { value: "3y", label: "3A" },
+    { value: "max", label: "Max" },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+        <GitFork className="w-4 h-4 text-gray-400" />
+        <h3 className="text-sm font-semibold text-gray-700">Correlazione tra asset</h3>
+        <div className="ml-auto flex gap-1">
+          {CORR_PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setCorrPeriod(p.value)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                corrPeriod === p.value ? "bg-brand-600 text-white" : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="p-6 text-center text-sm text-gray-400">Calcolo in corso...</div>
+      ) : !data || data.labels.length < 2 ? (
+        <div className="p-6 text-center text-sm text-gray-400">
+          Dati insufficienti — servono almeno 2 asset con storico prezzi.
+        </div>
+      ) : (
+        <div className="p-4 overflow-x-auto">
+          <table className="text-xs border-collapse">
+            <thead>
+              <tr>
+                <th className="w-20 p-1" />
+                {data.labels.map((l) => (
+                  <th key={l} className="p-1 text-center font-medium text-gray-500 w-16">{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.matrix.map((row, i) => (
+                <tr key={data.labels[i]}>
+                  <td className="p-1 pr-2 font-medium text-gray-600 text-right">{data.labels[i]}</td>
+                  {row.map((v, j) => (
+                    <td
+                      key={j}
+                      className="p-1 text-center tabular-nums font-semibold rounded"
+                      style={{
+                        backgroundColor: corrColor(v) + "33",
+                        color: corrColor(v),
+                      }}
+                      title={`${data.labels[i]} vs ${data.labels[j]}: ${v.toFixed(4)}`}
+                    >
+                      {v.toFixed(2)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
+            {[
+              { label: "Alta +", color: "#1d4ed8" },
+              { label: "Media +", color: "#60a5fa" },
+              { label: "Nulla", color: "#9ca3af" },
+              { label: "Media −", color: "#fca5a5" },
+              { label: "Alta −", color: "#dc2626" },
+            ].map((c) => (
+              <div key={c.label} className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: c.color + "55" }} />
+                <span className="text-xs text-gray-500">{c.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export function Performance() {
@@ -128,6 +565,12 @@ export function Performance() {
     queryFn: portfolioService.getDividends,
   });
 
+  const { data: xirrData } = useQuery({
+    queryKey: ["portfolio-xirr"],
+    queryFn: portfolioService.getXirr,
+    staleTime: 10 * 60 * 1000,
+  });
+
   const hasSummary = !!summary;
   const series = perf?.series ?? [];
   const chartPositive = series.length < 2
@@ -146,10 +589,10 @@ export function Performance() {
   return (
     <>
       <TopBar title="Performance" />
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* KPI sommario */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           <KpiCard
             label="Valore portafoglio"
             value={hasSummary ? `€ ${fmt(summary.total_value_eur)}` : "—"}
@@ -173,6 +616,12 @@ export function Performance() {
             sub={hasSummary ? "Da vendite chiuse" : undefined}
             positive={hasSummary ? summary.realized_pnl_eur >= 0 : undefined}
           />
+          <KpiCard
+            label="IRR (XIRR)"
+            value={xirrData?.xirr_pct != null ? `${fmtSign(xirrData.xirr_pct, 2)}%` : "—"}
+            sub="Tasso interno di rendimento"
+            positive={xirrData?.xirr_pct != null ? xirrData.xirr_pct >= 0 : undefined}
+          />
         </div>
 
         {positions.length === 0 && !loadingPos ? (
@@ -182,7 +631,8 @@ export function Performance() {
           </div>
         ) : (
           <>
-            {/* Grafico performance */}
+            {/* Grafico performance + bar mensile sulla stessa riga */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -275,6 +725,21 @@ export function Performance() {
               )}
             </div>
 
+            {/* Bar chart mensile */}
+            {series.length > 1 && <MonthlyBarChart series={series} />}
+            </div>{/* end grid row */}
+
+            {/* Benchmark + Correlazione sulla stessa riga */}
+            {series.length > 1 && (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <BenchmarkSection perfSeries={series} period={period} />
+                <CorrelationSection />
+              </div>
+            )}
+
+            {/* Metriche di rischio */}
+            <RiskMetricsSection />
+
             {/* Allocazione */}
             {allocation && allocation.total_value_eur > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -309,7 +774,7 @@ export function Performance() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {positions.map((pos) => (
-                      <PositionRow key={pos.asset_id} pos={pos} />
+                      <PositionRow key={pos.asset_id} pos={pos} totalValue={summary?.total_value_eur ?? 0} />
                     ))}
                   </tbody>
                   {positions.length > 0 && summary && (
@@ -391,12 +856,21 @@ export function Performance() {
 
 // ── Riga posizione ─────────────────────────────────────────────────────────────
 
-function PositionRow({ pos }: { pos: PositionOut }) {
+function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number }) {
   const hasPrices = pos.current_value_eur !== null;
+  const weightPct = totalValue > 0 && pos.current_value_eur ? (pos.current_value_eur / totalValue) * 100 : 0;
+  const isConcentrated = weightPct > 10;
   return (
     <tr className="hover:bg-gray-50 transition-colors">
       <td className="px-5 py-3">
-        <div className="font-medium text-gray-900">{pos.symbol}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-medium text-gray-900">{pos.symbol}</span>
+          {isConcentrated && (
+            <span title={`Concentrazione elevata: ${weightPct.toFixed(1)}% del portafoglio`}>
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+            </span>
+          )}
+        </div>
         <div className="text-xs text-gray-400 truncate max-w-[200px]">{pos.name}</div>
         <div className="text-xs text-gray-300">{TYPE_LABELS[pos.asset_type] ?? pos.asset_type} · {pos.exchange}</div>
       </td>

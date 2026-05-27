@@ -1,3 +1,5 @@
+import datetime
+
 from pydantic import BaseModel, field_validator
 
 from app.models.asset import AssetType, Exchange
@@ -66,6 +68,8 @@ class AssetUpdate(BaseModel):
     wkn: str | None = None
     yahoo_ticker: str | None = None
     sector: str | None = None
+    sectors_override: list | None = None
+    countries_override: list | None = None
 
 
 class AssetOut(BaseModel):
@@ -79,6 +83,12 @@ class AssetOut(BaseModel):
     exchange: Exchange
     currency: str
     sector: str | None
+    sectors: list | None = None
+    countries: list | None = None
+    holdings: list | None = None
+    sectors_override: list | None = None
+    countries_override: list | None = None
+    enriched_at: datetime.datetime | None = None
 
     model_config = {"from_attributes": True}
 

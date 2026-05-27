@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
 import { authService } from "@/services/auth";
@@ -82,6 +82,11 @@ export function Login() {
                 <Button type="submit" loading={loginMutation.isPending} className="w-full">
                   Accedi
                 </Button>
+                <div className="text-center">
+                  <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-brand-600">
+                    Password dimenticata?
+                  </Link>
+                </div>
               </form>
             </>
           ) : (

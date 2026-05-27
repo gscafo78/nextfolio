@@ -99,3 +99,19 @@ class UserSettingsOut(BaseModel):
 class UserSettingsUpdate(BaseModel):
     theme: str | None = None
     display_currency: str | None = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La password deve essere di almeno 8 caratteri")
+        return v

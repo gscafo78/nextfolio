@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.transaction import TransactionCreate, TransactionOut, TransactionUpdate
 from app.services.account import get_account
 from app.services.asset import get_or_create_asset
+from app.services.audit import DELETE_TRANSACTION, log_action
 from app.services.csv_import import BrokerFormat, parse_csv
 from app.services.transaction import (
     create_transaction,
@@ -73,6 +74,19 @@ async def delete(
     tx = await get_transaction(db, tx_id, current_user.id)
     if not tx:
         raise HTTPException(404, "Transazione non trovata")
+    await log_action(
+        db,
+        user_id=current_user.id,
+        action=DELETE_TRANSACTION,
+        entity_type="transaction",
+        entity_id=tx_id,
+        detail={
+            "asset": tx.asset.symbol if tx.asset else None,
+            "type": tx.type.value,
+            "date": tx.date.isoformat(),
+            "quantity": tx.quantity,
+        },
+    )
     await delete_transaction(db, tx)
 
 

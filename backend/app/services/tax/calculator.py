@@ -28,8 +28,10 @@ RATE_GOVT = 0.125
 
 
 def _is_government_bond(asset: Asset) -> bool:
-    """BTP/BOT/CCT: obbligazioni su MOT (Mercato Obbligazionario Telematico)."""
-    return asset.type == AssetType.BOND and asset.exchange == Exchange.MOT
+    """BTP/BOT/CCT: BOND con ISIN italiano (IT...) → aliquota 12,5%."""
+    asset_type = asset.type if isinstance(asset.type, str) else asset.type.value
+    isin = asset.isin or ""
+    return asset_type == "BOND" and isin.startswith("IT")
 
 
 # ── Strutture dati interne ────────────────────────────────────────────────────
@@ -147,7 +149,7 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type.value,
+                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
                 tx_type="SELL",
                 quantity=tx.quantity,
                 proceeds_eur=proceeds,
@@ -162,7 +164,7 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type.value,
+                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
                 tx_type="DIVIDEND",
                 quantity=None,
                 proceeds_eur=amount,
@@ -177,7 +179,7 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type.value,
+                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
                 tx_type="COUPON",
                 quantity=None,
                 proceeds_eur=amount,
@@ -192,7 +194,7 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type.value,
+                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
                 tx_type="INTEREST",
                 quantity=None,
                 proceeds_eur=amount,
@@ -276,8 +278,12 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
         report.gains_standard = gains_s
         report.losses_standard = losses_s
 
-        if gains_s > 1e-6:
-            applied_s, net_s, snap_s = _apply_carryforward(gains_s, pool_standard, year)
+        # Stessa-anno: le minusvalenze compensano le plusvalenze prima del carryforward
+        net_gains_s = max(0.0, gains_s - losses_s)
+        net_loss_s  = max(0.0, losses_s - gains_s)
+
+        if net_gains_s > 1e-6:
+            applied_s, net_s, snap_s = _apply_carryforward(net_gains_s, pool_standard, year)
             report.carryforward_applied_standard = applied_s
             report.net_taxable_standard = net_s
             report.prior_carryforward_standard = snap_s
@@ -291,7 +297,6 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
             for y in [k for k in list(pool_standard.keys()) if year - k > 4]:
                 del pool_standard[y]
 
-        net_loss_s = max(0.0, losses_s - gains_s)
         if net_loss_s > 1e-6:
             pool_standard[year] = pool_standard.get(year, 0.0) + net_loss_s
         report.new_carryforward_standard = net_loss_s
@@ -303,8 +308,11 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
         report.gains_govt = gains_g
         report.losses_govt = losses_g
 
-        if gains_g > 1e-6:
-            applied_g, net_g, snap_g = _apply_carryforward(gains_g, pool_govt, year)
+        net_gains_g = max(0.0, gains_g - losses_g)
+        net_loss_g  = max(0.0, losses_g - gains_g)
+
+        if net_gains_g > 1e-6:
+            applied_g, net_g, snap_g = _apply_carryforward(net_gains_g, pool_govt, year)
             report.carryforward_applied_govt = applied_g
             report.net_taxable_govt = net_g
             report.prior_carryforward_govt = snap_g
@@ -317,7 +325,6 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
             for y in [k for k in list(pool_govt.keys()) if year - k > 4]:
                 del pool_govt[y]
 
-        net_loss_g = max(0.0, losses_g - gains_g)
         if net_loss_g > 1e-6:
             pool_govt[year] = pool_govt.get(year, 0.0) + net_loss_g
         report.new_carryforward_govt = net_loss_g
@@ -363,7 +370,7 @@ def simulate_sell(
 
     return {
         "asset_name": asset.name,
-        "asset_type": asset.type.value,
+        "asset_type": asset.type if isinstance(asset.type, str) else asset.type.value,
         "quantity": quantity,
         "current_price_eur": current_price_eur,
         "proceeds_eur": proceeds,

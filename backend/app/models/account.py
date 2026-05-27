@@ -23,6 +23,7 @@ class Account(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     type: Mapped[AccountType] = mapped_column(String(20), default=AccountType.BROKERAGE)
     broker: Mapped[str | None] = mapped_column(String(100))
+    url: Mapped[str | None] = mapped_column(String(500))
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

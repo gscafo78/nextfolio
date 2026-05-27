@@ -14,6 +14,8 @@ import { AssetAutocomplete } from "./AssetAutocomplete";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
+const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK"];
+
 const schema = z.object({
   account_id: z.coerce.number().min(1, "Seleziona un conto"),
   type: z.enum(["BUY", "SELL", "DIVIDEND", "COUPON", "FEE", "INTEREST"]),
@@ -42,6 +44,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [priceCurrency, setPriceCurrency] = useState("EUR");
   const [loadingRate, setLoadingRate] = useState(false);
   const qc = useQueryClient();
 
@@ -63,24 +66,35 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   });
 
   const date = watch("date");
-  const qty = watch("quantity") || 0;
-  const price = watch("price") || 0;
-  const exchangeRate = watch("exchange_rate") || 1;
-  const fee = watch("fee") || 0;
+  // Coerce to number to prevent string-concatenation in total calculation
+  const qty = Number(watch("quantity")) || 0;
+  const price = Number(watch("price")) || 0;
+  const exchangeRate = Number(watch("exchange_rate")) || 1;
+  const fee = Number(watch("fee")) || 0;
+  const txType = watch("type");
 
-  const needsFx = selectedAsset ? selectedAsset.currency !== "EUR" : false;
+  const needsFx = priceCurrency !== "EUR";
   const totalAssetCurrency = qty * price;
-  const totalEur = totalAssetCurrency * exchangeRate + fee;
+  // BUY: fee is a cost (add). SELL/COUPON/DIVIDEND/INTEREST: fee reduces proceeds (subtract).
+  const feeSign = txType === "BUY" ? 1 : -1;
+  const totalEur = totalAssetCurrency * exchangeRate + feeSign * fee;
 
-  // Recupera il tasso di cambio storico quando cambia asset o data
+  // When a different asset is selected, default price currency to the asset's currency
+  useEffect(() => {
+    if (selectedAsset) {
+      setPriceCurrency(selectedAsset.currency);
+    }
+  }, [selectedAsset]);
+
+  // Fetch historical FX rate when price currency or date changes
   const fetchRate = async () => {
-    if (!selectedAsset || !needsFx) return;
+    if (!needsFx) return;
     setLoadingRate(true);
     try {
-      const result = await fxService.getRate(selectedAsset.currency, date || undefined);
+      const result = await fxService.getRate(priceCurrency, date || undefined);
       setValue("exchange_rate", result.rate);
     } catch {
-      // lascia il tasso invariato se l'API non risponde
+      // keep current rate if API fails
     } finally {
       setLoadingRate(false);
     }
@@ -89,7 +103,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   useEffect(() => {
     if (needsFx && date) fetchRate();
     if (!needsFx) setValue("exchange_rate", 1);
-  }, [selectedAsset, date]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [priceCurrency, date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data: FormData) => {
@@ -97,7 +111,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       return transactionService.create({
         ...data,
         asset_id: selectedAsset.id,
-        price_currency: selectedAsset.currency,
+        price_currency: priceCurrency,
         fee_currency: "EUR",
       });
     },
@@ -105,6 +119,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       reset();
       setSelectedAsset(null);
+      setPriceCurrency("EUR");
       onSuccess?.();
     },
   });
@@ -114,16 +129,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       {/* Asset */}
       <div>
         <label className="text-sm font-medium text-gray-700 block mb-1">Asset</label>
-        <AssetAutocomplete
-          onSelect={(asset) => {
-            setSelectedAsset(asset);
-          }}
-        />
-        {selectedAsset && (
-          <p className="text-xs text-gray-400 mt-1">
-            Valuta asset: <span className="font-medium text-gray-600">{selectedAsset.currency}</span>
-          </p>
-        )}
+        <AssetAutocomplete onSelect={(asset) => setSelectedAsset(asset)} />
       </div>
 
       {/* Conto + Tipo */}
@@ -157,37 +163,57 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       {/* Data */}
       <Input label="Data" type="date" error={errors.date?.message} {...register("date")} />
 
-      {/* Quantità, Prezzo, Commissioni */}
+      {/* Quantità + Prezzo con valuta + Commissioni */}
       <div className="grid grid-cols-3 gap-3">
         <Input
           label="Quantità"
           type="number"
+          inputMode="decimal"
           step="any"
           error={errors.quantity?.message}
           {...register("quantity")}
         />
-        <Input
-          label={`Prezzo${selectedAsset && needsFx ? ` (${selectedAsset.currency})` : " (EUR)"}`}
-          type="number"
-          step="any"
-          error={errors.price?.message}
-          {...register("price")}
-        />
+
+        {/* Prezzo + selettore valuta inline */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Prezzo</label>
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              className="flex-1 min-w-0 px-3 py-2 text-sm outline-none bg-white"
+              {...register("price")}
+            />
+            <select
+              value={priceCurrency}
+              onChange={(e) => setPriceCurrency(e.target.value)}
+              className="border-l border-gray-300 px-2 py-2 text-xs bg-gray-50 text-gray-700 outline-none cursor-pointer"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          {errors.price && <p className="text-xs text-red-600">{errors.price.message}</p>}
+        </div>
+
         <Input
           label="Commissioni (EUR)"
           type="number"
+          inputMode="decimal"
           step="any"
           error={errors.fee?.message}
           {...register("fee")}
         />
       </div>
 
-      {/* Tasso di cambio — visibile solo se asset non è in EUR */}
+      {/* Tasso di cambio — visibile solo se prezzo non è in EUR */}
       {needsFx && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-amber-800">
-              Tasso di cambio {selectedAsset?.currency}/EUR
+              Tasso di cambio {priceCurrency}/EUR
             </label>
             <button
               type="button"
@@ -202,6 +228,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           </div>
           <input
             type="number"
+            inputMode="decimal"
             step="any"
             min="0.000001"
             {...register("exchange_rate")}
@@ -211,7 +238,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             <p className="text-xs text-red-600">{errors.exchange_rate.message}</p>
           )}
           <p className="text-xs text-amber-700">
-            1 {selectedAsset?.currency} = {exchangeRate.toFixed(6)} EUR
+            1 {priceCurrency} = {exchangeRate.toFixed(6)} EUR
             {date && ` — tasso del ${date}`}
           </p>
         </div>
@@ -222,14 +249,27 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1 text-sm">
           {needsFx && (
             <div className="flex justify-between text-gray-500">
-              <span>Controvalore in {selectedAsset?.currency}</span>
-              <span>{totalAssetCurrency.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {selectedAsset?.currency}</span>
+              <span>Controvalore in {priceCurrency}</span>
+              <span>{totalAssetCurrency.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {priceCurrency}</span>
             </div>
           )}
-          <div className="flex justify-between font-semibold text-gray-900">
-            <span>Totale EUR (incl. comm.)</span>
+          {fee > 0 && (
+            <div className="flex justify-between text-gray-500">
+              <span>Commissioni</span>
+              <span className={feeSign > 0 ? "text-red-500" : "text-gray-500"}>
+                {feeSign > 0 ? "+" : "−"} € {fee.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
+            <span>{txType === "BUY" ? "Totale costo EUR" : "Totale netto EUR"}</span>
             <span>€ {totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span>
           </div>
+          {(txType === "COUPON" || txType === "DIVIDEND") && (
+            <p className="text-xs text-gray-400 pt-0.5">
+              La ritenuta fiscale (12,5% BTP / 26% altri) è calcolata automaticamente nella sezione Fiscale.
+            </p>
+          )}
         </div>
       )}
 

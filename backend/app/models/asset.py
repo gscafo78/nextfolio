@@ -2,6 +2,7 @@ from datetime import date, datetime, timezone
 from enum import Enum
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -42,6 +43,14 @@ class Asset(Base):
     exchange: Mapped[Exchange] = mapped_column(String(20), default=Exchange.OTHER)
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     sector: Mapped[str | None] = mapped_column(String(100))
+    sectors: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    countries: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    holdings: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    enriched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Override manuali: hanno priorità sui dati auto-enriched
+    sectors_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    countries_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    holdings_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

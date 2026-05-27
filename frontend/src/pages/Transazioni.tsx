@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { accountService, assetService, transactionService, type Transaction, type TransactionType } from "@/services/transactions";
 import { HoldingDetailModal } from "@/components/portfolio/HoldingDetailModal";
+import { AccountFavicon } from "@/components/AccountFavicon";
 
 const TX_LABELS: Record<TransactionType, string> = {
   BUY: "Acquisto",
@@ -245,7 +246,7 @@ export function Transazioni() {
   return (
     <>
       <TopBar title="Transazioni" />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 md:p-6">
 
         {/* Barra filtri */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -317,7 +318,10 @@ export function Transazioni() {
                   className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-brand-300 hover:shadow-sm transition-all"
                 >
                   <p className="text-xs text-gray-400 truncate">{acc.broker ?? acc.name}</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{acc.name}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate mt-0.5 flex items-center gap-1.5">
+                    <AccountFavicon url={acc.url} size={4} />
+                    {acc.name}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {accTxs.length} op · investito € {invested.toLocaleString("it-IT", { maximumFractionDigits: 0 })}
                   </p>
@@ -343,6 +347,64 @@ export function Transazioni() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+
+            {/* ── Mobile: card list ── */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {transactions.map((tx) => {
+                const account = accounts.find((a) => a.id === tx.account_id);
+                return (
+                  <div key={tx.id} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-semibold ${TX_COLORS[tx.type]}`}>{TX_LABELS[tx.type]}</span>
+                          <span className="text-xs text-gray-400">
+                            {format(new Date(tx.date), "dd MMM yyyy", { locale: it })}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <button
+                            onClick={() => setHoldingAssetId(tx.asset.id)}
+                            className="text-sm font-medium text-gray-900 hover:text-brand-600 truncate max-w-[160px]"
+                          >
+                            {tx.asset.yahoo_ticker ?? tx.asset.symbol}
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-400 truncate">{tx.asset.name}</div>
+                        {account && (
+                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                            <AccountFavicon url={account.url} size={3} />
+                            {account.name}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-sm font-semibold text-gray-900 tabular-nums">
+                          € {tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-xs text-gray-400 tabular-nums mt-0.5">
+                          {tx.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })} × {tx.price.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="flex items-center justify-end gap-2 mt-1.5">
+                          <button onClick={() => setEditTx(tx)} className="text-gray-300 hover:text-brand-500 transition-colors">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { if (confirm("Eliminare la transazione?")) deleteTx(tx.id); }}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Desktop: full table ── */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-left">
@@ -392,7 +454,10 @@ export function Transazioni() {
                       <td className="px-4 py-3">
                         {account ? (
                           <div>
-                            <div className="text-xs font-medium text-gray-700">{account.name}</div>
+                            <div className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                              <AccountFavicon url={account.url} size={3} />
+                              {account.name}
+                            </div>
                             {account.broker && (
                               <div className="text-xs text-gray-400">{account.broker}</div>
                             )}
@@ -455,6 +520,7 @@ export function Transazioni() {
                 </tfoot>
               )}
             </table>
+            </div>
           </div>
         )}
       </main>

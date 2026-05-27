@@ -58,7 +58,31 @@ class AllocationOut(BaseModel):
     by_type: list[AllocationItem]
     by_currency: list[AllocationItem]
     by_account: list[AllocationItem]
+    by_sector: list[AllocationItem] = []
+    by_continent: list[AllocationItem] = []
     total_value_eur: float
+
+
+class ETFHoldingItem(BaseModel):
+    symbol: str
+    name: str
+    weight: float
+
+
+class CountryItem(BaseModel):
+    code: str
+    name: str
+    weight: float
+
+
+class ETFHoldingOut(BaseModel):
+    asset_id: int
+    symbol: str
+    name: str
+    value_eur: float | None
+    holdings: list[ETFHoldingItem]
+    is_override: bool
+    countries_override: list[CountryItem] | None = None
 
 
 class DashboardOut(BaseModel):
@@ -77,6 +101,22 @@ class DividendOut(BaseModel):
     amount_eur: float
     account_name: str
     account_id: int
+
+
+class RiskMetricsOut(BaseModel):
+    period: str
+    trading_days: int
+    annualized_volatility_pct: float
+    max_drawdown_pct: float
+    max_drawdown_start: datetime.date | None
+    max_drawdown_end: datetime.date | None
+    sharpe_ratio: float | None
+    sortino_ratio: float | None
+    calmar_ratio: float | None
+    twrr_annualized_pct: float
+    best_day_pct: float
+    worst_day_pct: float
+    positive_days_pct: float
 
 
 class HoldingPricePoint(BaseModel):
@@ -105,6 +145,11 @@ class HoldingAccountOut(BaseModel):
     pct: float | None
 
 
+class SectorItem(BaseModel):
+    name: str
+    weight: float
+
+
 class HoldingDetailOut(BaseModel):
     asset_id: int
     symbol: str
@@ -131,3 +176,5 @@ class HoldingDetailOut(BaseModel):
     price_history: list[HoldingPricePoint]
     activities: list[HoldingActivityOut]
     accounts: list[HoldingAccountOut]
+    sectors: list[SectorItem] | None = None
+    countries: list[CountryItem] | None = None

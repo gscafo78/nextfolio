@@ -31,6 +31,11 @@ def create_2fa_session_token(user_id: str) -> str:
     return jwt.encode({"sub": user_id, "exp": expire, "type": "2fa_session"}, settings.SECRET_KEY, settings.ALGORITHM)
 
 
+def create_password_reset_token(user_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    return jwt.encode({"sub": user_id, "exp": expire, "type": "password_reset"}, settings.SECRET_KEY, settings.ALGORITHM)
+
+
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

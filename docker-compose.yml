@@ -1,0 +1,109 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: nextfolio_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nextfolio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-nextfolio}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nextfolio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Non esporre porte verso l'esterno in produzione
+
+  redis:
+    image: redis:7-alpine
+    container_name: nextfolio_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nextfolio_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      OPENFIGI_APY_KEY: ${OPENFIGI_APY_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAILS_FROM: ${EMAILS_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nextfolio_celery
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=warning --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      OPENFIGI_APY_KEY: ${OPENFIGI_APY_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nextfolio_celery_beat
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=warning
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nextfolio_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

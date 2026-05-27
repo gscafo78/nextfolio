@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Building2, Coins, Landmark, Briefcase, HelpCircle, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Coins, Landmark, Briefcase, HelpCircle, ShieldCheck, ShieldOff, Copy, Check, CheckCircle2, XCircle, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,9 +8,12 @@ import QRCode from "react-qr-code";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AccountFavicon } from "@/components/AccountFavicon";
 import { accountService, type Account, type AccountType } from "@/services/transactions";
 import { authService } from "@/services/auth";
+import { adminService } from "@/services/admin";
 import { useAuth } from "@/hooks/useAuth";
+import { applyTheme, type ThemeMode } from "@/context/ThemeContext";
 
 // ── Tipi conto ───────────────────────────────────────────────────────────────
 
@@ -36,6 +39,7 @@ const accountSchema = z.object({
   name:     z.string().min(1, "Nome obbligatorio"),
   type:     z.enum(["BROKERAGE", "BANK", "CRYPTO", "PENSION", "OTHER"]),
   broker:   z.string().optional(),
+  url:      z.string().url("URL non valido").optional().or(z.literal("")),
   currency: z.string().length(3, "3 caratteri").default("EUR"),
 });
 type AccountFormData = z.infer<typeof accountSchema>;
@@ -65,6 +69,12 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
         </div>
         <Input label="Broker / Istituto (opzionale)" placeholder="Es. Fineco, Degiro" {...register("broker")} />
       </div>
+      <Input
+        label="URL del conto (opzionale)"
+        placeholder="Es. https://www.fineco.it/it/banca/area-personale"
+        error={errors.url?.message}
+        {...register("url")}
+      />
       <div className="flex gap-2 justify-end pt-1">
         <Button type="button" variant="secondary" onClick={onCancel}>Annulla</Button>
         <Button type="submit" loading={loading}>Salva</Button>
@@ -74,11 +84,25 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
 }
 
 function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (a: Account) => void; onDelete: (a: Account) => void }) {
+  const nameNode = account.url ? (
+    <a
+      href={account.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-gray-900 hover:text-brand-600 hover:underline"
+    >
+      {account.name}
+    </a>
+  ) : (
+    <span className="font-medium text-gray-900">{account.name}</span>
+  );
+
   return (
     <div className="flex items-center gap-4 py-4 px-5">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900">{account.name}</span>
+          <AccountFavicon url={account.url} />
+          {nameNode}
           <AccountTypeBadge type={account.type} />
           {account.currency !== "EUR" && <span className="text-xs text-gray-400 font-mono">{account.currency}</span>}
         </div>
@@ -290,13 +314,125 @@ function PreferenceSection() {
           </div>
           <select
             value={settings.theme}
-            onChange={(e) => updateMutation.mutate({ theme: e.target.value })}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            onChange={(e) => {
+              const t = e.target.value as ThemeMode;
+              applyTheme(t);
+              updateMutation.mutate({ theme: t });
+            }}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
           >
-            <option value="light">Chiaro</option>
-            <option value="dark">Scuro (presto)</option>
+            <option value="light">☀️ Chiaro</option>
+            <option value="dark">🌙 Scuro</option>
+            <option value="system">💻 Sistema</option>
           </select>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Sezione Email ─────────────────────────────────────────────────────────────
+
+function EmailSection() {
+  const { user } = useAuth();
+  const [testTo, setTestTo] = useState(user?.email ?? "");
+  const [testResult, setTestResult] = useState<"ok" | "error" | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+
+  const { data: cfg, isLoading } = useQuery({
+    queryKey: ["email-config"],
+    queryFn: adminService.getEmailConfig,
+  });
+
+  const handleTest = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      await adminService.sendTestEmail(testTo);
+      setTestResult("ok");
+    } catch {
+      setTestResult("error");
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  if (isLoading || !cfg) return null;
+
+  return (
+    <section>
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-gray-900">Configurazione Email</h2>
+        <p className="text-sm text-gray-400 mt-0.5">
+          Impostazioni SMTP per invio notifiche, reset password e benvenuto utenti.
+        </p>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+        {/* Stato connessione */}
+        <div className="flex items-center gap-3 px-5 py-4">
+          {cfg.configured ? (
+            <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900">
+              {cfg.configured ? "SMTP configurato" : "SMTP non configurato"}
+            </p>
+            <p className="text-xs text-gray-400 truncate">
+              {cfg.configured
+                ? `${cfg.smtp_host}:${cfg.smtp_port} · Da: ${cfg.emails_from}`
+                : "Aggiungi SMTP_HOST, SMTP_USER, EMAILS_FROM nel file .env"}
+            </p>
+          </div>
+        </div>
+
+        {/* Dettagli config */}
+        {cfg.configured && (
+          <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-2">
+            {[
+              ["Host", cfg.smtp_host],
+              ["Porta", String(cfg.smtp_port)],
+              ["Utente", cfg.smtp_user],
+              ["Mittente", cfg.emails_from],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <p className="text-xs text-gray-400">{k}</p>
+                <p className="text-sm text-gray-700 font-mono truncate">{v}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Invio email di test */}
+        {cfg.configured && (
+          <div className="px-5 py-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Email di test</p>
+            <div className="flex gap-2 items-start">
+              <input
+                type="email"
+                value={testTo}
+                onChange={(e) => { setTestTo(e.target.value); setTestResult(null); }}
+                placeholder="destinatario@esempio.com"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <Button onClick={handleTest} loading={testLoading} size="sm">
+                <Send className="w-4 h-4 mr-1.5" /> Invia
+              </Button>
+            </div>
+            {testResult === "ok" && (
+              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Email inviata con successo!
+              </p>
+            )}
+            {testResult === "error" && (
+              <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                <XCircle className="w-3.5 h-3.5" /> Errore nell'invio. Verifica le credenziali SMTP.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -305,6 +441,8 @@ function PreferenceSection() {
 // ── Pagina principale ────────────────────────────────────────────────────────
 
 export function Impostazioni() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "SUPERADMIN";
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const qc = useQueryClient();
@@ -339,13 +477,16 @@ export function Impostazioni() {
   return (
     <>
       <TopBar title="Impostazioni" />
-      <main className="flex-1 p-6 max-w-3xl space-y-8">
+      <main className="flex-1 p-4 md:p-6 max-w-3xl space-y-6 md:space-y-8">
 
         {/* Preferenze personali */}
         <PreferenceSection />
 
         {/* 2FA */}
         <TwoFactorSection />
+
+        {/* Email (solo superadmin) */}
+        {isSuperAdmin && <EmailSection />}
 
         {/* Conti di investimento */}
         <section>
@@ -391,7 +532,7 @@ export function Impostazioni() {
                       <div className="px-5 py-4 bg-blue-50 border-l-2 border-brand-500">
                         <p className="text-sm font-medium text-gray-700 mb-3">Modifica conto</p>
                         <AccountForm
-                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, currency: acc.currency }}
+                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency }}
                           onSave={(data) => updateMutation.mutate({ id: acc.id, data })}
                           onCancel={() => setEditing(null)}
                           loading={updateMutation.isPending}
