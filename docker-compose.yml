@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
 
   # ── Database ───────────────────────────────────────────────────────────────
@@ -18,6 +24,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -39,6 +46,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -75,6 +83,7 @@ services:
       redis:
         condition: service_healthy
     networks: [backend, data]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -103,6 +112,7 @@ services:
       redis:
         condition: service_healthy
     networks: [data]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -130,6 +140,7 @@ services:
       redis:
         condition: service_healthy
     networks: [data]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -150,6 +161,7 @@ services:
     depends_on:
       - backend
     networks: [backend]
+    logging: *default-logging
     deploy:
       resources:
         limits:

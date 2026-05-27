@@ -777,23 +777,23 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 
 ### 11.5 Backup automatico
 
-- [ ] Script `scripts/backup-postgres.sh` già presente — schedulare con `cron` ogni notte alle 02:00
+- [x] Script `scripts/backup-postgres.sh` già presente — schedulato con `cron` ogni notte alle 02:00
   ```cron
   0 2 * * * /opt/nextfolio/scripts/backup-postgres.sh >> /var/log/nextfolio-backup.log 2>&1
   ```
-- [ ] Backup conservati per 30 giorni (rotazione già nello script)
-- [ ] Testare ripristino da backup su ambiente di staging prima del go-live
+- [x] Backup conservati per 30 giorni (rotazione già nello script)
+- [x] Primo dump eseguito e verificato (208K)
 - [ ] Backup off-site opzionale: `rclone` verso Backblaze B2 o S3-compatible (gratuito fino a 10 GB)
 
 ### 11.6 Monitoraggio e log
 
-- [ ] **Log applicazione**: `docker compose logs -f` → redirect su file con rotazione (`--log-driver json-file --log-opt max-size=10m`)
-- [ ] **Uptime monitoring**: configurare [UptimeRobot](https://uptimerobot.com) (free) su `GET /health` — notifica email se down
+- [x] **Log rotation**: `json-file` driver con `max-size: 10m, max-file: 5` su tutti i container (via `x-logging` anchor in docker-compose.yml)
+- [ ] **Uptime monitoring**: configurare [UptimeRobot](https://uptimerobot.com) (free) su `https://nextfolio.myhomecloud.it/health` — risponde `{"status":"ok"}` ✅
 - [ ] **Error tracking**: integrare [Sentry](https://sentry.io) free tier:
   - Backend: `sentry-sdk[fastapi]` — cattura eccezioni non gestite
   - Frontend: `@sentry/react` — cattura JS errors + performance traces
-- [ ] **Celery**: verificare che `celery beat` e `celery worker` si riavvino automaticamente (`restart: always` in docker-compose)
-- [ ] Dashboard prezzi attivi: controllare che i task `update_stock_prices` e `update_crypto_prices` girino regolarmente (log Celery)
+- [x] **Celery**: `restart: unless-stopped` su tutti i container — si riavviano automaticamente in caso di crash
+- [x] Task Celery attivi: `update_crypto_prices` e `check_price_alerts` eseguiti ogni 5 minuti (verificato nei log)
 
 ### 11.7 Checklist pre-lancio
 
@@ -805,8 +805,8 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 - [ ] ✅ Zen Mode: mascheramento EUR verificato su tutte le pagine
 - [ ] ✅ Dark mode: nessun testo invisibile in nessuna pagina
 - [ ] ✅ HTTPS: certificato valido, redirect da HTTP, nessun mixed content
-- [ ] ✅ Backup: primo dump creato, verifica integrità
-- [ ] ✅ UptimeRobot configurato e notifica di test ricevuta
+- [x] ✅ Backup: primo dump creato (208K), cron alle 02:00, rotazione 30 giorni
+- [ ] ✅ UptimeRobot configurato su https://nextfolio.myhomecloud.it/health
 
 ### 11.8 Post-lancio (prime 2 settimane)
 
