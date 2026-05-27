@@ -637,6 +637,7 @@
     "units": "Einheiten",
     "editTitle": "Namen bearbeiten",
     "noPriceHistory": "Kein Kursverlauf. Starten Sie einen Backfill vom Dashboard.",
-    "loadError": "Fehler beim Laden der Daten."
+    "loadError": "Fehler beim Laden der Daten.",
+    "trend": "Verlauf"
   }
 }

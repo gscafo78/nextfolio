@@ -1,5 +1,7 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 import type { PriceOut } from "@/services/prices";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 
 interface PriceTickerProps {
   price: PriceOut;
@@ -18,7 +20,7 @@ export function PriceTicker({ price, showSymbol = true }: PriceTickerProps) {
         <span className="text-xs font-semibold text-gray-600">{price.symbol}</span>
       )}
       <span className="text-sm font-bold text-gray-900">
-        {price.price.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {price.currency}
+        {price.price.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {price.currency}
       </span>
       <span className={`flex items-center gap-0.5 text-xs font-semibold ${color}`}>
         <Icon className="w-3 h-3" />

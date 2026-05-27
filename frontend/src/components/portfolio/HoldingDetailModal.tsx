@@ -6,21 +6,22 @@ import {
 } from "recharts";
 import { X, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { it } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { portfolioService } from "@/services/portfolio";
 import { accountService } from "@/services/transactions";
 import { AccountFavicon } from "@/components/AccountFavicon";
 import { AssetEditModal } from "./AssetEditModal";
 import { useZenMode } from "@/context/ThemeContext";
+import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
+import i18n from "@/i18n";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(v: number, d = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 function fmtSign(v: number, d = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d, signDisplay: "always" });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: d, maximumFractionDigits: d, signDisplay: "always" });
 }
 function color(v: number | null) {
   if (v === null) return "text-gray-400";
@@ -46,7 +47,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === "en" ? undefined : it;
+  const dfLocale = getDateFnsLocale(i18n.language);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -255,7 +256,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     />
                     <StatCard
                       label={t("common.quantity")}
-                      value={data.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
+                      value={data.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })}
                     />
                     <StatCard
                       label={t("holdingDetail.totalInvested")}
@@ -279,7 +280,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                     {data.first_buy_date && (
                       <StatCard
                         label={t("holdingDetail.firstActivity")}
-                        value={format(parseISO(String(data.first_buy_date)), "dd MMM yyyy", { locale: dateLocale })}
+                        value={format(parseISO(String(data.first_buy_date)), "dd MMM yyyy", { locale: dfLocale })}
                       />
                     )}
                     <StatCard label={t("holdingDetail.assetClass")} value={data.asset_type} />
@@ -311,11 +312,11 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                             {t(`transactions.types.${a.type}`, { defaultValue: a.type })}
                           </span>
                           <span className="text-xs text-gray-400">
-                            {format(parseISO(String(a.date)), "dd MMM yyyy", { locale: dateLocale })}
+                            {format(parseISO(String(a.date)), "dd MMM yyyy", { locale: dfLocale })}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          {a.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} ×{" "}
+                          {a.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })} ×{" "}
                           {fmt(a.price, 4)} {a.price_currency}
                           {a.fee > 0 && <span className="text-gray-400"> · fee {zen(`€ ${fmt(a.fee)}`)}</span>}
                         </p>
@@ -350,7 +351,7 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                       </div>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-xs text-gray-500">
-                          {acc.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })} {t("holdingDetail.units")}
+                          {acc.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })} {t("holdingDetail.units")}
                         </span>
                         {acc.pct != null && (
                           <span className="text-xs text-gray-400">{acc.pct}%</span>

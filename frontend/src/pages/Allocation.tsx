@@ -4,6 +4,8 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { PieChart as PieIcon, ChevronDown, ChevronRight, Pencil, X, Check, Globe } from "lucide-react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type AllocationItem, type PositionOut, type ETFHoldingOut, type CountryItem } from "@/services/portfolio";
@@ -21,7 +23,7 @@ const COLORS = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(v: number, d = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 function buildHoldingItems(positions: PositionOut[], total: number): AllocationItem[] {

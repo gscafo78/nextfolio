@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Plus, Trash2, X, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { alertService, type AlertOut, type AlertType, type AlertCreate } from "@/services/alert";
 import { assetService, type Asset } from "@/services/transactions";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +23,7 @@ const isPct = (t: AlertType) => t === "CHANGE_PCT_UP" || t === "CHANGE_PCT_DOWN"
 
 function thresholdLabel(alert: AlertOut) {
   const suffix = isPct(alert.alert_type) ? "%" : " €";
-  return `${alert.threshold.toLocaleString("it-IT", { maximumFractionDigits: 4 })}${suffix}`;
+  return `${alert.threshold.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 4 })}${suffix}`;
 }
 
 // ── Asset autocomplete ────────────────────────────────────────────────────────
@@ -193,7 +195,7 @@ function AlertCard({ alert }: { alert: AlertOut }) {
     if (mins < 60) return t("alerts.minutesAgo", { minutes: mins });
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return t("alerts.hoursAgo", { hours: hrs });
-    return new Date(iso).toLocaleDateString("it-IT");
+    return new Date(iso).toLocaleDateString(getIntlLocale(i18n.language));
   }
 
   return (

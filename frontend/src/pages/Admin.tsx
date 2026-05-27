@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { UserPlus, Pencil, Trash2, ShieldCheck, ShieldOff, X, ChevronDown, ClipboardList, Mail, KeyRound, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { adminService, type UserAdminOut, type UserAdminUpdate } from "@/services/admin";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -298,7 +300,7 @@ function AuditLogSection() {
                   {logs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">
-                        {new Date(log.created_at).toLocaleString("it-IT", {
+                        {new Date(log.created_at).toLocaleString(getIntlLocale(i18n.language), {
                           dateStyle: "short",
                           timeStyle: "medium",
                         })}
@@ -492,7 +494,7 @@ export function Admin() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {new Date(u.created_at).toLocaleDateString("it-IT")}
+                    {new Date(u.created_at).toLocaleDateString(getIntlLocale(i18n.language))}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">

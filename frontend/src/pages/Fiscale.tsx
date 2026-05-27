@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
 import { portfolioService } from "@/services/portfolio";
 import { TopBar } from "@/components/layout/TopBar";
@@ -10,7 +12,7 @@ import { useZenMode } from "@/context/ThemeContext";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const eur = (v: number) =>
-  v.toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
+  v.toLocaleString(getIntlLocale(i18n.language), { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
@@ -162,14 +164,14 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
               {sorted.map((ev, i) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                    {new Date(ev.date).toLocaleDateString("it-IT")}
+                    {new Date(ev.date).toLocaleDateString(getIntlLocale(i18n.language))}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900 max-w-[180px] truncate">
                     {ev.asset_name}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t(`transactions.types.${ev.tx_type}`, { defaultValue: ev.tx_type })}</td>
                   <td className="px-4 py-3 text-gray-500">
-                    {ev.quantity != null ? ev.quantity.toLocaleString("it-IT") : "—"}
+                    {ev.quantity != null ? ev.quantity.toLocaleString(getIntlLocale(i18n.language)) : "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-500">
                     {ev.cost_eur != null ? (zenMode ? "•••••" : eur(ev.cost_eur)) : "—"}
@@ -330,7 +332,7 @@ function SellSimulator() {
           <option value="">{t("tax.selectAsset")}</option>
           {positions.map((p) => (
             <option key={p.asset_id} value={p.asset_id}>
-              {p.symbol} — {p.name} ({p.quantity.toLocaleString("it-IT")} {t("holdingDetail.units")})
+              {p.symbol} — {p.name} ({p.quantity.toLocaleString(getIntlLocale(i18n.language))} {t("holdingDetail.units")})
             </option>
           ))}
         </select>
@@ -378,7 +380,7 @@ function SellSimulator() {
             <p className="text-sm font-medium text-gray-700">
               {result.asset_name}{" "}
               <span className="text-gray-400 font-normal">
-                × {result.quantity.toLocaleString("it-IT")} {t("holdingDetail.units")}
+                × {result.quantity.toLocaleString(getIntlLocale(i18n.language))} {t("holdingDetail.units")}
               </span>
             </p>
             <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">

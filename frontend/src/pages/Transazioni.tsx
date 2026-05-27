@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useZenMode } from "@/context/ThemeContext";
 import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
 import { format } from "date-fns";
-import { it } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { TopBar } from "@/components/layout/TopBar";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { CsvImport } from "@/components/transactions/CsvImport";
@@ -217,7 +218,7 @@ export function Transazioni() {
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
 
-  const dateLocale = i18n.language === "en" ? undefined : it;
+  const dfLocale = getDateFnsLocale(i18n.language);
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
@@ -340,7 +341,7 @@ export function Transazioni() {
                     {acc.name}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {accTxs.length} {t("transactions.ops")} · {t("transactions.invested").toLowerCase()} {zen("€ " + invested.toLocaleString("it-IT", { maximumFractionDigits: 0 }))}
+                    {accTxs.length} {t("transactions.ops")} · {t("transactions.invested").toLowerCase()} {zen("€ " + invested.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 0 }))}
                   </p>
                 </button>
               );
@@ -376,7 +377,7 @@ export function Transazioni() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-semibold ${TX_COLORS[tx.type]}`}>{t(`transactions.types.${tx.type}`)}</span>
                           <span className="text-xs text-gray-400">
-                            {format(new Date(tx.date), "dd MMM yyyy", { locale: dateLocale })}
+                            {format(new Date(tx.date), "dd MMM yyyy", { locale: dfLocale })}
                           </span>
                         </div>
                         <div className="mt-0.5 flex items-center gap-1">
@@ -397,10 +398,10 @@ export function Transazioni() {
                       </div>
                       <div className="flex-shrink-0 text-right">
                         <div className="text-sm font-semibold text-gray-900 tabular-nums">
-                          {zen("€ " + tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
+                          {zen("€ " + tx.total_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                         </div>
                         <div className="text-xs text-gray-400 tabular-nums mt-0.5">
-                          {tx.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })} × {tx.price.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                          {tx.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 4 })} × {tx.price.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}
                         </div>
                         <div className="flex items-center justify-end gap-2 mt-1.5">
                           <button onClick={() => setEditTx(tx)} className="text-gray-300 hover:text-brand-500 transition-colors">
@@ -455,7 +456,7 @@ export function Transazioni() {
                   return (
                     <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-600">
-                        {format(new Date(tx.date), "dd MMM yyyy", { locale: dateLocale })}
+                        {format(new Date(tx.date), "dd MMM yyyy", { locale: dfLocale })}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`font-medium ${TX_COLORS[tx.type]}`}>{t(`transactions.types.${tx.type}`)}</span>
@@ -495,13 +496,13 @@ export function Transazioni() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-700">
-                        {tx.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
+                        {tx.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-700">
-                        <div>{tx.price.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {tx.price_currency}</div>
+                        <div>{tx.price.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })} {tx.price_currency}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {zen("€ " + tx.total_eur.toLocaleString("it-IT", { minimumFractionDigits: 2 }))}
+                        {zen("€ " + tx.total_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 }))}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-400 text-xs">
                         {tx.price_currency !== "EUR"
@@ -540,7 +541,7 @@ export function Transazioni() {
                       {t("transactions.totalNetBuySell")}
                     </td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
-                      {zen("€ " + totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 }))}
+                      {zen("€ " + totalEur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 }))}
                     </td>
                     <td colSpan={3} />
                   </tr>

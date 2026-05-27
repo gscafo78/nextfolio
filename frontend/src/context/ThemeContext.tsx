@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "@/services/auth";
 import i18n from "@/i18n";
+import { getIntlLocale } from "@/utils/format";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -25,6 +26,7 @@ const AppSettingsContext = createContext<AppSettings>({ theme: "system", zenMode
 export const useTheme = () => useContext(AppSettingsContext).theme;
 export const useZenMode = () => useContext(AppSettingsContext).zenMode;
 export const useLanguage = () => useContext(AppSettingsContext).language;
+export const useLocale = () => getIntlLocale(useContext(AppSettingsContext).language);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: settings, isLoading } = useQuery({

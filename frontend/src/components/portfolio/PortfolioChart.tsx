@@ -8,7 +8,8 @@ import {
   YAxis,
 } from "recharts";
 import { format } from "date-fns";
-import { it } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+import { getDateFnsLocale, getIntlLocale } from "@/utils/format";
 import type { PerformancePoint } from "@/services/portfolio";
 
 interface ChartPoint {
@@ -24,6 +25,10 @@ interface PortfolioChartProps {
 }
 
 export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
+  const { t, i18n } = useTranslation();
+  const dfLocale = getDateFnsLocale(i18n.language);
+  const intlLocale = getIntlLocale(i18n.language);
+
   const pnlAtStart = series[0]?.pnl_eur ?? 0;
 
   const chartData: ChartPoint[] = series.map((pt) => ({
@@ -52,16 +57,16 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-lg">
         <p className="text-gray-400 mb-1">
-          {format(new Date(label), "d MMM yyyy", { locale: it })}
+          {format(new Date(label), "d MMM yyyy", { locale: dfLocale })}
         </p>
         <p className={`font-bold text-sm ${pos ? "text-green-600" : "text-red-600"}`}>
           {pos ? "+" : ""}{pt.pct.toFixed(2)} %
         </p>
         <p className={`font-medium ${pos ? "text-green-600" : "text-red-600"}`}>
-          {pos ? "+" : "−"} € {Math.abs(pnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {pos ? "+" : "−"} € {Math.abs(pnlEur).toLocaleString(intlLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <p className="text-gray-400 mt-0.5">
-          Valore: € {pt.value.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {t("common.value")}: € {pt.value.toLocaleString(intlLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
     );
@@ -70,7 +75,7 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 h-56 flex items-center justify-center text-gray-400 text-sm">
-        Caricamento…
+        {t("common.loading")}
       </div>
     );
   }
@@ -78,8 +83,7 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
   if (chartData.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 h-56 flex flex-col items-center justify-center text-gray-400 text-sm gap-1">
-        <span>Nessun dato storico per il periodo selezionato.</span>
-        <span className="text-xs">Avvia "Aggiorna storico" per scaricare i prezzi.</span>
+        <span>{t("performance.noHistoricalData")}</span>
       </div>
     );
   }

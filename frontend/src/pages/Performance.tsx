@@ -7,10 +7,11 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, BarChart2, Coins, ShieldAlert, AlertTriangle, GitFork } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { it } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
+import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { portfolioService, type PositionOut, type AllocationItem, type PortfolioSummaryOut, type AllocationOut, type PerformancePoint } from "@/services/portfolio";
 
 // ── Costanti ─────────────────────────────────────────────────────────────────
@@ -35,11 +36,11 @@ const PIE_COLORS = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(v: number, digits = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 function fmtSign(v: number, digits = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: digits, maximumFractionDigits: digits, signDisplay: "always" });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: digits, maximumFractionDigits: digits, signDisplay: "always" });
 }
 
 function colorClass(v: number | null) {
@@ -138,7 +139,7 @@ function RiskCard({
 function RiskMetricsSection() {
   const [riskPeriod, setRiskPeriod] = useState("3y");
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === "en" ? undefined : it;
+  const dfLocale = getDateFnsLocale(i18n.language);
 
   const { data: risk, isLoading } = useQuery({
     queryKey: ["portfolio-risk", riskPeriod],
@@ -197,7 +198,7 @@ function RiskMetricsSection() {
               value={`${risk.max_drawdown_pct.toFixed(1)}%`}
               sub={
                 risk.max_drawdown_start && risk.max_drawdown_end
-                  ? `${format(parseISO(risk.max_drawdown_start.toString()), "MMM yy", { locale: dateLocale })} → ${format(parseISO(risk.max_drawdown_end.toString()), "MMM yy", { locale: dateLocale })}`
+                  ? `${format(parseISO(risk.max_drawdown_start.toString()), "MMM yy", { locale: dfLocale })} → ${format(parseISO(risk.max_drawdown_end.toString()), "MMM yy", { locale: dfLocale })}`
                   : t("performance.maxDrawdownDesc")
               }
               color={riskColor(risk.max_drawdown_pct, "low")}
@@ -252,7 +253,7 @@ function RiskMetricsSection() {
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2.5 col-span-2 sm:col-span-2">
               <p className="text-xs text-gray-400 mb-0.5">{t("performance.tradingDays")}</p>
-              <p className="text-sm font-semibold text-gray-700">{risk.trading_days.toLocaleString("it-IT")}</p>
+              <p className="text-sm font-semibold text-gray-700">{risk.trading_days.toLocaleString(getIntlLocale(i18n.language))}</p>
             </div>
           </div>
         </div>
@@ -353,7 +354,7 @@ function MonthlyBarChart({ series }: { series: PerformancePoint[] }) {
 function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint[]; period: string }) {
   const [benchIndex, setBenchIndex] = useState("MSCI_WORLD");
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === "en" ? undefined : it;
+  const dfLocale = getDateFnsLocale(i18n.language);
 
   const { data: bench, isLoading } = useQuery({
     queryKey: ["benchmark", benchIndex, period],
@@ -428,7 +429,7 @@ function BenchmarkSection({ perfSeries, period }: { perfSeries: PerformancePoint
                 `${v.toFixed(2)}`,
                 name === "portfolio" ? t("performance.portfolio") : BENCHMARK_OPTIONS.find((o) => o.value === benchIndex)?.label ?? "Benchmark",
               ]}
-              labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dateLocale })}
+              labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dfLocale })}
             />
             <Line type="monotone" dataKey="portfolio" stroke="#10b981" strokeWidth={2} dot={false} name="portfolio" />
             <Line type="monotone" dataKey="benchmark" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="benchmark" connectNulls />
@@ -544,7 +545,7 @@ export function Performance() {
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === "en" ? undefined : it;
+  const dfLocale = getDateFnsLocale(i18n.language);
 
   const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
     queryKey: ["portfolio-dashboard"],
@@ -702,7 +703,7 @@ export function Performance() {
                         zenMode ? "•••••" : `€ ${fmt(v)}`,
                         name === "value_eur" ? t("common.value") : t("performance.invested"),
                       ]}
-                      labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dateLocale })}
+                      labelFormatter={(d) => format(parseISO(d), "d MMM yyyy", { locale: dfLocale })}
                     />
                     <Area
                       type="monotone"
@@ -826,7 +827,7 @@ export function Performance() {
                       {dividends.map((d) => (
                         <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-5 py-3 text-gray-600">
-                            {format(parseISO(d.date), "dd MMM yyyy", { locale: dateLocale })}
+                            {format(parseISO(d.date), "dd MMM yyyy", { locale: dfLocale })}
                           </td>
                           <td className="px-5 py-3">
                             <span className="text-xs font-medium text-blue-600">
@@ -879,7 +880,7 @@ function PositionRow({ pos, totalValue }: { pos: PositionOut; totalValue: number
         <div className="text-xs text-gray-300">{t(`performance.assetTypes.${pos.asset_type}`) || pos.asset_type} · {pos.exchange}</div>
       </td>
       <td className="px-5 py-3 text-right text-gray-600">
-        {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 6 })}
+        {pos.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 6 })}
       </td>
       <td className="px-5 py-3 text-right text-gray-600 font-mono text-xs">
         {zen(`€ ${fmt(pos.pmc_eur, 2)}`)}

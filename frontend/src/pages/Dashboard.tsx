@@ -8,6 +8,8 @@ import { useLivePrices } from "@/hooks/useLivePrices";
 import { useAuth } from "@/hooks/useAuth";
 import { useZenMode } from "@/context/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { api } from "@/services/api";
 import { accountService, transactionService } from "@/services/transactions";
 import { portfolioService, type PositionOut } from "@/services/portfolio";
@@ -91,7 +93,7 @@ export function Dashboard() {
   const navigate  = useNavigate();
   const zenMode   = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
-  const dateLocale = i18n.language === "en" ? "en-US" : i18n.language === "fr" ? "fr-FR" : i18n.language === "de" ? "de-DE" : "it-IT";
+  const dateLocale = getIntlLocale(i18n.language);
 
   const [period,    setPeriod]    = useState<Period>(
     () => localStorage.getItem("dashboard_period") ?? "max"
@@ -347,20 +349,20 @@ export function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KpiCard
                 label={t("dashboard.portfolioValue")}
-                value={hasPrices ? zen(`€ ${totalValue.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : "—"}
-                sub={hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`) : undefined}
+                value={hasPrices ? zen(`€ ${totalValue.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
+                sub={hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : undefined}
               />
               <KpiCard
                 label={t("dashboard.performancePeriod", { period: periodLabel })}
                 value={periodPnl != null
-                  ? zen(`€ ${periodPnl.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`)
+                  ? zen(`€ ${periodPnl.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`)
                   : "—"}
                 sub={periodPnlPct != null ? `${periodPnlPct >= 0 ? "+" : ""}${periodPnlPct.toFixed(2)}%` : undefined}
                 positive={periodPnl != null ? periodPnl >= 0 : undefined}
               />
               <KpiCard
                 label={t("dashboard.dailyChange")}
-                value={hasPrices ? zen(`€ ${dailyChange.toLocaleString("it-IT", { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
+                value={hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
                 positive={hasPrices ? dailyChange >= 0 : undefined}
               />
             </div>
@@ -393,13 +395,13 @@ export function Dashboard() {
                         <div className="flex justify-between items-baseline">
                           <span className="text-xs text-gray-400">{t("dashboard.value")}</span>
                           <span className="text-sm font-bold text-gray-900">
-                            {hasPrices ? zen(`€ ${value.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`) : "—"}
+                            {hasPrices ? zen(`€ ${value.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 0 })}`) : "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-baseline">
                           <span className="text-xs text-gray-400">{t("dashboard.pnl")}</span>
                           <span className={`text-xs font-semibold ${hasPrices ? (pnl >= 0 ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
-                            {hasPrices ? (zenMode ? `${pnlPct.toFixed(1)}%` : `${pnl >= 0 ? "+" : ""}€ ${pnl.toLocaleString("it-IT", { maximumFractionDigits: 0 })} (${pnlPct.toFixed(1)}%)`) : "—"}
+                            {hasPrices ? (zenMode ? `${pnlPct.toFixed(1)}%` : `${pnl >= 0 ? "+" : ""}€ ${pnl.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 0 })} (${pnlPct.toFixed(1)}%)`) : "—"}
                           </span>
                         </div>
                       </div>
@@ -485,7 +487,7 @@ export function Dashboard() {
                               <div className="flex-shrink-0 text-right">
                                 <div className="font-semibold text-gray-900 text-sm tabular-nums">
                                   {pos.current_value_eur != null
-                                    ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`)
+                                    ? zen(`€ ${pos.current_value_eur.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 0 })}`)
                                     : <span className="text-gray-300 font-normal text-xs">{t("dashboard.na")}</span>}
                                 </div>
                                 <div className={`text-xs tabular-nums font-medium mt-0.5 ${
@@ -535,14 +537,14 @@ export function Dashboard() {
                                   <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
                                 </td>
                                 <td className="px-4 py-3.5 text-right text-xs text-gray-400">
-                                  {dateStr ? new Date(dateStr).toLocaleDateString("it-IT") : "—"}
+                                  {dateStr ? new Date(dateStr).toLocaleDateString(getIntlLocale(i18n.language)) : "—"}
                                 </td>
                                 <td className="px-4 py-3.5 text-right text-gray-600 tabular-nums">
-                                  {pos.quantity.toLocaleString("it-IT", { maximumFractionDigits: 4 })}
+                                  {pos.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 4 })}
                                 </td>
                                 <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
                                   {pos.current_value_eur != null
-                                    ? zen(`€ ${pos.current_value_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                                    ? zen(`€ ${pos.current_value_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
                                     : <span className="text-gray-300 font-normal">{t("dashboard.na")}</span>}
                                 </td>
                                 <td className="px-4 py-3.5 text-right">
@@ -561,7 +563,7 @@ export function Dashboard() {
                                 <td className="px-4 py-3.5 text-right tabular-nums">
                                   {pos.periodPnlEur != null ? (
                                     <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                      {zenMode ? "•••••" : `${pos.periodPnlEur >= 0 ? "+ " : "− "}${Math.abs(pos.periodPnlEur).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                      {zenMode ? "•••••" : `${pos.periodPnlEur >= 0 ? "+ " : "− "}${Math.abs(pos.periodPnlEur).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                     </span>
                                   ) : <span className="text-gray-300 text-xs">—</span>}
                                 </td>
@@ -605,20 +607,20 @@ export function Dashboard() {
                             <div className="text-xs text-gray-400 mt-0.5">{asset.symbol}</div>
                           </td>
                           <td className="px-4 py-3.5 text-right text-xs text-gray-400">
-                            {firstDate ? new Date(firstDate).toLocaleDateString("it-IT") : "—"}
+                            {firstDate ? new Date(firstDate).toLocaleDateString(getIntlLocale(i18n.language)) : "—"}
                           </td>
                           <td className="px-4 py-3.5 text-right text-xs text-gray-400">
-                            {lastDate ? new Date(lastDate).toLocaleDateString("it-IT") : "—"}
+                            {lastDate ? new Date(lastDate).toLocaleDateString(getIntlLocale(i18n.language)) : "—"}
                           </td>
                           <td className="px-4 py-3.5 text-right text-gray-700 tabular-nums">
-                            € {totalBought.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            € {totalBought.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-right text-gray-700 tabular-nums">
-                            € {totalSold.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            € {totalSold.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-right tabular-nums">
                             <span className={`font-medium text-sm ${pnl >= 0 ? "text-green-600" : "text-red-500"}`}>
-                              {pnl >= 0 ? "+ " : "− "}€ {Math.abs(pnl).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {pnl >= 0 ? "+ " : "− "}€ {Math.abs(pnl).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </td>
                           <td className="pr-5 pl-4 py-3.5 text-right tabular-nums">

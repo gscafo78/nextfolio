@@ -5,6 +5,8 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import {
   accountService,
   fxService,
@@ -242,20 +244,20 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           {needsFx && (
             <div className="flex justify-between text-gray-500">
               <span>{t("transactionForm.countervalue", { currency: priceCurrency })}</span>
-              <span>{totalAssetCurrency.toLocaleString("it-IT", { minimumFractionDigits: 2 })} {priceCurrency}</span>
+              <span>{totalAssetCurrency.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })} {priceCurrency}</span>
             </div>
           )}
           {fee > 0 && (
             <div className="flex justify-between text-gray-500">
               <span>{t("transactionForm.commissions")}</span>
               <span className={feeSign > 0 ? "text-red-500" : "text-gray-500"}>
-                {feeSign > 0 ? "+" : "−"} € {fee.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                {feeSign > 0 ? "+" : "−"} € {fee.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}
               </span>
             </div>
           )}
           <div className="flex justify-between font-semibold text-gray-900 pt-1 border-t border-gray-200">
             <span>{txType === "BUY" ? t("transactionForm.totalCost") : t("transactionForm.totalNet")}</span>
-            <span>€ {totalEur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span>
+            <span>€ {totalEur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}</span>
           </div>
           {(txType === "COUPON" || txType === "DIVIDEND") && (
             <p className="text-xs text-gray-400 pt-0.5">

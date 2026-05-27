@@ -11,12 +11,14 @@ import {
 } from "recharts";
 import { TrendingUp, Wallet, PiggyBank, Percent } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const eur = (v: number) =>
-  v.toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  v.toLocaleString(getIntlLocale(i18n.language), { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 // ── PAC Calculator ────────────────────────────────────────────────────────────
 

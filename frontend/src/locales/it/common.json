@@ -637,6 +637,7 @@
     "units": "unità",
     "editTitle": "Modifica titolo",
     "noPriceHistory": "Nessuno storico prezzi. Avvia un backfill dalla Dashboard.",
-    "loadError": "Errore nel caricamento dei dati."
+    "loadError": "Errore nel caricamento dei dati.",
+    "trend": "Andamento"
   }
 }

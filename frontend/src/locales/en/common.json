@@ -637,6 +637,7 @@
     "units": "units",
     "editTitle": "Edit name",
     "noPriceHistory": "No price history. Start a backfill from the Dashboard.",
-    "loadError": "Error loading data."
+    "loadError": "Error loading data.",
+    "trend": "Trend"
   }
 }

@@ -576,7 +576,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
-## FASE 9 — Internazionalizzazione (i18n) 🌍 ⬜
+## FASE 9 — Internazionalizzazione (i18n) 🌍 ✅
 **Obiettivo: UI completamente multilingua (IT, EN, FR, DE), lingua selezionabile dalle impostazioni utente**
 
 > Librerie: **`i18next`** + **`react-i18next`** + **`i18next-browser-languagedetector`**
@@ -584,19 +584,19 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ### 9.1 Backend
 
-- [ ] Migration `0014_language`: colonna `language` (String 5, default `"it"`) su `user_settings`
-- [ ] `UserSettingsOut` e `UserSettingsUpdate`: aggiungere campo `language: str | None`
+- [x] Migration `0014_language`: colonna `language` (String 5, default `"it"`) su `user_settings`
+- [x] `UserSettingsOut` e `UserSettingsUpdate`: aggiungere campo `language: str | None`
 - [ ] Messaggi di errore backend: lasciati in inglese tecnico (già gestiti come codici nel frontend) — refactoring completo rimandato
 
 ### 9.2 Setup i18n (Frontend)
 
-- [ ] Installare dipendenze: `i18next react-i18next i18next-browser-languagedetector`
-- [ ] Creare `src/i18n.ts` — configurazione con:
+- [x] Installare dipendenze: `i18next react-i18next i18next-browser-languagedetector`
+- [x] Creare `src/i18n.ts` — configurazione con:
   - Namespace: `common` (unico namespace per semplicità)
   - Lingua di fallback: `"it"`
   - Rilevamento automatico da `localStorage["nf-lang"]`
   - Import lazy delle risorse JSON
-- [ ] Struttura cartelle:
+- [x] Struttura cartelle:
   ```
   src/locales/
     it/common.json   ← lingua di default (sorgente)
@@ -604,8 +604,8 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
     fr/common.json
     de/common.json
   ```
-- [ ] Integrare `i18next.changeLanguage()` in `AppSettingsContext` — lingua applicata al mount e ad ogni cambio impostazione
-- [ ] `src/i18n.ts` importato in `src/main.tsx` prima del render
+- [x] Integrare `i18next.changeLanguage()` in `AppSettingsContext` — lingua applicata al mount e ad ogni cambio impostazione
+- [x] `src/i18n.ts` importato in `src/main.tsx` prima del render
 
 ### 9.3 Struttura chiavi di traduzione
 
@@ -627,34 +627,36 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ### 9.4 Migrazione stringhe UI
 
-- [ ] `src/components/layout/Sidebar.tsx` — label navigazione
-- [ ] `src/components/layout/TopBar.tsx` — titoli pagina
-- [ ] `src/pages/Login.tsx` + `ForgotPassword.tsx` + `ResetPassword.tsx`
-- [ ] `src/pages/Dashboard.tsx` — KPI label, colonne tabella, header sezioni
-- [ ] `src/pages/Transazioni.tsx` — filtri, colonne, form modifica, footer
-- [ ] `src/pages/Performance.tsx` — KPI, label grafici, sezioni
-- [ ] `src/pages/Allocation.tsx` — titoli card, label legenda
-- [ ] `src/pages/Dividendi.tsx` — KPI, label tabella
-- [ ] `src/pages/Fiscale.tsx` — bracket label, simulatore, storico
-- [ ] `src/pages/Alert.tsx` — form, badge stato
-- [ ] `src/pages/Impostazioni.tsx` — sezioni, label campo, descrizioni
-- [ ] `src/pages/Import.tsx` + `Strumenti.tsx` + `Admin.tsx`
-- [ ] `src/components/transactions/TransactionForm.tsx` — label, validazioni
-- [ ] `src/components/portfolio/HoldingDetailModal.tsx` — tab, label stat
+- [x] `src/components/layout/Sidebar.tsx` — label navigazione
+- [x] `src/components/layout/TopBar.tsx` — titoli pagina
+- [x] `src/pages/Login.tsx` + `ForgotPassword.tsx` + `ResetPassword.tsx`
+- [x] `src/pages/Dashboard.tsx` — KPI label, colonne tabella, header sezioni
+- [x] `src/pages/Transazioni.tsx` — filtri, colonne, form modifica, footer
+- [x] `src/pages/Performance.tsx` — KPI, label grafici, sezioni
+- [x] `src/pages/Allocation.tsx` — titoli card, label legenda
+- [x] `src/pages/Dividendi.tsx` — KPI, label tabella
+- [x] `src/pages/Fiscale.tsx` — bracket label, simulatore, storico
+- [x] `src/pages/Alert.tsx` — form, badge stato
+- [x] `src/pages/Impostazioni.tsx` — sezioni, label campo, descrizioni
+- [x] `src/pages/Import.tsx` + `Strumenti.tsx` + `Admin.tsx`
+- [x] `src/components/transactions/TransactionForm.tsx` — label, validazioni
+- [x] `src/components/portfolio/HoldingDetailModal.tsx` — tab, label stat
 
 ### 9.5 Selezione lingua in Impostazioni
 
-- [ ] Sezione "Lingua" in Impostazioni → Preferenze (sotto tema, sopra Zen Mode)
-- [ ] UI: 4 pill-button affiancati con codice ISO + nome nativo (`IT · Italiano`, `EN · English`, `FR · Français`, `DE · Deutsch`)
-- [ ] `onChange` chiama `i18next.changeLanguage()` immediatamente (senza attendere il salvataggio backend) → cambio istantaneo
-- [ ] `updateSettings({ language })` salva su backend; `staleTime: Infinity` sul query `my-settings`
+- [x] Sezione "Lingua" in Impostazioni → Preferenze (sotto tema, sopra Zen Mode)
+- [x] UI: 4 pill-button affiancati con codice ISO + nome nativo (`IT · Italiano`, `EN · English`, `FR · Français`, `DE · Deutsch`)
+- [x] `onChange` chiama `i18next.changeLanguage()` immediatamente (senza attendere il salvataggio backend) → cambio istantaneo
+- [x] `updateSettings({ language })` salva su backend; `staleTime: Infinity` sul query `my-settings`
 
 ### 9.6 Formato date e numeri per lingua
 
-- [ ] `date-fns/locale` — importare `enUS`, `fr`, `de`, `it` e selezionare in base alla lingua corrente
-  - Usato in: Transazioni, Performance (tooltip), HoldingDetailModal, Dividendi
-- [ ] Numeri: `toLocaleString()` con `locale` dinamico (es. `"en-US"` → `1,234.56`, `"it-IT"` → `1.234,56`)
-  - Wrapper helper `fmtNum(v, locale)` centralizzato in `src/utils/format.ts`
+- [x] `date-fns/locale` — importare `enUS`, `fr`, `de`, `it` e selezionare in base alla lingua corrente via `getDateFnsLocale(i18n.language)`
+  - Usato in: Transazioni, Performance (tooltip), HoldingDetailModal, PriceChart, PortfolioChart
+- [x] Numeri: `toLocaleString()` con locale dinamico (es. `"en-US"` → `1,234.56`, `"it-IT"` → `1.234,56`)
+  - `src/utils/format.ts` — `getIntlLocale(lang)`, `getDateFnsLocale(lang)`, `fmtNum(v, opts, locale)`
+  - `ThemeContext.tsx` — `useLocale()` hook esportato
+  - Aggiornati: Dashboard, Performance, Transazioni, Allocation, Dividendi, Fiscale, Alert, Strumenti, Admin, HoldingDetailModal, PriceChart, PortfolioChart, PriceTicker, TransactionForm
 
 ---
 
@@ -945,11 +947,11 @@ docker compose build
 | 6 | Features avanzate | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 7 | Testing + deploy | ✅ Completata (core) | 🟢 Normale | 1–2 sett. |
 | 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
-| 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ⬜ Non iniziata | 🟡 Media | 2–3 sett. |
+| 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
 | **11** | **Messa in Produzione — VPS, HTTPS, backup, monitoring, checklist pre-lancio** | ⬜ **Prossimo obiettivo** | 🔴 **Critica** | **1 sett.** |
 
-**Sequenza verso il go-live:** FASE 9 (i18n) → FASE 10 (mobile) → **FASE 11 (produzione)** — le prime due possono procedere in parallelo; la FASE 11 è il cancello finale prima del lancio.
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → FASE 10 (mobile) → **FASE 11 (produzione)** — la FASE 10 è ora il prossimo passo; la FASE 11 è il cancello finale prima del lancio.
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 

@@ -5,6 +5,8 @@ import {
 } from "recharts";
 import { Coins, TrendingUp, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getIntlLocale } from "@/utils/format";
+import i18n from "@/i18n";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { api } from "@/services/api";
@@ -41,7 +43,7 @@ interface DividendAnalysis {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(v: number, d = 2) {
-  return v.toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+  return v.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 // ── Componente principale ──────────────────────────────────────────────────────
