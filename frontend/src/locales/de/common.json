@@ -87,7 +87,22 @@
     "passwordNoMatch": "Die Passwörter stimmen nicht überein.",
     "resetTokenExpired": "Ungültiger oder abgelaufener Link. Fordern Sie einen neuen Reset an.",
     "minCharsPlaceholder": "Mindestens 8 Zeichen",
-    "repeatPlaceholder": "Passwort wiederholen"
+    "repeatPlaceholder": "Passwort wiederholen",
+    "createAccount": "Konto erstellen",
+    "createAccountDesc": "Registrieren Sie sich, um Ihr Portfolio zu verwalten",
+    "register": "Registrieren",
+    "registerError": "Registrierung fehlgeschlagen. E-Mail bereits verwendet oder Registrierungen geschlossen.",
+    "alreadyAccount": "Haben Sie bereits ein Konto?",
+    "noAccount": "Noch kein Konto?",
+    "confirmPassword": "Passwort bestätigen",
+    "verifyEmail": "E-Mail verifizieren",
+    "verifyEmailDesc": "Wir haben einen 6-stelligen Code an {{email}} gesendet. Geben Sie ihn unten ein.",
+    "verificationCode": "Verifizierungscode",
+    "codeExpires": "Code läuft ab in",
+    "codeExpired": "Der Code ist abgelaufen. Fordern Sie einen neuen an.",
+    "resendCode": "Code erneut senden",
+    "resendIn": "Erneutes Senden möglich in",
+    "backToRegister": "Zurück zur Registrierung"
   },
   "dashboard": {
     "greeting": "Hallo, {{name}}",
@@ -612,7 +627,9 @@
     "resetLinkSent": "Link gesendet!",
     "resetLinkError": "Sendefehler. SMTP-Konfiguration prüfen.",
     "noUsers": "Keine Benutzer gefunden.",
-    "deleteUserConfirm": "Benutzer {{email}} löschen?"
+    "deleteUserConfirm": "Benutzer {{email}} löschen?",
+    "publicRegistration": "Öffentliche Registrierung",
+    "publicRegistrationDesc": "Ermöglicht jedem, über die Registrierungsseite ein Konto zu erstellen."
   },
   "holdingDetail": {
     "overview": "Übersicht",

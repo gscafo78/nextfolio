@@ -87,7 +87,22 @@
     "passwordNoMatch": "Les mots de passe ne correspondent pas.",
     "resetTokenExpired": "Lien invalide ou expiré. Demandez une nouvelle réinitialisation.",
     "minCharsPlaceholder": "Minimum 8 caractères",
-    "repeatPlaceholder": "Répétez le mot de passe"
+    "repeatPlaceholder": "Répétez le mot de passe",
+    "createAccount": "Créer un compte",
+    "createAccountDesc": "Inscrivez-vous pour gérer votre portefeuille",
+    "register": "S'inscrire",
+    "registerError": "Inscription échouée. Email déjà utilisé ou inscriptions fermées.",
+    "alreadyAccount": "Vous avez déjà un compte ?",
+    "noAccount": "Pas encore de compte ?",
+    "confirmPassword": "Confirmer le mot de passe",
+    "verifyEmail": "Vérifier l'email",
+    "verifyEmailDesc": "Nous avons envoyé un code à 6 chiffres à {{email}}. Saisissez-le ci-dessous.",
+    "verificationCode": "Code de vérification",
+    "codeExpires": "Le code expire dans",
+    "codeExpired": "Le code a expiré. Demandez-en un nouveau.",
+    "resendCode": "Renvoyer le code",
+    "resendIn": "Renvoi disponible dans",
+    "backToRegister": "Retour à l'inscription"
   },
   "dashboard": {
     "greeting": "Bonjour, {{name}}",
@@ -612,7 +627,9 @@
     "resetLinkSent": "Lien envoyé !",
     "resetLinkError": "Erreur d'envoi. Vérifiez la configuration SMTP.",
     "noUsers": "Aucun utilisateur trouvé.",
-    "deleteUserConfirm": "Supprimer l'utilisateur {{email}} ?"
+    "deleteUserConfirm": "Supprimer l'utilisateur {{email}} ?",
+    "publicRegistration": "Inscription publique",
+    "publicRegistrationDesc": "Permet à tout le monde de créer un compte via la page d'inscription."
   },
   "holdingDetail": {
     "overview": "Aperçu",

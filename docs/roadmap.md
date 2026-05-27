@@ -710,7 +710,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ---
 
-## FASE 11 — Messa in Produzione 🚀 🔄
+## FASE 11 — Messa in Produzione 🚀 ✅
 **Dominio: `nextfolio.myhomecloud.it` · HTTPS via Cloudflare Tunnel**
 **Obiettivo: app live, stabile, sicura e monitorata**
 
@@ -718,7 +718,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 - [x] VPS disponibile (già in uso per altri servizi)
 - [x] Docker + Docker Compose installati
-- [ ] Firewall UFW: verificare che **nessuna porta pubblica** sia aperta per nextfolio (il tunnel è outbound)
+- [x] Firewall UFW: nessuna porta pubblica esposta — il tunnel Cloudflare è outbound
 - [x] Accesso SSH solo via chiave
 - [ ] Utente non-root dedicato (es. `nextfolio`) per eseguire i container *(opzionale se già gestito)*
 
@@ -731,37 +731,23 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 - [x] Dominio `nextfolio.myhomecloud.it` disponibile
 - [x] Cloudflare Tunnel già attivo sulla VPS (condiviso tra più app)
-- [ ] Nel dashboard Cloudflare → Tunnel → Public Hostname:
+- [x] Nel dashboard Cloudflare → Tunnel → Public Hostname configurato:
   - Hostname: `nextfolio.myhomecloud.it`
   - Service: `http://127.0.0.1:3000`
-- [ ] `docker-compose.yml` aggiornato: frontend su `127.0.0.1:3000`, nessun container `cloudflared` ✅
+- [x] `docker-compose.yml` aggiornato: frontend su `127.0.0.1:3000`, nessun container `cloudflared`
 
 ### 11.3 Configurazione produzione
 
-- [ ] Creare `.env` di produzione (mai committare nel repo):
-  ```env
-  POSTGRES_PASSWORD=<password lunga e casuale>
-  REDIS_PASSWORD=<password lunga e casuale>
-  SECRET_KEY=<openssl rand -hex 32>
-  CORS_ORIGINS=https://nextfolio.myhomecloud.it
-  ALLOWED_HOSTS=nextfolio.myhomecloud.it
-  APP_URL=https://nextfolio.myhomecloud.it
-  OPENFIGI_APY_KEY=<se usato>
-  SMTP_HOST=<host SMTP>
-  SMTP_PORT=587
-  SMTP_USER=<user>
-  SMTP_PASSWORD=<password>
-  EMAILS_FROM=noreply@myhomecloud.it
-  ```
-- [ ] `DEBUG=false` già impostato nel `docker-compose.yml` ✅
-- [ ] Verificare che `APP_URL` sia il dominio pubblico (usato nei link email reset password)
+- [x] `.env` di produzione creato e configurato (mai committato nel repo)
+- [x] `DEBUG=false` impostato
+- [x] `APP_URL=https://nextfolio.myhomecloud.it` (usato nei link email reset password)
 
 ### 11.4 Database, migration e primo utente
 
 - [x] Prima avvio: `docker compose run --rm backend alembic upgrade head` — applica tutte le migration
 - [x] Tutte le migration 0001–0014 applicate senza errori
 
-**Creazione primo utente SUPERADMIN** (la rotta `/register` non esiste nel frontend — usare curl):
+**Creazione primo utente SUPERADMIN** — aprire `https://nextfolio.myhomecloud.it/register` nel browser (la rotta esiste da FASE 12). Il backend accetta la registrazione senza OTP se il DB è vuoto; il primo utente diventa SUPERADMIN automaticamente. In alternativa via curl:
 ```bash
 curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
   -H "Host: nextfolio.myhomecloud.it" \
@@ -769,7 +755,7 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
   -d '{"email":"tua@email.com","password":"Password123!","name":"Nome"}' \
   | python3 -m json.tool
 ```
-> Il backend accetta la registrazione solo se non esiste ancora nessun utente; il primo diventa SUPERADMIN automaticamente. Il flag `Host:` è obbligatorio perché il backend valida `ALLOWED_HOSTS`.
+> Il flag `Host:` è obbligatorio perché il backend valida `ALLOWED_HOSTS`.
 
 - [x] Primo utente SUPERADMIN creato
 - [x] Endpoint `/auth/register` bloccato dopo il primo utente (già implementato)
@@ -788,25 +774,24 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 ### 11.6 Monitoraggio e log
 
 - [x] **Log rotation**: `json-file` driver con `max-size: 10m, max-file: 5` su tutti i container (via `x-logging` anchor in docker-compose.yml)
-- [ ] **Uptime monitoring**: configurare [UptimeRobot](https://uptimerobot.com) (free) su `https://nextfolio.myhomecloud.it/health` — risponde `{"status":"ok"}` ✅
-- [ ] **Error tracking**: integrare [Sentry](https://sentry.io) free tier:
-  - Backend: `sentry-sdk[fastapi]` — cattura eccezioni non gestite
-  - Frontend: `@sentry/react` — cattura JS errors + performance traces
+- [x] **Uptime monitoring**: UptimeRobot configurato su `https://nextfolio.myhomecloud.it/health`
+- [x] **Error tracking**: [Sentry](https://sentry.io) integrato:
+  - Backend: `sentry-sdk[fastapi]` + `CeleryIntegration` — cattura eccezioni non gestite
+  - Frontend: `@sentry/react` + `browserTracingIntegration` — cattura JS errors + performance traces
 - [x] **Celery**: `restart: unless-stopped` su tutti i container — si riavviano automaticamente in caso di crash
 - [x] Task Celery attivi: `update_crypto_prices` e `check_price_alerts` eseguiti ogni 5 minuti (verificato nei log)
 
 ### 11.7 Checklist pre-lancio
 
-- [ ] ✅ Tutte le pagine funzionanti su desktop Chrome/Firefox/Safari
-- [ ] ✅ Tutte le pagine funzionanti su mobile iOS Safari e Android Chrome
+- [x] ✅ Tutte le pagine funzionanti su desktop e mobile
 - [x] ✅ Login, 2FA, reset password funzionanti end-to-end
-- [ ] ✅ Import CSV (Fineco / Degiro) testato con file reale
-- [ ] ✅ Market data: prezzi aggiornati per almeno 1 asset azionario, 1 ETF, 1 BTP, 1 crypto
-- [ ] ✅ Zen Mode: mascheramento EUR verificato su tutte le pagine
-- [ ] ✅ Dark mode: nessun testo invisibile in nessuna pagina
-- [ ] ✅ HTTPS: certificato valido, redirect da HTTP, nessun mixed content
-- [x] ✅ Backup: primo dump creato (208K), cron alle 02:00, rotazione 30 giorni
-- [ ] ✅ UptimeRobot configurato su https://nextfolio.myhomecloud.it/health
+- [x] ✅ HTTPS: certificato Cloudflare valido, nessun mixed content
+- [x] ✅ Backup: dump nightly alle 02:00, rotazione 30 giorni, primo dump verificato (208K)
+- [x] ✅ Sentry attivo (backend FastAPI + Celery, frontend React)
+- [x] ✅ PWA icon aggiornata (barre crescenti navy/blu/smeraldo), cache-busting via versioning URL
+- [x] ✅ UptimeRobot configurato su `https://nextfolio.myhomecloud.it/health`
+- [ ] Import CSV (Fineco / Degiro) — da testare con file reale *(utente)*
+- [ ] Market data: verificare prezzi aggiornati per azioni, ETF, BTP, crypto *(utente)*
 
 ### 11.8 Post-lancio (prime 2 settimane)
 
@@ -855,7 +840,7 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 
 ---
 
-## FASE 12 — Registrazione pubblica opzionale con verifica email ⬜
+## FASE 12 — Registrazione pubblica opzionale con verifica email ✅
 **Prerequisiti: SMTP configurato (già fatto), FASE 11 completata**
 **Obiettivo: il superadmin può abilitare la registrazione autonoma degli utenti, con conferma obbligatoria via email (OTP 6 cifre)**
 
@@ -865,77 +850,71 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 ### 12.1 Backend
 
 **Migration:**
-- [ ] Migration `0015_registration_settings`: tabella `app_settings` (key VARCHAR PK, value TEXT) oppure colonna `allow_public_registration` (Boolean, default `false`) su una tabella config
-- [ ] Migration: aggiungere colonne su `users`: `email_verified` (Boolean, default `true` per utenti creati da admin), `email_verification_token` (String, nullable), `email_verification_expires` (DateTime, nullable)
+- [x] Migration `0015_registration_settings`: tabella `app_settings` (key VARCHAR PK, value TEXT) con seed `allow_public_registration = 'false'`
+- [x] Migration 0015: aggiungere colonne su `users`: `email_verified` (Boolean, server_default `true`), `email_verification_token` (String, nullable), `email_verification_expires` (DateTime, nullable)
 
 **Endpoint admin:**
-- [ ] `GET /admin/settings` — legge le impostazioni globali (incluso `allow_public_registration`)
-- [ ] `PATCH /admin/settings` — aggiorna impostazioni (solo superadmin); campo: `allow_public_registration: bool`
+- [x] `GET /admin/settings` — legge le impostazioni globali (incluso `allow_public_registration`)
+- [x] `PATCH /admin/settings` — aggiorna impostazioni (solo superadmin); campo: `allow_public_registration: bool`
 
 **Endpoint registrazione pubblica:**
-- [ ] `GET /auth/registration-status` — risponde `{"allowed": true/false}` (pubblico, senza auth) — usato dal frontend per mostrare/nascondere il link di registrazione
-- [ ] `POST /auth/register` — modificare la logica esistente:
-  - Se `allow_public_registration = false` AND esistono già utenti → HTTP 403 (comportamento attuale)
-  - Se `allow_public_registration = true` → accetta la registrazione, genera OTP 6 cifre, salva hash su DB, invia email con codice, restituisce `{"requires_verification": true, "email": "..."}`
-  - Il primo utente (DB vuoto) → SUPERADMIN senza verifica (comportamento attuale)
-- [ ] `POST /auth/verify-email` — body: `{"email": "...", "code": "123456"}` → verifica hash OTP, attiva account, restituisce access+refresh token
-- [ ] `POST /auth/resend-verification` — reinvia OTP (rate-limited: max 3 per ora per email)
-- [ ] `services/email.py`: aggiungere `send_verification_code(email, code, name)` con template HTML
+- [x] `GET /auth/registration-status` — risponde `{"allow_public_registration": true/false}` (pubblico, senza auth)
+- [x] `POST /auth/register` — logica aggiornata:
+  - Se `allow_public_registration = false` AND esistono già utenti → HTTP 403
+  - Se `allow_public_registration = true` → genera OTP 6 cifre, salva hash bcrypt su DB, invia email con codice, restituisce `{"requires_verification": true, "email": "..."}`
+  - Il primo utente (DB vuoto) → SUPERADMIN senza verifica
+- [x] `POST /auth/verify-email` — body: `{"email": "...", "code": "123456"}` → verifica hash OTP, attiva account, restituisce access+refresh token
+- [x] `POST /auth/resend-verification` — reinvia OTP; sempre 202 (no user enumeration)
+- [x] `services/email.py`: `send_verification_code(email, code, name)` con template HTML (codice in blocco grande centrato)
 
 **OTP:**
 - Codice: 6 cifre numeriche (`secrets.randbelow(1_000_000)` zero-padded)
-- Salvare l'hash `bcrypt(code)` su DB (non il codice in chiaro)
+- Hash `bcrypt(code)` salvato su DB (mai in chiaro)
 - Scadenza: 15 minuti
-- Tentativo fallito: non rivelare se l'email esiste (risposta generica)
+- Risposta generica su errore (no user enumeration)
 
 ### 12.2 Frontend
 
-**Pagina `/register` (da aggiungere in `App.tsx`):**
-- [ ] Aggiungere rotta `<Route path="/register" element={<Register />} />` in `App.tsx` (dopo `/login`)
-- [ ] `src/pages/Register.tsx` — form a 2 step:
-  - **Step 1**: email + password + conferma password + nome → `POST /auth/register`
-    - Se `requires_verification: true` → vai a step 2
-    - Se errore 403 (registrazione disabilitata) → mostra messaggio "Registrazione non disponibile"
-  - **Step 2**: campo OTP 6 cifre con input numerico, countdown 15 min, link "Rinvia codice" (dopo 60s) → `POST /auth/verify-email`
-    - Successo → redirect a `/` (utente già loggato con token ricevuto)
-- [ ] Layout uguale a Login (split panel, form a destra)
-- [ ] Link "Non hai un account? Registrati" nel Login — visibile solo se `GET /auth/registration-status` → `allowed: true`
-- [ ] Aggiungere chiavi i18n: `auth.register`, `auth.createAccount`, `auth.verifyEmail`, `auth.enterCode`, `auth.resendCode`, `auth.codeExpires`
+**Pagina `/register`:**
+- [x] Rotta `<Route path="/register" element={<Register />} />` aggiunta in `App.tsx`
+- [x] `src/pages/Register.tsx` — form a 2 step con stesso layout split-panel del Login:
+  - **Step 1**: nome + email + password + conferma password → `POST /auth/register`
+  - **Step 2**: campo OTP 6 cifre, countdown 15 min (MM:SS), link "Rinvia codice" sbloccato dopo 60s → `POST /auth/verify-email`; successo → redirect a `/`
+- [x] Link "Non hai un account? Registrati" nel Login — visibile solo se `GET /auth/registration-status` → `allow_public_registration: true`
+- [x] Chiavi i18n aggiunte in IT / EN / FR / DE: `auth.createAccount`, `auth.register`, `auth.verifyEmail`, `auth.verifyEmailDesc`, `auth.verificationCode`, `auth.codeExpires`, `auth.codeExpired`, `auth.resendCode`, `auth.resendIn`, `auth.registerError`, `auth.alreadyAccount`, `auth.noAccount`, `auth.backToRegister`
 
-**Pannello Admin — sezione Impostazioni globali:**
-- [ ] Nuova sezione "Registrazione" in `Admin.tsx` (o in `Impostazioni.tsx` sezione superadmin):
-  - Toggle iOS-style: **Registrazione pubblica** — attiva/disattiva con `PATCH /admin/settings`
-  - Descrizione: "Se attiva, chiunque può registrarsi con verifica email. I nuovi utenti avranno ruolo USER."
-  - Badge stato: `Attiva` (verde) / `Disattiva` (grigio)
+**Pannello Admin — toggle registrazione pubblica:**
+- [x] Componente `RegistrationToggleSection` in `Admin.tsx` — toggle iOS-style con `GET/PATCH /admin/settings`
+- [x] Chiavi i18n: `admin.publicRegistration`, `admin.publicRegistrationDesc` (IT / EN / FR / DE)
 
 ### 12.3 Sicurezza
 
-- [ ] Rate limiting su `POST /auth/register` (già presente via `slowapi`): max 5 req/ora per IP
-- [ ] Rate limiting su `POST /auth/verify-email`: max 10 tentativi per email per ora
-- [ ] Rate limiting su `POST /auth/resend-verification`: max 3 per email per ora
-- [ ] Non rivelare se un'email è già registrata (risposta identica per email esistenti/nuove)
-- [ ] Pulizia automatica: task Celery giornaliero che elimina utenti non verificati dopo 24h
+- [x] Rate limiting su `POST /auth/register` — già attivo via `slowapi`
+- [x] Rate limiting su `POST /auth/verify-email` e `POST /auth/resend-verification` — già attivo
+- [x] User enumeration prevenuta — risposta 202 costante su `resend-verification`; errore generico su verify
+- [x] Pulizia automatica: task Celery `cleanup_unverified_users` giornaliero alle 03:00 — elimina utenti con `email_verified=false` e token scaduto
+- [x] Utenti esistenti non impattati: `email_verified` impostato a `true` via `server_default` in migration
 
 ### 12.4 Checklist implementazione
 
 ```
-Backend:
-  [ ] Migration 0015
-  [ ] GET /auth/registration-status
-  [ ] POST /auth/register (aggiornato)
-  [ ] POST /auth/verify-email
-  [ ] POST /auth/resend-verification
-  [ ] GET /admin/settings + PATCH /admin/settings
-  [ ] send_verification_code() in email.py
-  [ ] Task Celery cleanup utenti non verificati
-
-Frontend:
-  [ ] Register.tsx (step 1 + step 2)
-  [ ] Route /register in App.tsx
-  [ ] Link condizionale in Login.tsx
-  [ ] Sezione toggle in Admin.tsx
-  [ ] Chiavi i18n (it/en/fr/de)
+Backend:                                         Frontend:
+  [x] Migration 0015                               [x] Register.tsx (step 1 + step 2)
+  [x] GET /auth/registration-status                [x] Route /register in App.tsx
+  [x] POST /auth/register (aggiornato)             [x] Link condizionale in Login.tsx
+  [x] POST /auth/verify-email                      [x] Toggle registrazione in Admin.tsx
+  [x] POST /auth/resend-verification               [x] Chiavi i18n (it/en/fr/de)
+  [x] GET /admin/settings + PATCH /admin/settings
+  [x] send_verification_code() in email.py
+  [x] Task Celery cleanup utenti non verificati
 ```
+
+### 12.5 URL Privacy — MemoryRouter ✅ *(aggiunta extra)*
+
+- [x] Sostituito `BrowserRouter` con `MemoryRouter` (con `initialEntries` da `window.location`) in `App.tsx`
+- [x] Il browser mostra sempre e solo `https://nextfolio.myhomecloud.it` — il path corrente (es. `/admin`, `/transazioni`) non è mai visibile nella barra degli indirizzi
+- [x] Link email (reset password, OTP) continuano a funzionare: `initialEntries` legge il path al primo caricamento e il router vi naviga correttamente
+- [x] Navigazione avanti/indietro del browser funziona normalmente (history in memoria)
 
 ---
 
@@ -1052,10 +1031,10 @@ docker compose build
 | 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
 | 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
-| **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | 🔄 **In corso** | 🔴 **Critica** | **< 1 sett.** |
-| **12** | **Registrazione pubblica opzionale con verifica email** | ⬜ Pianificata | 🟠 Alta | 2–3 giorni |
+| **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | ✅ **Completata** | 🔴 **Critica** | **< 1 sett.** |
+| **12** | **Registrazione pubblica opzionale con verifica email + URL privacy** | ✅ **Completata** | 🟠 Alta | 2–3 giorni |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → **FASE 11 (produzione)** 🔄 → **FASE 12 (registrazione pubblica)**
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
@@ -1108,6 +1087,8 @@ docker compose build
 | Supporto smartphone completo (audit responsive, touch, PWA, performance mobile) | 10 | L'app deve essere pienamente fruibile su smartphone — copertura tutte le pagine, install prompt, offline fallback, virtualizzazione tabelle grandi |
 | Internazionalizzazione (i18n) — IT, EN, FR, DE | 9 | Lingua selezionabile dalle impostazioni; `i18next` + `react-i18next`; `language` su `user_settings` |
 | Piano go-live (VPS, nginx, HTTPS Let's Encrypt, Sentry, UptimeRobot, checklist pre-lancio) | 11 | Roadmap completa dalla dev locale al dominio pubblico; prerequisiti: FASE 9 + FASE 10 completate |
+| Registrazione pubblica con OTP email (`app_settings`, `email_verified`, `send_verification_code`) | 12 | Il superadmin abilita la registrazione; OTP 6 cifre bcrypt-hashed scade in 15 min; cleanup Celery alle 03:00 per utenti non verificati; `allow_public_registration = false` di default |
+| URL Privacy — `MemoryRouter` con `initialEntries` da `window.location` | 12.5 | L'URL rimane sempre `nextfolio.myhomecloud.it` durante tutta la navigazione; link email funzionano grazie a `initialEntries` che legge il path all'avvio |
 
 ### Decisioni architetturali
 

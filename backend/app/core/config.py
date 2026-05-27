@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
     ALLOWED_HOSTS: str = "*"
 
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+
     COINGECKO_API_KEY: str = ""
     OPENFIGI_APY_KEY: str = ""  # nota: typo intenzionale nel .env
 

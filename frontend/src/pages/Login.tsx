@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, TrendingUp, BarChart2, Shield, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { authService } from "@/services/auth";
@@ -104,6 +104,12 @@ export function Login() {
 
   const credForm = useForm<CredData>({ resolver: zodResolver(credSchema) });
   const totpForm = useForm<TotpData>({ resolver: zodResolver(totpSchema) });
+
+  const { data: regStatus } = useQuery({
+    queryKey: ["registration-status"],
+    queryFn: authService.getRegistrationStatus,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: CredData) => authService.login(email, password),
@@ -275,13 +281,26 @@ export function Login() {
                   {!loginMutation.isPending && <ArrowRight className="w-4 h-4" />}
                 </Button>
 
-                <div className="text-center pt-1">
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-gray-400 hover:text-blue-600 transition-colors"
-                  >
-                    {t("auth.forgotPassword")}
-                  </Link>
+                <div className="text-center pt-1 space-y-2">
+                  <div>
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      {t("auth.forgotPassword")}
+                    </Link>
+                  </div>
+                  {regStatus?.allow_public_registration && (
+                    <div>
+                      <span className="text-sm text-gray-400">{t("auth.noAccount")} </span>
+                      <Link
+                        to="/register"
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      >
+                        {t("auth.createAccount")}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </form>
             </>

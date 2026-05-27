@@ -8,6 +8,18 @@ export interface TokenResponse {
   session_token: string | null;
 }
 
+export interface RegisterResponse {
+  requires_verification: boolean;
+  email: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_type: string;
+}
+
+export interface RegistrationStatus {
+  allow_public_registration: boolean;
+}
+
 export interface UserOut {
   id: number;
   email: string;
@@ -30,8 +42,22 @@ export interface UserSettingsOut {
 }
 
 export const authService = {
-  async register(email: string, password: string, name: string): Promise<TokenResponse> {
-    const { data } = await api.post<TokenResponse>("/auth/register", { email, password, name });
+  async register(email: string, password: string, name: string): Promise<RegisterResponse> {
+    const { data } = await api.post<RegisterResponse>("/auth/register", { email, password, name });
+    return data;
+  },
+
+  async verifyEmail(email: string, code: string): Promise<TokenResponse> {
+    const { data } = await api.post<TokenResponse>("/auth/verify-email", { email, code });
+    return data;
+  },
+
+  async resendVerification(email: string): Promise<void> {
+    await api.post("/auth/resend-verification", { email });
+  },
+
+  async getRegistrationStatus(): Promise<RegistrationStatus> {
+    const { data } = await api.get<RegistrationStatus>("/auth/registration-status");
     return data;
   },
 

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { MemoryRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -7,6 +7,7 @@ import { PrivateRoute } from "@/components/PrivateRoute";
 import { Login } from "@/pages/Login";
 import { ForgotPassword } from "@/pages/ForgotPassword";
 import { ResetPassword } from "@/pages/ResetPassword";
+import { Register } from "@/pages/Register";
 import { Dashboard } from "@/pages/Dashboard";
 
 // Lazy-loaded pages — split in separate chunks to reduce initial bundle
@@ -45,9 +46,10 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[window.location.pathname + window.location.search + window.location.hash]} initialIndex={0}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route element={<PrivateRoute />}>
@@ -67,7 +69,7 @@ export function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </MemoryRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );

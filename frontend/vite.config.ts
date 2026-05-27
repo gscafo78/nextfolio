@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/apple-touch-icon.png", "icons/favicon-32x32.png"],
+      includeAssets: ["icons/apple-touch-icon-v2.png", "icons/favicon-32x32.png"],
       manifest: {
         name: "Nextfolio",
         short_name: "Nextfolio",
@@ -24,17 +24,17 @@ export default defineConfig({
         lang: "it",
         icons: [
           {
-            src: "/icons/icon-192x192.png",
+            src: "/icons/icon-192x192-v2.png",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: "/icons/icon-512x512.png",
+            src: "/icons/icon-512x512-v2.png",
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: "/icons/icon-512x512.png",
+            src: "/icons/icon-512x512-v2.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

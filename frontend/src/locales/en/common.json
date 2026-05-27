@@ -87,7 +87,22 @@
     "passwordNoMatch": "Passwords do not match.",
     "resetTokenExpired": "Invalid or expired link. Request a new reset.",
     "minCharsPlaceholder": "Minimum 8 characters",
-    "repeatPlaceholder": "Repeat password"
+    "repeatPlaceholder": "Repeat password",
+    "createAccount": "Create account",
+    "createAccountDesc": "Sign up to manage your portfolio",
+    "register": "Sign up",
+    "registerError": "Registration failed. Email already in use or registration is closed.",
+    "alreadyAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "confirmPassword": "Confirm password",
+    "verifyEmail": "Verify email",
+    "verifyEmailDesc": "We sent a 6-digit code to {{email}}. Enter it below.",
+    "verificationCode": "Verification code",
+    "codeExpires": "Code expires in",
+    "codeExpired": "The code has expired. Request a new one.",
+    "resendCode": "Resend code",
+    "resendIn": "Resend available in",
+    "backToRegister": "Back to registration"
   },
   "dashboard": {
     "greeting": "Hello, {{name}}",
@@ -612,7 +627,9 @@
     "resetLinkSent": "Link sent!",
     "resetLinkError": "Error sending. Check SMTP configuration.",
     "noUsers": "No users found.",
-    "deleteUserConfirm": "Delete user {{email}}?"
+    "deleteUserConfirm": "Delete user {{email}}?",
+    "publicRegistration": "Public registration",
+    "publicRegistrationDesc": "Allow anyone to create an account via the registration page."
   },
   "holdingDetail": {
     "overview": "Overview",

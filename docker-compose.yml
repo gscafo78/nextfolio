@@ -77,6 +77,7 @@ services:
       SMTP_PASSWORD:     ${SMTP_PASSWORD:-}
       EMAILS_FROM:       ${EMAILS_FROM:-}
       APP_URL:           ${APP_URL:?APP_URL required}
+      SENTRY_DSN:        ${SENTRY_DSN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +107,7 @@ services:
       SECRET_KEY:        ${SECRET_KEY}
       COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
       OPENFIGI_APY_KEY:  ${OPENFIGI_APY_KEY:-}
+      SENTRY_DSN:        ${SENTRY_DSN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,6 +136,7 @@ services:
       DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}
       REDIS_URL:         redis://:${REDIS_PASSWORD}@redis:6379/0
       SECRET_KEY:        ${SECRET_KEY}
+      SENTRY_DSN:        ${SENTRY_DSN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,6 +156,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: nextfolio_frontend
     restart: unless-stopped
     security_opt: [no-new-privileges:true]

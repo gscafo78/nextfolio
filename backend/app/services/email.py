@@ -94,6 +94,24 @@ async def send_welcome(to: str, name: str, temp_password: str) -> None:
     await send_email(to, "Benvenuto su Nextfolio!", html)
 
 
+async def send_verification_code(to: str, code: str, name: str) -> None:
+    html = _base(
+        f"Verifica il tuo account, {name}!",
+        f"""
+        <p>Hai richiesto la registrazione su Nextfolio. Inserisci il codice qui sotto per completare la verifica.</p>
+        <div style="margin:28px 0;text-align:center">
+          <span style="display:inline-block;background:#f0fdf4;border:2px solid #10b981;border-radius:12px;
+                       padding:16px 32px;font-size:36px;font-weight:700;letter-spacing:12px;color:#065f46">
+            {code}
+          </span>
+        </div>
+        <p>Il codice è valido per <strong>15 minuti</strong>.</p>
+        <p class="note">Se non hai richiesto tu questa registrazione, ignora questa email.</p>
+        """,
+    )
+    await send_email(to, "Codice di verifica — Nextfolio", html)
+
+
 async def send_test(to: str) -> None:
     html = _base(
         "Email di test",

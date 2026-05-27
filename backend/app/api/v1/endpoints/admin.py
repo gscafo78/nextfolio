@@ -11,7 +11,8 @@ from app.core.deps import require_superadmin
 from app.core.security import create_password_reset_token, hash_password
 from app.models.asset import Asset, AssetType
 from app.models.user import User
-from app.schemas.user import UserAdminOut, UserAdminUpdate, UserCreate
+from app.schemas.user import AppSettingsOut, AppSettingsUpdate, UserAdminOut, UserAdminUpdate, UserCreate
+from app.services.app_settings import is_public_registration_allowed, set_public_registration
 from app.services.email import send_password_reset, send_test, send_welcome
 from app.services.audit import (
     BULK_ENRICH,
@@ -44,6 +45,26 @@ class AuditLogOut(BaseModel):
     model_config = {"from_attributes": True}
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+# ── App settings ──────────────────────────────────────────────────────────────
+
+@router.get("/settings", response_model=AppSettingsOut)
+async def get_settings(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+):
+    return AppSettingsOut(allow_public_registration=await is_public_registration_allowed(db))
+
+
+@router.patch("/settings", response_model=AppSettingsOut)
+async def update_settings_endpoint(
+    body: AppSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_superadmin),
+):
+    await set_public_registration(db, body.allow_public_registration)
+    return AppSettingsOut(allow_public_registration=body.allow_public_registration)
 
 
 @router.get("/users", response_model=list[UserAdminOut])

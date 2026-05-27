@@ -223,6 +223,48 @@ function CreateModal({ onClose }: CreateModalProps) {
   );
 }
 
+function RegistrationToggleSection() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-app-settings"],
+    queryFn: adminService.getAppSettings,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (val: boolean) => adminService.updateAppSettings(val),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-app-settings"] }),
+  });
+
+  const enabled = data?.allow_public_registration ?? false;
+
+  return (
+    <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{t("admin.publicRegistration")}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{t("admin.publicRegistrationDesc")}</p>
+      </div>
+      <button
+        type="button"
+        disabled={isLoading || mutation.isPending}
+        onClick={() => mutation.mutate(!enabled)}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+          enabled ? "bg-emerald-500" : "bg-gray-200"
+        }`}
+        role="switch"
+        aria-checked={enabled}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            enabled ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 function AuditLogSection() {
   const [open, setOpen] = useState(false);
   const [filterAction, setFilterAction] = useState("");
@@ -535,6 +577,7 @@ export function Admin() {
         )}
       </div>
 
+      <RegistrationToggleSection />
       <AuditLogSection />
 
       {editing && <EditModal user={editing} onClose={() => setEditing(null)} />}

@@ -1,13 +1,24 @@
+import sentry_sdk
 from celery import Celery
 from celery.schedules import crontab
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from app.core.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.APP_ENV,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        integrations=[CeleryIntegration()],
+        send_default_pii=False,
+    )
 
 celery_app = Celery(
     "nextfolio",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.prices", "app.tasks.alerts"],
+    include=["app.tasks.prices", "app.tasks.alerts", "app.tasks.registration"],
 )
 
 celery_app.conf.update(
@@ -49,6 +60,11 @@ celery_app.conf.beat_schedule = {
     "cleanup-old-prices": {
         "task": "app.tasks.prices.cleanup_old_prices",
         "schedule": crontab(hour=0, minute=0, day_of_week="sun"),
+    },
+    # Pulizia utenti non verificati: ogni giorno alle 03:00
+    "cleanup-unverified-users": {
+        "task": "app.tasks.registration.cleanup_unverified_users",
+        "schedule": crontab(hour=3, minute=0),
     },
     # Alert di prezzo: ogni 5 minuti
     "check-price-alerts": {

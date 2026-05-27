@@ -119,3 +119,28 @@ class ResetPasswordRequest(BaseModel):
         if len(v) < 8:
             raise ValueError("La password deve essere di almeno 8 caratteri")
         return v
+
+
+class RegisterResponse(BaseModel):
+    requires_verification: bool = False
+    email: str | None = None
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str = "bearer"
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class AppSettingsOut(BaseModel):
+    allow_public_registration: bool
+
+
+class AppSettingsUpdate(BaseModel):
+    allow_public_registration: bool

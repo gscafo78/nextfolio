@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +16,11 @@ from app.core.security import (
 )
 from app.models.user import User, UserRole
 from app.schemas.user import (
+    AppSettingsOut,
     ForgotPasswordRequest,
     RefreshRequest,
+    RegisterResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     TwoFactorSetupOut,
@@ -23,8 +28,16 @@ from app.schemas.user import (
     UserLogin,
     UserOut,
     UserRegister,
+    VerifyEmailRequest,
 )
-from app.services.email import send_password_reset
+from app.services.app_settings import (
+    clear_verification_token,
+    generate_otp,
+    is_public_registration_allowed,
+    set_verification_token,
+    verify_otp,
+)
+from app.services.email import send_password_reset, send_verification_code
 from app.services.two_factor import generate_secret, get_provisioning_uri, verify_code
 from app.services.user import count_users, create_user, get_user_by_email, get_user_by_id, update_user
 
@@ -38,21 +51,91 @@ def _tokens(user: User) -> TokenResponse:
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.get("/registration-status", response_model=AppSettingsOut)
+async def registration_status(db: AsyncSession = Depends(get_db)):
+    """Pubblico — indica se la registrazione autonoma è abilitata."""
+    allowed = await is_public_registration_allowed(db)
+    return AppSettingsOut(allow_public_registration=allowed)
+
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
-    """Disponibile solo per creare il primo superadmin. Dopo, usa /admin/users."""
     total = await count_users(db)
-    if total > 0:
+
+    # Primo utente → SUPERADMIN senza verifica
+    if total == 0:
+        existing = await get_user_by_email(db, body.email)
+        if existing:
+            raise HTTPException(status_code=400, detail="Email già registrata")
+        user = await create_user(db, body.email, hash_password(body.password), body.name, role=UserRole.SUPERADMIN)
+        return RegisterResponse(
+            access_token=create_access_token(str(user.id)),
+            refresh_token=create_refresh_token(str(user.id)),
+        )
+
+    # Registrazione pubblica disabilitata
+    allowed = await is_public_registration_allowed(db)
+    if not allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Registrazione pubblica disabilitata. Contatta l'amministratore.",
         )
-    existing = await get_user_by_email(db, body.email)
-    if existing:
-        raise HTTPException(status_code=400, detail="Email già registrata")
 
-    user = await create_user(db, body.email, hash_password(body.password), body.name, role=UserRole.SUPERADMIN)
-    return _tokens(user)
+    # Registrazione pubblica abilitata — non rivela se email esiste
+    existing = await get_user_by_email(db, body.email)
+    if existing and existing.email_verified:
+        # Email già attiva: rispondi come se fosse OK (no user enumeration)
+        return RegisterResponse(requires_verification=True, email=body.email)
+
+    if existing and not existing.email_verified:
+        # Utente già registrato ma non verificato: reinvia OTP
+        user = existing
+    else:
+        user = await create_user(
+            db, body.email, hash_password(body.password), body.name, role=UserRole.USER
+        )
+
+    code, code_hash = generate_otp()
+    await set_verification_token(db, user, code_hash)
+    try:
+        await send_verification_code(user.email, code, user.name)
+    except Exception:
+        pass
+    return RegisterResponse(requires_verification=True, email=body.email)
+
+
+@router.post("/verify-email", response_model=RegisterResponse)
+async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_email(db, body.email)
+    # Risposta generica per non rivelare se l'email esiste
+    if not user or user.email_verified or not user.email_verification_token:
+        raise HTTPException(status_code=400, detail="Codice non valido o scaduto")
+
+    if user.email_verification_expires and user.email_verification_expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Codice scaduto. Richiedi un nuovo codice.")
+
+    if not verify_otp(body.code, user.email_verification_token):
+        raise HTTPException(status_code=400, detail="Codice non valido o scaduto")
+
+    await clear_verification_token(db, user)
+    return RegisterResponse(
+        access_token=create_access_token(str(user.id)),
+        refresh_token=create_refresh_token(str(user.id)),
+    )
+
+
+@router.post("/resend-verification", status_code=202)
+async def resend_verification(body: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    """Reinvia OTP. Risponde sempre 202 per non rivelare se l'email esiste."""
+    user = await get_user_by_email(db, body.email)
+    if user and not user.email_verified:
+        code, code_hash = generate_otp()
+        await set_verification_token(db, user, code_hash)
+        try:
+            await send_verification_code(user.email, code, user.name)
+        except Exception:
+            pass
+    return {"detail": "Se l'email esiste e non è verificata, riceverai un nuovo codice."}
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -62,6 +145,8 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabilitato")
+    if not user.email_verified:
+        raise HTTPException(status_code=403, detail="Email non verificata. Controlla la tua casella di posta.")
 
     if user.two_factor_enabled:
         return TokenResponse(
@@ -112,7 +197,6 @@ async def setup_2fa(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Genera un nuovo segreto TOTP (non ancora attivo fino a /2fa/enable)."""
     secret = generate_secret()
     await update_user(db, current_user, two_factor_secret=secret)
     return TwoFactorSetupOut(secret=secret, uri=get_provisioning_uri(secret, current_user.email))
@@ -124,7 +208,6 @@ async def enable_2fa(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Attiva il 2FA dopo aver verificato il primo codice."""
     if not current_user.two_factor_secret:
         raise HTTPException(400, "Esegui prima /auth/2fa/setup")
     if not verify_code(current_user.two_factor_secret, body.code):
@@ -138,7 +221,6 @@ async def disable_2fa(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Disattiva il 2FA dopo aver verificato l'ultimo codice valido."""
     if not current_user.two_factor_enabled or not current_user.two_factor_secret:
         raise HTTPException(400, "Il 2FA non è attivo")
     if not verify_code(current_user.two_factor_secret, body.code):
@@ -150,14 +232,13 @@ async def disable_2fa(
 
 @router.post("/forgot-password", status_code=202)
 async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
-    """Invia email di reset password. Risponde sempre 202 per non rivelare se l'email esiste."""
     user = await get_user_by_email(db, body.email)
     if user and user.is_active:
         token = create_password_reset_token(str(user.id))
         try:
             await send_password_reset(user.email, token)
         except Exception:
-            pass  # non rivelare errori SMTP all'utente
+            pass
     return {"detail": "Se l'email esiste, riceverai un link di reset."}
 
 

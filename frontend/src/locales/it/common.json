@@ -87,7 +87,22 @@
     "passwordNoMatch": "Le due password non coincidono.",
     "resetTokenExpired": "Link non valido o scaduto. Richiedi un nuovo reset.",
     "minCharsPlaceholder": "Minimo 8 caratteri",
-    "repeatPlaceholder": "Ripeti la password"
+    "repeatPlaceholder": "Ripeti la password",
+    "createAccount": "Crea account",
+    "createAccountDesc": "Registrati per gestire il tuo portafoglio",
+    "register": "Registrati",
+    "registerError": "Registrazione fallita. Email già in uso o registrazioni chiuse.",
+    "alreadyAccount": "Hai già un account?",
+    "noAccount": "Non hai un account?",
+    "confirmPassword": "Conferma password",
+    "verifyEmail": "Verifica email",
+    "verifyEmailDesc": "Abbiamo inviato un codice a 6 cifre a {{email}}. Inseriscilo qui sotto.",
+    "verificationCode": "Codice di verifica",
+    "codeExpires": "Il codice scade tra",
+    "codeExpired": "Il codice è scaduto. Richiedine uno nuovo.",
+    "resendCode": "Invia di nuovo il codice",
+    "resendIn": "Puoi rinviare tra",
+    "backToRegister": "Torna alla registrazione"
   },
   "dashboard": {
     "greeting": "Ciao, {{name}}",
@@ -612,7 +627,9 @@
     "resetLinkSent": "Link inviato!",
     "resetLinkError": "Errore nell'invio. Controlla la configurazione SMTP.",
     "noUsers": "Nessun utente trovato.",
-    "deleteUserConfirm": "Eliminare l'utente {{email}}?"
+    "deleteUserConfirm": "Eliminare l'utente {{email}}?",
+    "publicRegistration": "Registrazione pubblica",
+    "publicRegistrationDesc": "Permette a chiunque di creare un account tramite la pagina di registrazione."
   },
   "holdingDetail": {
     "overview": "Overview",

@@ -85,4 +85,14 @@ export const adminService = {
   async sendResetLink(userId: number): Promise<void> {
     await api.post(`/admin/email/reset-link/${userId}`);
   },
+
+  // ── App settings ──────────────────────────────────────────────────────────
+  async getAppSettings(): Promise<{ allow_public_registration: boolean }> {
+    const { data } = await api.get<{ allow_public_registration: boolean }>("/admin/settings");
+    return data;
+  },
+
+  async updateAppSettings(allow_public_registration: boolean): Promise<void> {
+    await api.patch("/admin/settings", { allow_public_registration });
+  },
 };
