@@ -9,8 +9,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Wallet, PiggyBank, Percent, Download } from "lucide-react";
-import { api } from "@/services/api";
+import { TrendingUp, Wallet, PiggyBank, Percent } from "lucide-react";
+import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -351,111 +351,17 @@ function PacCalculator() {
   );
 }
 
-// ── Export portafoglio ────────────────────────────────────────────────────────
-
-function ExportCard() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleExport() {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await api.get("/portfolio/export", { responseType: "blob" });
-      const blob = new Blob([resp.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const cd = resp.headers["content-disposition"] as string | undefined;
-      const match = cd?.match(/filename=(.+)/);
-      a.download = match ? match[1] : "nextfolio_export.xlsx";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError("Errore durante l'esportazione. Riprova.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleGhostfolioExport() {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await api.get("/portfolio/export/ghostfolio", { responseType: "blob" });
-      const blob = new Blob([resp.data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const cd = resp.headers["content-disposition"] as string | undefined;
-      const match = cd?.match(/filename=(.+)/);
-      a.download = match ? match[1] : "nextfolio_ghostfolio.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError("Errore durante l'esportazione. Riprova.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-sm font-semibold text-gray-800 mb-1">Esporta dati</h2>
-      <p className="text-xs text-gray-400 mb-4">
-        Scarica un file Excel con tutte le transazioni e le posizioni aperte,
-        oppure esporta in formato Ghostfolio per migrazione.
-      </p>
-
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleExport}
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            {loading ? "Preparazione..." : "Scarica Excel (.xlsx)"}
-          </button>
-          <button
-            onClick={handleGhostfolioExport}
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Esporta Ghostfolio (.json)
-          </button>
-        </div>
-
-        <div className="text-xs text-gray-400 space-y-1">
-          <p><strong>Excel:</strong> Fogli Transazioni, Posizioni, Info — per commercialista</p>
-          <p><strong>Ghostfolio:</strong> Formato JSON v3 compatibile con import Ghostfolio</p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export function Strumenti() {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 space-y-6">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Strumenti</h1>
-        <p className="text-sm text-gray-500 mt-1">Calcolatori e utilità per la gestione del portafoglio</p>
-      </div>
-
-      <PacCalculator />
-      <ExportCard />
-    </div>
+    <>
+      <TopBar title="Strumenti" />
+      <main className="flex-1">
+        <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 space-y-6">
+          <PacCalculator />
+        </div>
+      </main>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History } from "lucide-react";
 import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
 import { portfolioService } from "@/services/portfolio";
+import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -548,13 +549,12 @@ export function Fiscale() {
     report?.prior_carryforward_govt.reduce((s, e) => s + e.amount, 0) ?? 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <>
+      <TopBar title="Fiscale" />
+      <main className="flex-1">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fiscale</h1>
-          <p className="text-sm text-gray-500 mt-1">Riepilogo imposte — normativa italiana</p>
-        </div>
+      <div className="flex items-center justify-end">
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -657,6 +657,8 @@ export function Fiscale() {
         </>
       )}
     </div>
+      </main>
+    </>
   );
 }
 

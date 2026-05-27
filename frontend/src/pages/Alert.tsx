@@ -5,6 +5,7 @@ import { alertService, type AlertOut, type AlertType, type AlertCreate } from "@
 import { assetService, type Asset } from "@/services/transactions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { TopBar } from "@/components/layout/TopBar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -258,12 +259,11 @@ export function Alert() {
   const triggered = alerts.filter((a) => a.last_triggered_at && a.is_active);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Alert</h1>
-          <p className="text-sm text-gray-500 mt-1">Notifiche automatiche sui prezzi</p>
-        </div>
+    <>
+      <TopBar title="Alert" />
+      <main className="flex-1">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="flex items-center justify-end">
         <Button onClick={() => setCreating(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Nuovo alert
@@ -338,5 +338,7 @@ export function Alert() {
 
       {creating && <CreateModal onClose={() => setCreating(false)} />}
     </div>
+      </main>
+    </>
   );
 }

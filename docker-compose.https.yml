@@ -1,0 +1,39 @@
+# Override per deploy HTTPS diretto con Let's Encrypt.
+#
+# Utilizzo:
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+#
+# Prima del primo avvio, ottieni il certificato:
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml \
+#     run --rm certbot certonly --webroot \
+#       -w /var/www/certbot \
+#       --cert-name nextfolio \
+#       --email admin@tuodominio.com \
+#       -d tuodominio.com \
+#       --agree-tos --no-eff-email
+#
+# Poi avvia normalmente. Il certificato si rinnova automaticamente ogni 12h.
+
+services:
+  frontend:
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./frontend/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: nextfolio_certbot
+    restart: unless-stopped
+    # Rinnovo automatico: controlla ogni 12h, certbot rinnova se scade entro 30gg
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done"
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+volumes:
+  certbot_certs:
+  certbot_www:

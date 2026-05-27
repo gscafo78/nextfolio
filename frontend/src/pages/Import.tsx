@@ -2,8 +2,10 @@ import { useState, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Upload, ChevronRight, Check, AlertCircle, Search,
-  Plus, SkipForward, ArrowRight, Loader2, X,
+  Plus, SkipForward, ArrowRight, Loader2, X, Download,
 } from "lucide-react";
+import { api } from "@/services/api";
+import { TopBar } from "@/components/layout/TopBar";
 import {
   importerService,
   type GhostfolioPreview,
@@ -16,6 +18,195 @@ import { accountService } from "@/services/transactions";
 import { assetService } from "@/services/transactions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+
+// ── Export helpers ────────────────────────────────────────────────────────────
+
+function downloadBlob(blob: Blob, fallbackName: string, headers: Record<string, string>) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const cd = headers["content-disposition"] as string | undefined;
+  const match = cd?.match(/filename=(.+)/);
+  a.download = match ? match[1] : fallbackName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ExportCard() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleExport() {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.get("/portfolio/export", { responseType: "blob" });
+      downloadBlob(
+        new Blob([resp.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+        "nextfolio_export.xlsx",
+        resp.headers,
+      );
+    } catch {
+      setError("Errore durante l'esportazione. Riprova.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGhostfolioExport() {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.get("/portfolio/export/ghostfolio", { responseType: "blob" });
+      downloadBlob(new Blob([resp.data], { type: "application/json" }), "nextfolio_ghostfolio.json", resp.headers);
+    } catch {
+      setError("Errore durante l'esportazione. Riprova.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleNextfolioExport() {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.get("/portfolio/export/nextfolio", { responseType: "blob" });
+      downloadBlob(new Blob([resp.data], { type: "application/json" }), "nextfolio_backup.json", resp.headers);
+    } catch {
+      setError("Errore durante l'esportazione. Riprova.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-5">
+      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">Esporta dati</h2>
+      <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
+        Backup completo, Excel per il commercialista, o formato Ghostfolio per migrazione.
+      </p>
+
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleNextfolioExport}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Backup Nextfolio (.json)
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            {loading ? "Preparazione..." : "Scarica Excel (.xlsx)"}
+          </button>
+          <button
+            onClick={handleGhostfolioExport}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Esporta Ghostfolio (.json)
+          </button>
+        </div>
+
+        <div className="text-xs text-gray-400 dark:text-slate-500 space-y-1">
+          <p><strong className="text-gray-600 dark:text-slate-400">Backup Nextfolio:</strong> Tutti i dati (conti, asset, transazioni) — per ripristino o migrazione</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">Excel:</strong> Fogli Transazioni, Posizioni, Info — per commercialista</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">Ghostfolio:</strong> Formato JSON v3 compatibile con import Ghostfolio</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RestoreCard() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    accounts_created: number;
+    assets_created: number;
+    transactions_imported: number;
+    transactions_skipped: number;
+  } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      const resp = await api.post("/import/nextfolio", { raw });
+      setResult(resp.data);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg ?? "Errore durante l'importazione. Verifica che il file sia un backup Nextfolio valido.");
+    } finally {
+      setLoading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-5">
+      <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">Ripristina backup</h2>
+      <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
+        Importa un file <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">nextfolio_backup_*.json</code>.
+        I duplicati vengono ignorati automaticamente.
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleFile}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={loading}
+        className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <Download className="w-4 h-4 rotate-180" />
+        {loading ? "Importazione in corso..." : "Seleziona backup (.json)"}
+      </button>
+
+      {result && (
+        <div className="mt-4 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-3 space-y-0.5">
+          <p className="font-semibold text-green-700 dark:text-green-400 mb-1">Importazione completata</p>
+          <p className="text-green-600 dark:text-green-500">Conti creati: <strong>{result.accounts_created}</strong></p>
+          <p className="text-green-600 dark:text-green-500">Asset creati: <strong>{result.assets_created}</strong></p>
+          <p className="text-green-600 dark:text-green-500">Transazioni importate: <strong>{result.transactions_imported}</strong></p>
+          {result.transactions_skipped > 0 && (
+            <p className="text-gray-500 dark:text-slate-400">Transazioni duplicate saltate: {result.transactions_skipped}</p>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -695,11 +886,18 @@ export function Import() {
     : false;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Importa da Ghostfolio</h1>
-        <p className="text-sm text-gray-500 mt-1">Wizard interattivo — risolvi ogni ambiguità prima di importare</p>
-      </div>
+    <>
+      <TopBar title="Importa / Esporta" />
+      <main className="flex-1">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <ExportCard />
+      <RestoreCard />
+
+      <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Importa da Ghostfolio</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Wizard interattivo — risolvi ogni ambiguità prima di importare</p>
+        </div>
 
       <Stepper current={step} />
 
@@ -783,6 +981,9 @@ export function Import() {
           )}
         </div>
       )}
-    </div>
+      </div>
+      </div>
+      </main>
+    </>
   );
 }

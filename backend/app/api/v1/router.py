@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, assets, accounts, transactions, fx, prices, portfolio, admin, user_settings, tax, alerts, import_ghostfolio, export
+from app.api.v1.endpoints import auth, assets, accounts, transactions, fx, prices, portfolio, admin, user_settings, tax, alerts, import_ghostfolio, import_nextfolio, export
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
@@ -16,3 +16,4 @@ api_router.include_router(user_settings.router)
 api_router.include_router(tax.router)
 api_router.include_router(alerts.router)
 api_router.include_router(import_ghostfolio.router)
+api_router.include_router(import_nextfolio.router)

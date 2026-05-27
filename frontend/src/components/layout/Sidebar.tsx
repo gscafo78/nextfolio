@@ -8,8 +8,6 @@ import {
   Wrench,
   Bell,
   Upload,
-  Settings,
-  LogOut,
   ShieldCheck,
   Coins,
 } from "lucide-react";
@@ -25,12 +23,11 @@ const navItems = [
   { to: "/dividendi", label: "Dividendi", icon: Coins },
   { to: "/strumenti", label: "Strumenti", icon: Wrench },
   { to: "/alert", label: "Alert", icon: Bell },
-  { to: "/import", label: "Importa", icon: Upload },
-  { to: "/impostazioni", label: "Impostazioni", icon: Settings },
+  { to: "/import", label: "Importa / Esporta", icon: Upload },
 ];
 
 export function Sidebar() {
-  const { user, logout, isSuperAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
 
   return (
     <aside className="hidden md:flex w-64 min-h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 flex-col">
@@ -72,17 +69,6 @@ export function Sidebar() {
           </NavLink>
         )}
       </nav>
-
-      <div className="px-3 py-4 border-t border-gray-200 dark:border-slate-700">
-        <div className="px-3 py-2 text-xs text-gray-500 dark:text-slate-500 truncate">{user?.email}</div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          Esci
-        </button>
-      </div>
     </aside>
   );
 }

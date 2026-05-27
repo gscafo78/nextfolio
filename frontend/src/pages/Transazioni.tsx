@@ -215,6 +215,8 @@ export function Transazioni() {
   const [holdingAssetId, setHoldingAssetId] = useState<number | null>(null);
   const [filterAccountId, setFilterAccountId] = useState<number | "">("");
   const [filterType, setFilterType] = useState<TransactionType | "">("");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const qc = useQueryClient();
 
   const { data: accounts = [] } = useQuery({
@@ -243,6 +245,12 @@ export function Transazioni() {
 
   const activeFilters = (filterAccountId !== "" ? 1 : 0) + (filterType !== "" ? 1 : 0);
 
+  const totalPages = Math.max(1, Math.ceil(transactions.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedTx = transactions.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  function resetPage() { setCurrentPage(1); }
+
   return (
     <>
       <TopBar title="Transazioni" />
@@ -257,7 +265,7 @@ export function Transazioni() {
 
           <select
             value={filterAccountId}
-            onChange={(e) => setFilterAccountId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => { setFilterAccountId(e.target.value ? Number(e.target.value) : ""); resetPage(); }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
             <option value="">Tutti i conti</option>
@@ -268,7 +276,7 @@ export function Transazioni() {
 
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value as TransactionType | "")}
+            onChange={(e) => { setFilterType(e.target.value as TransactionType | ""); resetPage(); }}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
             <option value="">Tutti i tipi</option>
@@ -279,7 +287,7 @@ export function Transazioni() {
 
           {activeFilters > 0 && (
             <button
-              onClick={() => { setFilterAccountId(""); setFilterType(""); }}
+              onClick={() => { setFilterAccountId(""); setFilterType(""); resetPage(); }}
               className="text-xs text-brand-600 hover:underline"
             >
               Rimuovi filtri
@@ -288,9 +296,21 @@ export function Transazioni() {
 
           <div className="flex-1" />
 
+          {/* Righe per pagina */}
+          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <span className="hidden sm:inline">Righe:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); resetPage(); }}
+              className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
           {/* Sommario rapido */}
           <span className="text-sm text-gray-500">
-            {transactions.length} operazioni
+            {transactions.length} op.
           </span>
 
           <div className="flex gap-2">
@@ -350,7 +370,7 @@ export function Transazioni() {
 
             {/* ── Mobile: card list ── */}
             <div className="md:hidden divide-y divide-gray-100">
-              {transactions.map((tx) => {
+              {paginatedTx.map((tx) => {
                 const account = accounts.find((a) => a.id === tx.account_id);
                 return (
                   <div key={tx.id} className="px-4 py-3">
@@ -403,6 +423,18 @@ export function Transazioni() {
               })}
             </div>
 
+            {/* ── Paginazione mobile ── */}
+            {totalPages > 1 && (
+              <div className="md:hidden flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+                <span className="text-xs">{(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} di {transactions.length}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={safePage === 1} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">←</button>
+                  <span className="px-2 text-xs">{safePage}/{totalPages}</span>
+                  <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">→</button>
+                </div>
+              </div>
+            )}
+
             {/* ── Desktop: full table ── */}
             <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
@@ -421,7 +453,7 @@ export function Transazioni() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {transactions.map((tx) => {
+                {paginatedTx.map((tx) => {
                   const account = accounts.find((a) => a.id === tx.account_id);
                   return (
                     <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
@@ -521,6 +553,34 @@ export function Transazioni() {
               )}
             </table>
             </div>
+
+            {/* ── Paginazione ── */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+                <span>
+                  {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} di {transactions.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Indietro
+                  </button>
+                  <span className="px-3 text-xs">
+                    {safePage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Avanti →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

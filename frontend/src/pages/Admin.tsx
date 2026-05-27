@@ -7,6 +7,7 @@ import { UserPlus, Pencil, Trash2, ShieldCheck, ShieldOff, X, ChevronDown, Clipb
 import { adminService, type UserAdminOut, type UserAdminUpdate } from "@/services/admin";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { TopBar } from "@/components/layout/TopBar";
 
 const createSchema = z.object({
   email: z.string().email("Email non valida"),
@@ -434,12 +435,11 @@ export function Admin() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Amministrazione</h1>
-          <p className="text-sm text-gray-500 mt-1">Gestisci gli utenti dell'applicazione</p>
-        </div>
+    <>
+      <TopBar title="Amministrazione" />
+      <main className="flex-1">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-end mb-6">
         <Button onClick={() => setCreating(true)}>
           <UserPlus className="w-4 h-4 mr-2" />
           Nuovo utente
@@ -524,5 +524,7 @@ export function Admin() {
       {creating && <CreateModal onClose={() => setCreating(false)} />}
       {welcomeUser && <WelcomeEmailModal user={welcomeUser} onClose={() => setWelcomeUser(null)} />}
     </div>
+      </main>
+    </>
   );
 }

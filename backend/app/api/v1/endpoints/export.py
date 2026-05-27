@@ -273,3 +273,105 @@ async def export_ghostfolio(
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/export/nextfolio")
+async def export_nextfolio(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Esporta tutti i dati in formato Nextfolio JSON.
+    Il file è asettico: non contiene email, user_id o altri dati personali.
+    Gli ID interni sono sostituiti con riferimenti posizionali autosufficienti.
+    """
+    from app.models.account import Account
+
+    accounts_result = await db.execute(
+        select(Account).where(Account.user_id == current_user.id).order_by(Account.id)
+    )
+    accounts = list(accounts_result.scalars())
+
+    stmt = (
+        select(Transaction)
+        .join(Transaction.account)
+        .where(Transaction.account.has(user_id=current_user.id))
+        .options(
+            selectinload(Transaction.asset),
+            selectinload(Transaction.account),
+        )
+        .order_by(Transaction.date.asc(), Transaction.id.asc())
+    )
+    result = await db.execute(stmt)
+    transactions = list(result.scalars())
+
+    # Raccoglie gli asset unici nell'ordine in cui compaiono
+    assets_seen: dict[int, object] = {}
+    for tx in transactions:
+        if tx.asset_id not in assets_seen:
+            assets_seen[tx.asset_id] = tx.asset
+
+    # Mappa DB id → id posizionale nel file (1-based)
+    account_id_map = {a.id: idx + 1 for idx, a in enumerate(accounts)}
+    asset_id_map = {a_id: idx + 1 for idx, a_id in enumerate(assets_seen)}
+
+    def _val(obj, attr: str) -> str:
+        v = getattr(obj, attr, None)
+        return v.value if hasattr(v, "value") else (str(v) if v is not None else "")
+
+    payload = {
+        "meta": {
+            "version": "1",
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "app": "nextfolio",
+        },
+        "accounts": [
+            {
+                "id": account_id_map[a.id],
+                "name": a.name,
+                "type": _val(a, "type"),
+                "broker": a.broker or "",
+                "currency": a.currency or "EUR",
+                "url": a.url or "",
+            }
+            for a in accounts
+        ],
+        "assets": [
+            {
+                "id": asset_id_map[a_id],
+                "symbol": asset.symbol,
+                "name": asset.name,
+                "isin": asset.isin or "",
+                "type": _val(asset, "type"),
+                "exchange": _val(asset, "exchange"),
+                "currency": asset.currency,
+                "sector": asset.sector or "",
+            }
+            for a_id, asset in assets_seen.items()
+        ],
+        "transactions": [
+            {
+                "account_id": account_id_map[tx.account_id],
+                "asset_id": asset_id_map[tx.asset_id],
+                "type": _val(tx, "type"),
+                "date": tx.date.isoformat(),
+                "quantity": float(tx.quantity),
+                "price": float(tx.price),
+                "fee": float(tx.fee),
+                "price_currency": tx.price_currency,
+                "exchange_rate": float(tx.exchange_rate),
+                "fee_currency": tx.fee_currency,
+                "notes": tx.notes or "",
+            }
+            for tx in transactions
+            if tx.account_id in account_id_map and tx.asset_id in asset_id_map
+        ],
+    }
+
+    filename = f"nextfolio_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    content = json.dumps(payload, ensure_ascii=False, indent=2)
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
