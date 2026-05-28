@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -106,7 +106,16 @@ export function Login() {
   const [remember, setRemember] = useState(true);
 
   const credForm = useForm<CredData>({ resolver: zodResolver(credSchema) });
-  const totpForm = useForm<TotpData>({ resolver: zodResolver(totpSchema) });
+  const totpForm = useForm<TotpData>({ resolver: zodResolver(totpSchema), defaultValues: { code: "" } });
+
+  // Il browser autofilla il campo codice con l'email appena inserita.
+  // Il delay lascia che l'autofill avvenga, poi lo sovrascriviamo.
+  useEffect(() => {
+    if (step === "totp") {
+      const t = setTimeout(() => totpForm.setValue("code", ""), 50);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
 
   const { data: regStatus } = useQuery({
     queryKey: ["registration-status"],
@@ -331,6 +340,7 @@ export function Login() {
 
               <form
                 onSubmit={totpForm.handleSubmit((d) => totpMutation.mutate(d))}
+                autoComplete="off"
                 className="space-y-4"
               >
                 <Input
