@@ -534,6 +534,8 @@
     "exportBackupDesc": "All data (accounts, assets, transactions) — for restore or migration",
     "exportExcelDesc": "Transactions, Positions, Info sheets — for accountant",
     "exportGhostfolioDesc": "JSON v3 format compatible with Ghostfolio import",
+    "exportPdf": "Download PDF (.pdf)",
+    "exportPdfDesc": "Printable report with open positions and transaction history",
     "exportError": "Export error. Please try again.",
     "restoreTitle": "Restore backup",
     "restoreDesc": "Import a nextfolio_backup_*.json file. Duplicates are automatically skipped.",

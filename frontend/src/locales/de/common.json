@@ -534,6 +534,8 @@
     "exportBackupDesc": "Alle Daten (Konten, Wertpapiere, Transaktionen) — zur Wiederherstellung oder Migration",
     "exportExcelDesc": "Blätter Transaktionen, Positionen, Info — für Steuerberater",
     "exportGhostfolioDesc": "JSON v3-Format kompatibel mit Ghostfolio-Import",
+    "exportPdf": "PDF herunterladen (.pdf)",
+    "exportPdfDesc": "Druckbarer Bericht mit offenen Positionen und Transaktionshistorie",
     "exportError": "Exportfehler. Bitte erneut versuchen.",
     "restoreTitle": "Backup wiederherstellen",
     "restoreDesc": "Importieren Sie eine nextfolio_backup_*.json-Datei. Duplikate werden automatisch übersprungen.",

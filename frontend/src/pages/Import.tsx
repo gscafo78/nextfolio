@@ -54,6 +54,19 @@ function ExportCard() {
     }
   }
 
+  async function handlePdfExport() {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.get("/portfolio/export/pdf", { responseType: "blob" });
+      downloadBlob(new Blob([resp.data], { type: "application/pdf" }), "nextfolio_report.pdf", resp.headers);
+    } catch {
+      setError(t("import.exportError"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleGhostfolioExport() {
     setLoading(true);
     setError(null);
@@ -106,6 +119,14 @@ function ExportCard() {
             {loading ? t("common.prepare") : t("import.exportExcel")}
           </button>
           <button
+            onClick={handlePdfExport}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            {loading ? t("common.prepare") : t("import.exportPdf")}
+          </button>
+          <button
             onClick={handleGhostfolioExport}
             disabled={loading}
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -118,6 +139,7 @@ function ExportCard() {
         <div className="text-xs text-gray-400 dark:text-slate-500 space-y-1">
           <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportBackup")}:</strong> {t("import.exportBackupDesc")}</p>
           <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportExcel")}:</strong> {t("import.exportExcelDesc")}</p>
+          <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportPdf")}:</strong> {t("import.exportPdfDesc")}</p>
           <p><strong className="text-gray-600 dark:text-slate-400">{t("import.exportGhostfolio")}:</strong> {t("import.exportGhostfolioDesc")}</p>
         </div>
       </div>

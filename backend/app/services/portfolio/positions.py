@@ -36,10 +36,14 @@ class PositionCalc:
         return sum(lot.quantity * lot.cost_per_unit_eur for lot in self.lots) / qty
 
 
-def calculate_positions(transactions: list[Transaction]) -> dict[int, PositionCalc]:
+def calculate_positions(
+    transactions: list[Transaction], include_closed: bool = False
+) -> dict[int, PositionCalc]:
     """
-    Calcola le posizioni aperte con metodo FIFO.
-    Restituisce {asset_id: PositionCalc} solo per asset con quantità > 0.
+    Calcola le posizioni con metodo FIFO.
+    Per default restituisce solo asset con quantità > 0 (posizioni aperte).
+    Con include_closed=True restituisce anche le posizioni interamente vendute
+    (utile per sommare il P&L realizzato totale).
     """
     positions: dict[int, PositionCalc] = {}
 
@@ -72,4 +76,6 @@ def calculate_positions(transactions: list[Transaction]) -> dict[int, PositionCa
             pos.lots = [lot for lot in pos.lots if lot.quantity > 1e-10]
             pos.realized_pnl_eur += proceeds_eur - cost_of_sold
 
+    if include_closed:
+        return positions
     return {k: v for k, v in positions.items() if v.quantity > 1e-6}

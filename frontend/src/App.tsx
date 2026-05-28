@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { MemoryRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -46,7 +46,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-      <MemoryRouter initialEntries={[window.location.pathname + window.location.search + window.location.hash]} initialIndex={0}>
+      <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -69,7 +69,7 @@ export function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </MemoryRouter>
+      </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );

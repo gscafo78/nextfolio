@@ -909,12 +909,43 @@ Backend:                                         Frontend:
   [x] Task Celery cleanup utenti non verificati
 ```
 
-### 12.5 URL Privacy — MemoryRouter ✅ *(aggiunta extra)*
+### 12.5 URL Privacy — MemoryRouter *(rimosso — causava bug di sessione)*
 
-- [x] Sostituito `BrowserRouter` con `MemoryRouter` (con `initialEntries` da `window.location`) in `App.tsx`
-- [x] Il browser mostra sempre e solo `https://nextfolio.myhomecloud.it` — il path corrente (es. `/admin`, `/transazioni`) non è mai visibile nella barra degli indirizzi
-- [x] Link email (reset password, OTP) continuano a funzionare: `initialEntries` legge il path al primo caricamento e il router vi naviga correttamente
-- [x] Navigazione avanti/indietro del browser funziona normalmente (history in memoria)
+> MemoryRouter introdotto per nascondere il path nell'URL del browser, ma causava un bug critico:
+> dopo il login, `navigate("/")` aggiornava solo il router in memoria; il browser URL rimaneva su `/login`.
+> Al successivo F5 il browser ricaricava su `/login` e l'app mostrava di nuovo la login page
+> ignorando i token validi in localStorage.
+>
+> Ripristinato `BrowserRouter` — Nginx è già configurato con `try_files $uri $uri/ /index.html`
+> che serve correttamente l'SPA su qualsiasi path. L'URL del browser aggiorna normalmente.
+
+- [x] Ripristinato `BrowserRouter` in `App.tsx` (rimosso `MemoryRouter`)
+- [x] Nginx `try_files $uri $uri/ /index.html` già presente — nessuna modifica server richiesta
+- [x] F5 / link diretti / link email funzionano correttamente su tutti i path
+
+---
+
+## FASE 13 — Fix post-lancio e miglioramenti UX 🔧
+
+### 13.1 Sessione persistente — "Ricordami" ✅
+
+**Problema:** con "Ricordami" attivo il refresh token durava solo 7 giorni; al rinnovo il flag `remember_me` veniva perso e l'access token tornava a 30 minuti invece di 24h. Dopo 7 giorni di inattività l'utente veniva disconnesso.
+
+- [x] `create_refresh_token(remember_me)` — il flag `rem` è ora codificato nel payload JWT
+- [x] Refresh token con remember_me: **30 giorni** (configurabile via `REFRESH_TOKEN_REMEMBER_ME_DAYS`)
+- [x] `/auth/refresh` legge il flag `rem` dal refresh token e lo propaga al nuovo access token e al nuovo refresh token — la sessione non decade mai finché il refresh token è valido
+- [x] `saveTokens()` in `auth.ts` — `refresh_token` salvato sempre in `localStorage` (indipendentemente da remember_me); solo l'`access_token` può andare in `sessionStorage` se remember=false
+- [x] Aggiunto `REFRESH_TOKEN_REMEMBER_ME_DAYS=30` in `.env`, `backend/.env`, `.env.example` e `config.py`
+
+### 13.2 Login al refresh del browser ✅
+
+**Problema:** ogni F5 richiedeva il login. Causa: `MemoryRouter` non aggiornava l'URL reale del browser dopo il login (`navigate("/")` muoveva solo il router interno); al reload il browser ricaricava su `/login` e l'app mostrava la login page anche con token validi.
+
+- [x] Sostituito `MemoryRouter` con `BrowserRouter` in `App.tsx` (vedi §12.5)
+
+### 13.3 Dashboard — percentuale variazione di oggi ✅
+
+- [x] KPI card "Variazione oggi" mostra ora anche la percentuale `(+0.42%)` sotto al valore in EUR, in linea con la card "Performance periodo"
 
 ---
 
@@ -1032,9 +1063,10 @@ docker compose build
 | 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
 | **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | ✅ **Completata** | 🔴 **Critica** | **< 1 sett.** |
-| **12** | **Registrazione pubblica opzionale con verifica email + URL privacy** | ✅ **Completata** | 🟠 Alta | 2–3 giorni |
+| **12** | **Registrazione pubblica opzionale con verifica email** | ✅ **Completata** | 🟠 Alta | 2–3 giorni |
+| **13** | **Fix post-lancio — sessione persistente, BrowserRouter, dashboard %** | ✅ **Completata** | 🔴 Critica | — |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → ~~FASE 13 (fix post-lancio)~~ ✅
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 
@@ -1088,7 +1120,9 @@ docker compose build
 | Internazionalizzazione (i18n) — IT, EN, FR, DE | 9 | Lingua selezionabile dalle impostazioni; `i18next` + `react-i18next`; `language` su `user_settings` |
 | Piano go-live (VPS, nginx, HTTPS Let's Encrypt, Sentry, UptimeRobot, checklist pre-lancio) | 11 | Roadmap completa dalla dev locale al dominio pubblico; prerequisiti: FASE 9 + FASE 10 completate |
 | Registrazione pubblica con OTP email (`app_settings`, `email_verified`, `send_verification_code`) | 12 | Il superadmin abilita la registrazione; OTP 6 cifre bcrypt-hashed scade in 15 min; cleanup Celery alle 03:00 per utenti non verificati; `allow_public_registration = false` di default |
-| URL Privacy — `MemoryRouter` con `initialEntries` da `window.location` | 12.5 | L'URL rimane sempre `nextfolio.myhomecloud.it` durante tutta la navigazione; link email funzionano grazie a `initialEntries` che legge il path all'avvio |
+| Sessione persistente "Ricordami" — flag `rem` in refresh token, durata 30 giorni, refresh_token sempre in localStorage | 13.1 | Con MemoryRouter il flag remember_me veniva perso ad ogni rinnovo; il refresh token durava solo 7 giorni causando logout frequenti su mobile |
+| Fix login al F5 — `BrowserRouter` in sostituzione di `MemoryRouter` | 13.2 | MemoryRouter non aggiornava l'URL reale del browser dopo login; F5 ricaricava su `/login` ignorando i token validi in localStorage |
+| Dashboard — percentuale variazione giornaliera nella KPI card | 13.3 | La card "Variazione oggi" mostrava solo il valore EUR; aggiunta la percentuale in linea con la card "Performance periodo" |
 
 ### Decisioni architetturali
 
