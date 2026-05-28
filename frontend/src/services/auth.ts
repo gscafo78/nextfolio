@@ -112,9 +112,13 @@ export const authService = {
   },
 
   saveTokens(tokens: TokenResponse, remember = true) {
-    const store = remember ? localStorage : sessionStorage;
-    if (tokens.access_token) store.setItem("access_token", tokens.access_token);
-    if (tokens.refresh_token) store.setItem("refresh_token", tokens.refresh_token);
+    // refresh_token always in localStorage so silent refresh survives browser restarts
+    if (tokens.access_token) {
+      (remember ? localStorage : sessionStorage).setItem("access_token", tokens.access_token);
+    }
+    if (tokens.refresh_token) {
+      localStorage.setItem("refresh_token", tokens.refresh_token);
+    }
     localStorage.setItem("nf-remember", remember ? "1" : "0");
   },
 
@@ -126,7 +130,6 @@ export const authService = {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     sessionStorage.removeItem("access_token");
-    sessionStorage.removeItem("refresh_token");
     localStorage.removeItem("nf-remember");
   },
 

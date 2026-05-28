@@ -47,7 +47,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def _tokens(user: User, remember_me: bool = False) -> TokenResponse:
     return TokenResponse(
         access_token=create_access_token(str(user.id), remember_me=remember_me),
-        refresh_token=create_refresh_token(str(user.id)),
+        refresh_token=create_refresh_token(str(user.id), remember_me=remember_me),
     )
 
 
@@ -179,9 +179,10 @@ async def refresh(body: RefreshRequest):
     user_id = payload.get("sub")
     if not user_id or payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Refresh token non valido")
+    remember_me = bool(payload.get("rem", False))
     return TokenResponse(
-        access_token=create_access_token(user_id),
-        refresh_token=create_refresh_token(user_id),
+        access_token=create_access_token(user_id, remember_me=remember_me),
+        refresh_token=create_refresh_token(user_id, remember_me=remember_me),
     )
 
 

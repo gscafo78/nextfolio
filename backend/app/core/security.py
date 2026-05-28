@@ -22,9 +22,14 @@ def create_access_token(subject: str, remember_me: bool = False) -> str:
     return jwt.encode({"sub": subject, "exp": expire, "type": "access"}, settings.SECRET_KEY, settings.ALGORITHM)
 
 
-def create_refresh_token(subject: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    return jwt.encode({"sub": subject, "exp": expire, "type": "refresh"}, settings.SECRET_KEY, settings.ALGORITHM)
+def create_refresh_token(subject: str, remember_me: bool = False) -> str:
+    days = settings.REFRESH_TOKEN_REMEMBER_ME_DAYS if remember_me else settings.REFRESH_TOKEN_EXPIRE_DAYS
+    expire = datetime.now(timezone.utc) + timedelta(days=days)
+    return jwt.encode(
+        {"sub": subject, "exp": expire, "type": "refresh", "rem": remember_me},
+        settings.SECRET_KEY,
+        settings.ALGORITHM,
+    )
 
 
 def create_2fa_session_token(user_id: str) -> str:

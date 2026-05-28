@@ -362,6 +362,7 @@ export function Dashboard() {
               <KpiCard
                 label={t("dashboard.dailyChange")}
                 value={hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
+                sub={dailyChangePct != null ? `${dailyChangePct >= 0 ? "+" : ""}${dailyChangePct.toFixed(2)}%` : undefined}
                 positive={hasPrices ? dailyChange >= 0 : undefined}
               />
             </div>
