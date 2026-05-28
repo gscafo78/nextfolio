@@ -44,9 +44,9 @@ from app.services.user import count_users, create_user, get_user_by_email, get_u
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _tokens(user: User) -> TokenResponse:
+def _tokens(user: User, remember_me: bool = False) -> TokenResponse:
     return TokenResponse(
-        access_token=create_access_token(str(user.id)),
+        access_token=create_access_token(str(user.id), remember_me=remember_me),
         refresh_token=create_refresh_token(str(user.id)),
     )
 
@@ -154,7 +154,7 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
             session_token=create_2fa_session_token(str(user.id)),
         )
 
-    return _tokens(user)
+    return _tokens(user, remember_me=body.remember_me)
 
 
 @router.post("/2fa/verify", response_model=TokenResponse)
@@ -170,7 +170,7 @@ async def verify_2fa(body: TwoFactorVerify, db: AsyncSession = Depends(get_db)):
     if not verify_code(user.two_factor_secret, body.code):
         raise HTTPException(status_code=401, detail="Codice non valido")
 
-    return _tokens(user)
+    return _tokens(user, remember_me=body.remember_me)
 
 
 @router.post("/refresh", response_model=TokenResponse)

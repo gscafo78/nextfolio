@@ -21,6 +21,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    remember_me: bool = False
 
 
 class UserOut(BaseModel):
@@ -82,6 +83,7 @@ class RefreshRequest(BaseModel):
 class TwoFactorVerify(BaseModel):
     session_token: str
     code: str
+    remember_me: bool = False
 
 
 class TwoFactorSetupOut(BaseModel):

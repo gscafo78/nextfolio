@@ -16,8 +16,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(subject: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+def create_access_token(subject: str, remember_me: bool = False) -> str:
+    minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 48 if remember_me else settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
     return jwt.encode({"sub": subject, "exp": expire, "type": "access"}, settings.SECRET_KEY, settings.ALGORITHM)
 
 

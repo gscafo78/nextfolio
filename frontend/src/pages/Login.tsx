@@ -124,7 +124,7 @@ export function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: ({ email, password }: CredData) => authService.login(email, password),
+    mutationFn: ({ email, password }: CredData) => authService.login(email, password, remember),
     onSuccess: (res) => {
       if (res.requires_2fa && res.session_token) {
         setSessionToken(res.session_token);
@@ -137,7 +137,7 @@ export function Login() {
   });
 
   const totpMutation = useMutation({
-    mutationFn: ({ code }: TotpData) => authService.verify2fa(sessionToken, code),
+    mutationFn: ({ code }: TotpData) => authService.verify2fa(sessionToken, code, remember),
     onSuccess: (res) => {
       authService.saveTokens(res, remember);
       navigate("/");

@@ -61,15 +61,16 @@ export const authService = {
     return data;
   },
 
-  async login(email: string, password: string): Promise<TokenResponse> {
-    const { data } = await api.post<TokenResponse>("/auth/login", { email, password });
+  async login(email: string, password: string, rememberMe = false): Promise<TokenResponse> {
+    const { data } = await api.post<TokenResponse>("/auth/login", { email, password, remember_me: rememberMe });
     return data;
   },
 
-  async verify2fa(sessionToken: string, code: string): Promise<TokenResponse> {
+  async verify2fa(sessionToken: string, code: string, rememberMe = false): Promise<TokenResponse> {
     const { data } = await api.post<TokenResponse>("/auth/2fa/verify", {
       session_token: sessionToken,
       code,
+      remember_me: rememberMe,
     });
     return data;
   },
