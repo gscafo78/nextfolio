@@ -10,12 +10,37 @@ Logica ticker italiani:
 """
 
 import asyncio
+import logging
 import re
+from contextlib import contextmanager
 from datetime import date, timedelta
 
 import httpx
 import pandas as pd
 import yfinance as yf
+
+_yf_logger = logging.getLogger("yfinance")
+
+
+@contextmanager
+def _suppress_yf_warnings():
+    """Silenzia temporaneamente i log yfinance fino a CRITICAL (yfinance usa ERROR)."""
+    prev = _yf_logger.level
+    _yf_logger.setLevel(logging.CRITICAL)
+    try:
+        yield
+    finally:
+        _yf_logger.setLevel(prev)
+
+
+@contextmanager
+def _noop():
+    yield
+
+
+def _maybe_suppress(symbol: str):
+    """Sopprime i warning yfinance solo se il ticker sembra ISIN-format."""
+    return _suppress_yf_warnings() if _is_isin_like(symbol) else _noop()
 
 from app.models.asset import Exchange
 
@@ -31,6 +56,8 @@ _EXCHANGE_SUFFIX: dict[Exchange, str] = {
 }
 
 _ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{10}$")
+# ISIN con eventuale suffisso exchange — questi ticker NON funzionano con yfinance
+_ISIN_LIKE_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{10}(\.[A-Z]{1,4})?$")
 
 # Cache in-memory: ISIN → ticker Yahoo trovato via search
 _isin_ticker_cache: dict[str, str | None] = {}
@@ -40,17 +67,23 @@ def _is_isin(s: str) -> bool:
     return bool(_ISIN_RE.match(s))
 
 
+def _is_isin_like(s: str) -> bool:
+    """True per simboli tipo ISIN o ISIN.DE — non validi come ticker yfinance."""
+    return bool(_ISIN_LIKE_RE.match(s))
+
+
 async def resolve_ticker_by_isin(isin: str) -> str | None:
     """
     Cerca il ticker Yahoo Finance per un ISIN tramite l'API di ricerca.
-    Restituisce il primo risultato di tipo ETF/BOND/EQUITY, o None.
+    Preferisce ticker brevi (non ISIN-format) perché yfinance non supporta
+    simboli tipo IE00BTJRMP35.DE anche se restituiti dalla search API.
     Risultati memorizzati in cache per la durata del processo.
     """
     if isin in _isin_ticker_cache:
         return _isin_ticker_cache[isin]
 
     url = "https://query1.finance.yahoo.com/v1/finance/search"
-    params = {"q": isin, "quotesCount": 5, "newsCount": 0, "listsCount": 0}
+    params = {"q": isin, "quotesCount": 10, "newsCount": 0, "listsCount": 0}
     headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
@@ -62,16 +95,27 @@ async def resolve_ticker_by_isin(isin: str) -> str | None:
         _isin_ticker_cache[isin] = None
         return None
 
-    # Preferisce quote equity/etf/mutualfund/bond rispetto a indici o currency
     preferred_types = {"EQUITY", "ETF", "MUTUALFUND", "BOND"}
     ticker = None
+
+    # 1° passata: ticker breve (non ISIN-format) di tipo preferito
     for q in quotes:
         qt = (q.get("quoteType") or "").upper()
         sym = q.get("symbol", "")
-        if qt in preferred_types and sym:
+        if qt in preferred_types and sym and not _is_isin_like(sym):
             ticker = sym
             break
-    # Fallback al primo risultato qualunque
+
+    # 2° passata: qualsiasi tipo preferito, anche ISIN-format (ultimo tentativo)
+    if not ticker:
+        for q in quotes:
+            qt = (q.get("quoteType") or "").upper()
+            sym = q.get("symbol", "")
+            if qt in preferred_types and sym:
+                ticker = sym
+                break
+
+    # Fallback assoluto al primo risultato
     if not ticker and quotes:
         ticker = quotes[0].get("symbol")
 
@@ -88,11 +132,13 @@ def _ticker(symbol: str, exchange: Exchange) -> str:
 
 def get_current_price(symbol: str, exchange: Exchange) -> dict | None:
     """Restituisce prezzo corrente, variazione % e volume."""
-    t = yf.Ticker(_ticker(symbol, exchange))
+    full_sym = _ticker(symbol, exchange)
+    t = yf.Ticker(full_sym)
     try:
-        info = t.fast_info
-        price = info.last_price
-        prev_close = info.previous_close
+        with _maybe_suppress(full_sym):
+            info = t.fast_info
+            price = info.last_price
+            prev_close = info.previous_close
         if price is None:
             return None
         change_pct = ((price - prev_close) / prev_close * 100) if prev_close else 0.0
@@ -128,18 +174,20 @@ def get_price_history(
         "5y": "5y",
         "max": "max",
     }
-    t = yf.Ticker(_ticker(symbol, exchange))
+    full_sym = _ticker(symbol, exchange)
+    t = yf.Ticker(full_sym)
     try:
-        if start_date:
-            today = date.today()
-            df: pd.DataFrame = t.history(
-                start=start_date.isoformat(),
-                end=(end_date or today).isoformat(),
-                auto_adjust=True,
-            )
-        else:
-            yf_period = period_map.get(period, "1y")
-            df: pd.DataFrame = t.history(period=yf_period, auto_adjust=True)
+        with _maybe_suppress(full_sym):
+            if start_date:
+                today = date.today()
+                df: pd.DataFrame = t.history(
+                    start=start_date.isoformat(),
+                    end=(end_date or today).isoformat(),
+                    auto_adjust=True,
+                )
+            else:
+                yf_period = period_map.get(period, "1y")
+                df: pd.DataFrame = t.history(period=yf_period, auto_adjust=True)
         if df.empty:
             return []
         df.index = pd.to_datetime(df.index)
@@ -160,7 +208,7 @@ def get_price_history(
 
 async def get_current_price_async(symbol: str, exchange: Exchange) -> dict | None:
     """Async wrapper: runs blocking yfinance call in thread pool."""
-    return await asyncio.get_event_loop().run_in_executor(None, get_current_price, symbol, exchange)
+    return await asyncio.get_running_loop().run_in_executor(None, get_current_price, symbol, exchange)
 
 
 async def get_price_history_async(
@@ -171,7 +219,7 @@ async def get_price_history_async(
     end_date: date | None = None,
 ) -> list[dict]:
     """Async wrapper: runs blocking yfinance call in thread pool."""
-    return await asyncio.get_event_loop().run_in_executor(
+    return await asyncio.get_running_loop().run_in_executor(
         None, get_price_history, symbol, exchange, period, start_date, end_date
     )
 

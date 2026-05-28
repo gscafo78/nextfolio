@@ -6,32 +6,33 @@ import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, TrendingUp, BarChart2, Shield, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { authService } from "@/services/auth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 const credSchema = z.object({
-  email: z.string().email("Email non valida"),
-  password: z.string().min(1, "Campo obbligatorio"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(1, "Required"),
 });
 const totpSchema = z.object({
-  code: z.string().length(6, "Il codice è di 6 cifre").regex(/^\d+$/, "Solo cifre"),
+  code: z.string().length(6, "Code must be 6 digits").regex(/^\d+$/, "Digits only"),
 });
 
 type CredData = z.infer<typeof credSchema>;
 type TotpData = z.infer<typeof totpSchema>;
 
 const FEATURES = [
-  { Icon: BarChart2, label: "P&L e performance in tempo reale" },
-  { Icon: TrendingUp, label: "Analisi del rischio e benchmark" },
-  { Icon: Shield, label: "Dati cifrati end-to-end" },
+  { Icon: BarChart2, label: "Real-time P&L and performance" },
+  { Icon: TrendingUp, label: "Risk analysis and benchmarks" },
+  { Icon: Shield, label: "End-to-end encrypted data" },
 ];
 
 const TICKERS = [
   { name: "MSCI World", change: "+22.4%", pos: true },
   { name: "S&P 500",    change: "+28.1%", pos: true },
   { name: "BTP 10Y",    change: "-1.8%",  pos: false },
-  { name: "Oro",        change: "+8.3%",  pos: true },
+  { name: "Gold",       change: "+8.3%",  pos: true },
 ];
 
 function PortfolioChart() {
@@ -97,10 +98,12 @@ function PortfolioChart() {
 }
 
 export function Login() {
-  const { t } = useTranslation();
+  useTranslation(); // ensure i18n context is active
+  const t = i18n.getFixedT("en");
   const navigate = useNavigate();
   const [step, setStep] = useState<"credentials" | "totp">("credentials");
   const [sessionToken, setSessionToken] = useState("");
+  const [remember, setRemember] = useState(true);
 
   const credForm = useForm<CredData>({ resolver: zodResolver(credSchema) });
   const totpForm = useForm<TotpData>({ resolver: zodResolver(totpSchema) });
@@ -118,7 +121,7 @@ export function Login() {
         setSessionToken(res.session_token);
         setStep("totp");
       } else {
-        authService.saveTokens(res);
+        authService.saveTokens(res, remember);
         navigate("/");
       }
     },
@@ -127,7 +130,7 @@ export function Login() {
   const totpMutation = useMutation({
     mutationFn: ({ code }: TotpData) => authService.verify2fa(sessionToken, code),
     onSuccess: (res) => {
-      authService.saveTokens(res);
+      authService.saveTokens(res, remember);
       navigate("/");
     },
   });
@@ -172,25 +175,25 @@ export function Login() {
           {/* Portfolio value card */}
           <div className="mb-8 w-fit bg-white/5 border border-white/10 rounded-2xl px-5 py-4 backdrop-blur-sm shadow-xl">
             <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">
-              Portafoglio totale
+              Total portfolio
             </div>
-            <div className="text-2xl font-bold text-white tabular-nums">€ 142.830</div>
+            <div className="text-2xl font-bold text-white tabular-nums">€ 142,830</div>
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-semibold text-emerald-400">+18.4% anno corrente</span>
+              <span className="text-xs font-semibold text-emerald-400">+18.4% year to date</span>
             </div>
           </div>
 
           <h1 className="text-[42px] xl:text-5xl font-extrabold text-white leading-[1.08] mb-4">
-            Il tuo patrimonio,<br />
+            Your wealth,<br />
             <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-              sempre sotto controllo.
+              always in control.
             </span>
           </h1>
 
           <p className="text-slate-400 text-sm leading-relaxed mb-8 max-w-sm">
-            Dashboard professionale per tracciare, analizzare e ottimizzare
-            ogni investimento in tempo reale.
+            Professional dashboard to track, analyze and optimize
+            every investment in real time.
           </p>
 
           {/* Feature pills */}
@@ -266,6 +269,16 @@ export function Login() {
                   {...credForm.register("password")}
                 />
 
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 accent-blue-600 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-500">Remember me</span>
+                </label>
+
                 {loginMutation.isError && (
                   <div className="text-sm text-red-600 text-center bg-red-50 border border-red-100 rounded-xl py-2.5 px-4">
                     {t("auth.invalidCredentials")}
@@ -324,7 +337,7 @@ export function Login() {
                   label={t("auth.codeLabel")}
                   type="text"
                   inputMode="numeric"
-                  autoComplete="one-time-code"
+                  autoComplete="off"
                   placeholder="000000"
                   maxLength={6}
                   error={totpForm.formState.errors.code?.message}

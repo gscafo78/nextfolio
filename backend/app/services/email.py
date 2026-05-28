@@ -26,7 +26,7 @@ def _send_sync(to: str, subject: str, html: str) -> None:
 async def send_email(to: str, subject: str, html: str) -> None:
     if not settings.email_configured:
         raise RuntimeError("Email non configurata (SMTP_HOST, SMTP_USER, EMAILS_FROM mancanti)")
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, partial(_send_sync, to, subject, html))
 
 

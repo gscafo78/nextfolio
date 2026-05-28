@@ -110,18 +110,27 @@ export const authService = {
     return data;
   },
 
-  saveTokens(tokens: TokenResponse) {
-    if (tokens.access_token) localStorage.setItem("access_token", tokens.access_token);
-    if (tokens.refresh_token) localStorage.setItem("refresh_token", tokens.refresh_token);
+  saveTokens(tokens: TokenResponse, remember = true) {
+    const store = remember ? localStorage : sessionStorage;
+    if (tokens.access_token) store.setItem("access_token", tokens.access_token);
+    if (tokens.refresh_token) store.setItem("refresh_token", tokens.refresh_token);
+    localStorage.setItem("nf-remember", remember ? "1" : "0");
+  },
+
+  getToken(key: string): string | null {
+    return localStorage.getItem(key) ?? sessionStorage.getItem(key);
   },
 
   clearTokens() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    localStorage.removeItem("nf-remember");
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("access_token");
+    return !!(localStorage.getItem("access_token") ?? sessionStorage.getItem("access_token"));
   },
 
   async forgotPassword(email: string): Promise<void> {

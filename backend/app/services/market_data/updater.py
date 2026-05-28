@@ -26,7 +26,7 @@ from app.services.market_data import borsa_italiana as bi
 from app.services.market_data.coingecko import get_bulk_crypto_prices, get_crypto_price
 from app.services.market_data.yahoo import get_current_price_async as yf_price
 from app.services.market_data.yahoo import get_price_history_async as yf_history
-from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin
+from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin, _is_isin_like
 
 logger = logging.getLogger(__name__)
 
@@ -134,22 +134,28 @@ async def _fetch_current_price(asset: Asset) -> dict | None:
     # yahoo_ticker sovrascrive il symbol se impostato dall'utente.
     # Se yahoo_ticker è esplicito, è già un ticker completo → Exchange.OTHER (nessun suffisso).
     yf_symbol = asset.yahoo_ticker or asset.symbol
+
+    # Se il symbol è un ISIN (e non c'è un yahoo_ticker esplicito), cerca subito il
+    # ticker corretto via Yahoo Search — evita il tentativo ISIN+suffisso che genera
+    # warning "possibly delisted" prima del fallback.
+    if not asset.yahoo_ticker and _is_isin(yf_symbol):
+        isin_to_search = asset.isin or yf_symbol
+        found_ticker = await resolve_ticker_by_isin(isin_to_search)
+        # Scarta ticker ISIN-like (es. IE00BTJRMP35.DE) — non funzionano con yfinance
+        if found_ticker and not _is_isin_like(found_ticker):
+            logger.info(f"[YF-SEARCH] {isin_to_search} → {found_ticker}")
+            data = await yf_price(found_ticker, Exchange.OTHER)
+            if data:
+                return data
+        elif found_ticker:
+            logger.debug(f"[YF-SEARCH] {isin_to_search} → {found_ticker} (ISIN-like, skipped)")
+        return None
+
     yf_exchange = Exchange.OTHER if asset.yahoo_ticker else asset.exchange
     data = await yf_price(yf_symbol, yf_exchange)
     if data:
         logger.debug(f"[YF] {yf_symbol}: {data['price']}")
         return data
-
-    # Se il symbol è un ISIN e il prezzo non è stato trovato, cerca il ticker via Yahoo Search
-    lookup = asset.yahoo_ticker or asset.symbol
-    if _is_isin(lookup) or (asset.isin and not data):
-        isin_to_search = asset.isin or lookup
-        found_ticker = await resolve_ticker_by_isin(isin_to_search)
-        if found_ticker:
-            logger.info(f"[YF-SEARCH] {isin_to_search} → {found_ticker}")
-            data = await yf_price(found_ticker, Exchange.OTHER)
-            if data:
-                return data
 
     return None
 
@@ -182,18 +188,22 @@ async def _fetch_history(
             logger.warning(f"[BI] storico {asset.symbol} fallito ({e}), fallback Yahoo")
 
     yf_symbol = asset.yahoo_ticker or asset.symbol
+
+    # Se ISIN senza yahoo_ticker esplicito, risolvi prima il ticker corretto
+    if not asset.yahoo_ticker and _is_isin(yf_symbol):
+        isin_to_search = asset.isin or yf_symbol
+        found_ticker = await resolve_ticker_by_isin(isin_to_search)
+        if found_ticker and not _is_isin_like(found_ticker):
+            logger.info(f"[YF-SEARCH history] {isin_to_search} → {found_ticker}")
+            return await yf_history(found_ticker, Exchange.OTHER, period=period, start_date=start_date, end_date=end_date)
+        elif found_ticker:
+            logger.debug(f"[YF-SEARCH history] {isin_to_search} → {found_ticker} (ISIN-like, skipped)")
+        return []
+
     yf_exchange = Exchange.OTHER if asset.yahoo_ticker else asset.exchange
     records = await yf_history(yf_symbol, yf_exchange, period=period, start_date=start_date, end_date=end_date)
     if records:
         return records
-
-    # Fallback ISIN search
-    isin_to_search = asset.isin or (yf_symbol if _is_isin(yf_symbol) else None)
-    if isin_to_search:
-        found_ticker = await resolve_ticker_by_isin(isin_to_search)
-        if found_ticker:
-            logger.info(f"[YF-SEARCH history] {isin_to_search} → {found_ticker}")
-            return await yf_history(found_ticker, Exchange.OTHER, period=period, start_date=start_date, end_date=end_date)
 
     return []
 

@@ -10,7 +10,7 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import celery_db_session
 from app.models.account import Account
 from app.models.asset import Asset, AssetType, PriceHistory
 from app.models.transaction import Transaction, TransactionType
@@ -27,16 +27,27 @@ from app.tasks.celery_app import celery_app
 logger = get_task_logger(__name__)
 
 
+_loop: asyncio.AbstractEventLoop | None = None
+
+
 def _run(coro):
-    """Esegue una coroutine dal contesto sincrono di Celery."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """
+    Esegue una coroutine nel contesto sincrono di Celery (pool=solo, no fork).
+    Loop persistente per processo: asyncpg può riutilizzare connessioni in modo
+    stabile senza 'Future attached to a different loop'.
+    """
+    global _loop
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+    return _loop.run_until_complete(coro)
 
 
 @celery_app.task(name="app.tasks.prices.update_stock_prices", bind=True, max_retries=3)
 def update_stock_prices(self):
     """Aggiorna i prezzi correnti di azioni/ETF (Yahoo Finance)."""
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             count = await refresh_all_stock_prices(db)
             logger.info(f"update_stock_prices: aggiornati {count} asset")
             return count
@@ -51,7 +62,7 @@ def update_stock_prices(self):
 def update_crypto_prices(self):
     """Aggiorna i prezzi crypto (CoinGecko)."""
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             count = await refresh_all_crypto_prices(db)
             logger.info(f"update_crypto_prices: aggiornati {count} crypto")
             return count
@@ -69,7 +80,7 @@ def update_prices_eod(self):
     Recupera gli ultimi 5 giorni per coprire eventuali gap.
     """
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             result = await db.execute(
                 select(Asset).where(
                     Asset.type.in_([AssetType.STOCK, AssetType.ETF, AssetType.BOND, AssetType.REIT])
@@ -105,7 +116,7 @@ def cleanup_old_prices():
     """Elimina i dati price_history più vecchi di 5 anni."""
     async def _inner():
         cutoff = date.today() - timedelta(days=5 * 365)
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             result = await db.execute(
                 delete(PriceHistory).where(PriceHistory.date < cutoff)
             )
@@ -124,7 +135,7 @@ def backfill_portfolio_history(self, user_id: int):
     e li salva in price_history.
     """
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             # Prendi tutte le transazioni dell'utente
             res = await db.execute(
                 select(Transaction)
@@ -173,7 +184,7 @@ def backfill_portfolio_history(self, user_id: int):
 def backfill_asset_history(asset_id: int, period: str = "5y"):
     """Backfill manuale dello storico di un singolo asset (on-demand)."""
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             result = await db.execute(select(Asset).where(Asset.id == asset_id))
             asset = result.scalar_one_or_none()
             if not asset:
@@ -190,7 +201,7 @@ def backfill_asset_history(asset_id: int, period: str = "5y"):
 def enrich_all_assets(self):
     """Enrichment bulk di tutti gli asset con dati settoriali/geografici/holdings."""
     async def _inner():
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             result = await db.execute(
                 select(Asset).where(
                     Asset.type.in_([

@@ -12,7 +12,7 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import celery_db_session
 from app.models.alert import AlertType, PriceAlert
 from app.services.market_data.updater import get_cached_price
 from app.tasks.celery_app import celery_app
@@ -22,8 +22,15 @@ logger = get_task_logger(__name__)
 _COOLDOWN_HOURS = 4  # non riattiva lo stesso alert entro N ore
 
 
+_loop: asyncio.AbstractEventLoop | None = None
+
+
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    global _loop
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+    return _loop.run_until_complete(coro)
 
 
 def _is_triggered(alert_type: AlertType, threshold: float, price: float, change_pct: float) -> bool:
@@ -43,7 +50,7 @@ def check_price_alerts(self):
     """Controlla tutti gli alert attivi e marca quelli scattati."""
     async def _inner():
         triggered = 0
-        async with AsyncSessionLocal() as db:
+        async with celery_db_session() as db:
             result = await db.execute(
                 select(PriceAlert)
                 .where(PriceAlert.is_active == True)  # noqa: E712

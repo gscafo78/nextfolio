@@ -551,7 +551,7 @@ export function Transazioni() {
 
             {/* ── Paginazione ── */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+              <div className="hidden md:flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
                 <span>
                   {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, transactions.length)} {t("transactions.of")} {transactions.length}
                 </span>

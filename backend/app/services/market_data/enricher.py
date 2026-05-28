@@ -72,7 +72,7 @@ async def _resolve_yf_symbol(asset: Asset) -> str | None:
     if sym is not None:
         return sym
 
-    from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin
+    from app.services.market_data.yahoo import resolve_ticker_by_isin, _is_isin, _is_isin_like
     isin = asset.isin or (asset.symbol if _is_isin(asset.symbol) else None)
     if not isin:
         return None
@@ -89,7 +89,11 @@ async def _resolve_yf_symbol(asset: Asset) -> str | None:
         return ticker
 
     # 2. Fallback Yahoo search
-    return await resolve_ticker_by_isin(isin)
+    result = await resolve_ticker_by_isin(isin)
+    # Scarta ticker ISIN-like — non funzionano con yfinance
+    if result and _is_isin_like(result):
+        return None
+    return result
 
 
 def _enrich_sync(symbol: str, asset_type: AssetType) -> dict:
@@ -98,47 +102,49 @@ def _enrich_sync(symbol: str, asset_type: AssetType) -> dict:
     Restituisce un dict con sectors, countries, holdings (tutti opzionali).
     """
     import yfinance as yf
+    from app.services.market_data.yahoo import _maybe_suppress
 
     result: dict = {}
 
     try:
-        ticker = yf.Ticker(symbol)
-        info = ticker.info or {}
+        with _maybe_suppress(symbol):
+            ticker = yf.Ticker(symbol)
+            info = ticker.info or {}
 
-        if asset_type in (AssetType.STOCK, AssetType.REIT):
-            sector = info.get("sector")
-            country = info.get("country")
-            if sector:
-                result["sectors"] = [{"name": _normalize_sector(sector), "weight": 1.0}]
-            if country:
-                result["countries"] = [{"code": country, "name": country, "weight": 1.0}]
+            if asset_type in (AssetType.STOCK, AssetType.REIT):
+                sector = info.get("sector")
+                country = info.get("country")
+                if sector:
+                    result["sectors"] = [{"name": _normalize_sector(sector), "weight": 1.0}]
+                if country:
+                    result["countries"] = [{"code": country, "name": country, "weight": 1.0}]
 
-        elif asset_type in (AssetType.ETF, AssetType.BOND):
-            try:
-                fd = ticker.get_funds_data()
-                if fd is not None:
-                    sw = fd.sector_weightings or {}
-                    if sw:
-                        sectors = [
-                            {"name": _normalize_sector(k), "weight": round(float(v), 6)}
-                            for k, v in sw.items()
-                            if v and float(v) > 0
-                        ]
-                        sectors.sort(key=lambda x: x["weight"], reverse=True)
-                        result["sectors"] = sectors
+            elif asset_type in (AssetType.ETF, AssetType.BOND):
+                try:
+                    fd = ticker.get_funds_data()
+                    if fd is not None:
+                        sw = fd.sector_weightings or {}
+                        if sw:
+                            sectors = [
+                                {"name": _normalize_sector(k), "weight": round(float(v), 6)}
+                                for k, v in sw.items()
+                                if v and float(v) > 0
+                            ]
+                            sectors.sort(key=lambda x: x["weight"], reverse=True)
+                            result["sectors"] = sectors
 
-                    th = fd.top_holdings
-                    if th is not None and not th.empty:
-                        holdings = []
-                        for sym, row in th.head(10).iterrows():
-                            holdings.append({
-                                "symbol": str(sym),
-                                "name": str(row.get("Name", sym)),
-                                "weight": round(float(row.get("Holding Percent", 0)), 6),
-                            })
-                        result["holdings"] = holdings
-            except Exception as e:
-                logger.debug(f"[enricher] get_funds_data({symbol}) failed: {e}")
+                        th = fd.top_holdings
+                        if th is not None and not th.empty:
+                            holdings = []
+                            for sym, row in th.head(10).iterrows():
+                                holdings.append({
+                                    "symbol": str(sym),
+                                    "name": str(row.get("Name", sym)),
+                                    "weight": round(float(row.get("Holding Percent", 0)), 6),
+                                })
+                            result["holdings"] = holdings
+                except Exception as e:
+                    logger.debug(f"[enricher] get_funds_data({symbol}) failed: {e}")
 
     except Exception as e:
         logger.warning(f"[enricher] yfinance error for {symbol}: {e}")
@@ -164,7 +170,7 @@ async def enrich_asset(db: AsyncSession, asset: Asset) -> bool:
         logger.info(f"[enricher] {asset.symbol}: ticker '{yf_symbol}' non valido (contiene spazi)")
         return False
 
-    data = await asyncio.get_event_loop().run_in_executor(
+    data = await asyncio.get_running_loop().run_in_executor(
         None, _enrich_sync, yf_symbol, asset.type
     )
 

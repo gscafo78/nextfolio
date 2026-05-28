@@ -98,7 +98,7 @@ services:
     container_name: nextfolio_celery
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
-    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=warning --concurrency=2
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=warning --pool=solo
     environment:
       APP_ENV:    production
       DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-nextfolio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nextfolio}

@@ -456,7 +456,7 @@ async def get_xirr(
     for asset_id, lot_data in positions.items():
         price_data = price_map.get(asset_id)
         if price_data:
-            qty = lot_data["quantity"]
+            qty = lot_data.quantity
             price_eur = price_data["price"] * price_data.get("exchange_rate", 1.0)
             current_value += qty * price_eur
 
@@ -513,7 +513,7 @@ async def get_benchmark(
             for idx, v in close.items()
         ]
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     series = await loop.run_in_executor(None, partial(_fetch))
     return {"index": index, "ticker": ticker_sym, "period": period, "series": series}
 
@@ -696,7 +696,7 @@ async def get_dividends(
             asset_id=tx.asset_id,
             symbol=tx.asset.symbol,
             name=tx.asset.name,
-            type=tx.type.value,
+            type=tx.type.value if hasattr(tx.type, "value") else tx.type,
             amount_eur=round(amount_eur, 2),
             account_name=account_map.get(tx.account_id, "—"),
             account_id=tx.account_id,
