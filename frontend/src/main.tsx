@@ -5,6 +5,12 @@ import "./index.css";
 import "./i18n";
 import { App } from "./App";
 
+// When a lazy-loaded chunk 404s (stale SW cache after a redeploy), reload once
+// so the updated service worker serves the new index.html with correct hashes.
+window.addEventListener("vite:preloadError", () => {
+  window.location.reload();
+});
+
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
