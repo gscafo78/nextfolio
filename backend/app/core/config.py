@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pydantic import model_validator
@@ -5,8 +6,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_SECRET = "change-me-in-production"
 
+# Priorità: variabile d'ambiente APP_VERSION (impostata via docker-compose) →
+# file VERSION nella root del repo (funziona in locale / dev mount) → fallback
 _VERSION_FILE = Path(__file__).parents[3] / "VERSION"
-APP_VERSION: str = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0.0"
+APP_VERSION: str = (
+    os.environ.get("APP_VERSION")
+    or (_VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else None)
+    or "0.0.0"
+)
 
 
 class Settings(BaseSettings):

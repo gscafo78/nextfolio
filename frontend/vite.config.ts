@@ -1,16 +1,13 @@
-import fs from "fs";
 import path from "path";
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+// package.json è sempre dentro il build context (./frontend/) — funziona in Docker e in locale
+import pkg from "./package.json";
 
 const backendHost = process.env.VITE_BACKEND_HOST ?? "localhost:8000";
-
-const versionFile = path.resolve(__dirname, "../VERSION");
-const APP_VERSION = fs.existsSync(versionFile)
-  ? fs.readFileSync(versionFile, "utf-8").trim()
-  : "0.0.0";
+const APP_VERSION: string = pkg.version;
 
 export default defineConfig({
   plugins: [

@@ -46,9 +46,21 @@ echo "✅  VERSION aggiornato"
 
 # ── aggiorna package.json ─────────────────────────────────────────────────────
 if [[ -f "$PKG_FILE" ]]; then
-  # Sostituisce solo la prima occorrenza di "version": "..."
   sed -i "0,/\"version\": \"[^\"]*\"/s/\"version\": \"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" "$PKG_FILE"
   echo "✅  frontend/package.json aggiornato"
+fi
+
+# ── aggiorna APP_VERSION in .env (usata da docker-compose per i container backend)
+ENV_FILE="$ROOT_DIR/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  if grep -q "^APP_VERSION=" "$ENV_FILE"; then
+    sed -i "s/^APP_VERSION=.*/APP_VERSION=$NEW_VERSION/" "$ENV_FILE"
+  else
+    echo "APP_VERSION=$NEW_VERSION" >> "$ENV_FILE"
+  fi
+  echo "✅  .env — APP_VERSION aggiornato"
+else
+  echo "⚠️   .env non trovato — aggiungi manualmente: APP_VERSION=$NEW_VERSION"
 fi
 
 # ── prepara CHANGELOG ─────────────────────────────────────────────────────────
@@ -89,7 +101,7 @@ echo "────────────────────────�
 echo ""
 echo "Prossimi passi:"
 echo "  1. Compila CHANGELOG.md con le novità di $NEW_VERSION"
-echo "  2. git add VERSION frontend/package.json CHANGELOG.md"
+echo "  2. git add VERSION frontend/package.json CHANGELOG.md .env"
 echo "  3. git commit -m \"chore: release v$NEW_VERSION\""
 echo "  4. git tag v$NEW_VERSION"
 echo "  5. docker compose build && docker compose up -d"
