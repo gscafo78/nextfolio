@@ -326,7 +326,7 @@ def compute_xray(
 
     # 9. Home bias (Europa)
     thr = _DEF["geo_home_bias"]["max"]
-    europe_pct = _alloc_pct(by_continent, "Europe")
+    europe_pct = _alloc_pct(by_continent, "Europa")
     if europe_pct is not None:
         status = "ok" if europe_pct <= thr else "warn"
         rules.append(XRayRule(
