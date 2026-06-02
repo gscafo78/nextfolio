@@ -12,7 +12,8 @@
     "admin": "Administration",
     "settings": "Paramètres",
     "about": "À propos",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "xray": "X-Ray"
   },
   "about": {
     "title": "À propos de Nextfolio",
@@ -683,5 +684,13 @@
     "installTitle": "Installer Nextfolio",
     "installDesc": "Ajouter à l'écran d'accueil pour un accès rapide",
     "install": "Installer"
+  },
+  "xray": {
+    "title": "X-Ray",
+    "healthScore": "Score de santé du portefeuille",
+    "scoreDesc": "{{ok}} règles sur {{total}} validées",
+    "scoreLow": "Risque élevé",
+    "scoreHigh": "Portefeuille sain",
+    "noData": "Ajoutez des transactions pour lancer l'analyse X-Ray"
   }
 }

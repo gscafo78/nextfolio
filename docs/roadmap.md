@@ -1180,6 +1180,163 @@ docker compose run --rm backend alembic upgrade head
 
 ---
 
+## FASE 16 — X-Ray (analisi diagnostica portafoglio) 🔬
+**Ispirata a:** [Ghostfolio X-Ray](https://github.com/ghostfolio/ghostfolio)
+**Obiettivo: pagina di diagnostica del portafoglio che valuta automaticamente regole di rischio e diversificazione, segnalando in verde/rosso cosa va bene e cosa no**
+
+> Ghostfolio X-Ray raggruppa le regole in categorie (concentrazione, asset class, geografie, fee, liquidità).
+> Nextfolio adatta le stesse categorie con soglie configurabili e regole specifiche per il mercato italiano
+> (BTP, valuta EUR, regime fiscale 26% / 12.5%).
+
+---
+
+### 16.1 Backend — motore regole (`services/portfolio/xray.py`)
+
+**Struttura dati output:**
+
+```python
+class XRayRule(BaseModel):
+    key: str                    # es. "concentration_single_asset"
+    name: str                   # es. "Concentrazione singolo titolo"
+    category: str               # es. "Concentrazione"
+    description: str            # spiegazione della regola
+    status: str                 # "ok" | "warn" | "error"
+    actual: float | None        # valore attuale (es. 0.35 = 35%)
+    threshold_min: float | None
+    threshold_max: float | None
+    unit: str                   # "%" | "EUR" | "mesi"
+
+class XRayResponse(BaseModel):
+    rules: list[XRayRule]
+    score: int                  # 0–100: % regole superate
+    rules_total: int
+    rules_ok: int
+```
+
+**Regole da implementare (10 regole, 4 categorie):**
+
+#### Categoria: Concentrazione
+
+- [ ] **`concentration_single_asset`** — nessun titolo supera soglia% del portafoglio (default: max 20%)
+  - `actual` = peso% del titolo più grande
+  - `status = "ok"` se tutti i titoli ≤ 20%; "warn" 20–33%; "error" > 33%
+
+- [ ] **`concentration_single_account`** — nessun conto/broker supera soglia% del portafoglio (default: max 80%)
+  - `actual` = peso% del conto più grande
+  - Usa il breakdown per-conto già calcolato
+
+- [ ] **`concentration_crypto`** — esposizione crypto < soglia% (default: max 10%)
+  - `actual` = % del portafoglio in asset di tipo CRYPTO
+  - Usa l'allocazione `by_type` già disponibile
+
+#### Categoria: Asset Class
+
+- [ ] **`asset_class_equity`** — azioni + ETF nell'intervallo [min, max]% (default: 50–80%)
+  - `actual` = % portafoglio in STOCK + ETF
+  - Regola informativa/target, non bloccante
+
+- [ ] **`asset_class_fixed_income`** — obbligazioni nell'intervallo [min, max]% (default: 5–30%)
+  - `actual` = % portafoglio in BOND (inclusi BTP)
+  - Utile per il mercato italiano dove i BTP sono comuni
+
+- [ ] **`asset_class_currency_eur`** — esposizione EUR ≥ soglia% (default: min 30%)
+  - `actual` = % portafoglio in asset denominati in EUR
+  - Usa l'allocazione `by_currency`
+
+#### Categoria: Fee
+
+- [ ] **`fee_ratio`** — commissioni totali / capitale investito < soglia% (default: max 1.5%)
+  - `actual` = sum(fee) / sum(total_invested_eur) × 100
+  - Usa le transazioni già caricate; tipi FEE esclusi dall'investimento
+
+#### Categoria: Diversificazione geografica
+
+- [ ] **`geo_diversification`** — nessun continente supera soglia% (default: max 70%)
+  - `actual` = peso% del continente più rappresentato (via look-through ETF)
+  - Usa `by_continent` dall'allocation service
+
+- [ ] **`geo_home_bias`** — esposizione Europa / Italia < soglia% (default: max 50%)
+  - `actual` = % portafoglio con esposizione al continente Europe
+  - Segnala "home bias" (sovraesposizione al mercato domestico)
+
+#### Categoria: Liquidità
+
+- [ ] **`liquidity_emergency_fund`** — presenza di riserva di liquidità (min 1 mese di investimento medio)
+  - `actual` = cash in portafoglio come % del valore totale
+  - Cerca asset di tipo BOND a breve scadenza o contanti (convenzionalmente: assets con yield > 0 e duration < 1y, oppure semplificato: presenza di qualsiasi obbligazione a breve)
+  - Regola informativa
+
+**Endpoint:**
+- [ ] `GET /api/v1/portfolio/xray` — risponde con `XRayResponse`
+- [ ] Cache Redis 10 min (chiave `xray:{user_id}`) — invalidata da nuove transazioni
+
+---
+
+### 16.2 Frontend — pagina X-Ray (`src/pages/XRay.tsx`)
+
+**Route:** `/xray` · **Sidebar:** icona `ScanSearch` (lucide), label "X-Ray"
+
+**Layout:**
+
+```
+┌────────────────────────────────────────────────┐
+│  🔬 X-Ray                          Score: 7/10 │
+│  Analisi diagnostica del portafoglio            │
+│  ████████░░  70%                                │
+└────────────────────────────────────────────────┘
+
+┌─ Concentrazione ───────────────────────────────┐
+│  ✅  Concentrazione singolo titolo   18% ≤ 20%  │
+│  ✅  Concentrazione per conto        65% ≤ 80%  │
+│  ⚠️  Esposizione crypto              14% > 10%  │
+└────────────────────────────────────────────────┘
+
+┌─ Asset Class ──────────────────────────────────┐
+│  ✅  Azioni + ETF        72%  target 50–80%     │
+│  ✅  Obbligazioni        12%  target  5–30%     │
+│  ✅  Valuta EUR          45%  min 30%           │
+└────────────────────────────────────────────────┘
+
+┌─ Fee ──────────────────────────────────────────┐
+│  ✅  Rapporto commissioni  0.3%  max 1.5%      │
+└────────────────────────────────────────────────┘
+
+┌─ Diversificazione geografica ──────────────────┐
+│  ⚠️  Concentrazione per continente  72% > 70%   │
+│  ✅  Home bias Europa               38% ≤ 50%   │
+└────────────────────────────────────────────────┘
+
+┌─ Liquidità ────────────────────────────────────┐
+│  ℹ️  Fondo di emergenza — non rilevato          │
+└────────────────────────────────────────────────┘
+```
+
+- [ ] Score globale in badge (regole OK / totale) con barra di progresso
+- [ ] Ogni categoria è una card con lista regole
+- [ ] Ogni regola mostra: icona status (✅ / ⚠️ / ❌), nome, valore attuale, soglia, barra visiva
+- [ ] Dark mode completo
+- [ ] Skeleton loading state
+- [ ] Colori: verde (`ok`), ambra (`warn`), rosso (`error`), grigio (`info`)
+- [ ] Tooltip con spiegazione di ciascuna regola
+
+---
+
+### 16.3 Integrazione sidebar e i18n
+
+- [ ] Link "X-Ray" con icona `ScanSearch` in Sidebar (sotto "Analisi dividendi")
+- [ ] Link "X-Ray" in BottomNav mobile (sostituisce o aggiunge — verificare spazio)
+- [ ] Chiavi i18n `nav.xray`, `xray.title`, `xray.score`, `xray.categories.*`, `xray.rules.*` in IT / EN / FR / DE
+- [ ] `NAV_ROUTES` in `BottomNav.tsx` aggiornato (se X-Ray entra tra le 5 tab)
+
+---
+
+### 16.4 Aggiornamento roadmap e CHANGELOG
+
+- [ ] Aggiornare CHANGELOG.md
+- [ ] Bumppare versione → `1.7.0` (nuova feature rilevante)
+
+---
+
 ## Dipendenze chiave
 
 ### Backend (`requirements.txt`)
@@ -1298,6 +1455,7 @@ docker compose build
 | **13** | **Miglioramenti post-lancio — sessione, dashboard, periodo globale, token 30gg** | ✅ **Completata** | 🟠 Alta | — |
 | **14** | **Versioning e changelog — VERSION file, endpoint, pagina About, i18n, release.sh** | ✅ **Completata** | 🟡 Media | 1–2 gg |
 | **15** | **Manutenzione e performance — Flower, indici DB, code splitting, backup off-site, lazy images, PDF export** | ✅ **Completata** | 🟡 Media | 1 gg |
+| **16** | **X-Ray — diagnostica portafoglio: 10 regole in 4 categorie, score, UI card-based** | 🔵 **In corso** | 🟠 Alta | 3–5 gg |
 
 **Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → ~~FASE 13 (miglioramenti post-lancio)~~ ✅ → ~~FASE 14 (versioning)~~ ✅ → ~~FASE 15 (manutenzione)~~ ✅
 

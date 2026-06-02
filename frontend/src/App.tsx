@@ -23,6 +23,7 @@ const Strumenti    = lazy(() => import("@/pages/Strumenti").then((m) => ({ defau
 const Dividendi    = lazy(() => import("@/pages/Dividendi").then((m) => ({ default: m.Dividendi })));
 const Impostazioni = lazy(() => import("@/pages/Impostazioni").then((m) => ({ default: m.Impostazioni })));
 const Admin        = lazy(() => import("@/pages/Admin").then((m) => ({ default: m.Admin })));
+const XRay         = lazy(() => import("@/pages/XRay").then((m) => ({ default: m.XRay })));
 
 function PageSkeleton() {
   return (
@@ -67,6 +68,7 @@ export function App() {
               <Route path="dividendi"    element={<Suspense fallback={<PageSkeleton />}><Dividendi /></Suspense>} />
               <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />
               <Route path="admin"        element={<Suspense fallback={<PageSkeleton />}><Admin /></Suspense>} />
+              <Route path="xray"         element={<Suspense fallback={<PageSkeleton />}><XRay /></Suspense>} />
               <Route path="about"        element={<About />} />
             </Route>
           </Route>

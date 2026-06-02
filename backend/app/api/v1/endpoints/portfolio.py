@@ -21,7 +21,9 @@ from app.schemas.portfolio import (
     PortfolioSummaryOut,
     PositionOut,
     RiskMetricsOut,
+    XRayResponse,
 )
+from app.services.portfolio.xray import compute_xray
 from app.services.market_data.updater import (
     get_cached_perf,
     get_cached_prices_bulk,
@@ -1235,6 +1237,95 @@ async def get_etf_holdings(
         ))
 
     return sorted(out, key=lambda x: x.value_eur or 0, reverse=True)
+
+
+@router.get("/xray", response_model=XRayResponse)
+async def get_xray(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Analisi diagnostica X-Ray: 10 regole di rischio in 4 categorie."""
+    from app.services.market_data.updater import get_cached_price
+
+    transactions = await _load_all_transactions(db, current_user.id)
+    positions_map = calculate_positions(transactions)
+
+    if not positions_map:
+        return XRayResponse(rules=[], score=0, rules_total=0, rules_ok=0)
+
+    # Prezzi correnti per calcolare i pesi
+    result = await db.execute(select(Asset).where(Asset.id.in_(list(positions_map.keys()))))
+    asset_map = {a.id: a for a in result.scalars()}
+    price_map = await _fetch_prices_parallel(db, asset_map, background_tasks)
+
+    price_eur: dict[int, float] = {}
+    for aid in positions_map:
+        data = price_map.get(aid)
+        if data and data.get("price") is not None:
+            price_eur[aid] = data["price"] * data.get("exchange_rate", 1.0)
+
+    # Posizioni semplificate (solo i campi necessari a compute_xray)
+    from app.schemas.portfolio import PositionOut as POut
+
+    positions_out: list[POut] = []
+    for aid, pos in positions_map.items():
+        asset = asset_map.get(aid)
+        if not asset:
+            continue
+        peur = price_eur.get(aid)
+        cost = pos.quantity * pos.pmc_eur
+        val = pos.quantity * peur if peur else None
+        unreal = (val - cost) if val else None
+        positions_out.append(POut(
+            asset_id=asset.id, symbol=asset.symbol, name=asset.name,
+            asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
+            currency=asset.currency,
+            exchange=asset.exchange if isinstance(asset.exchange, str) else asset.exchange.value,
+            quantity=pos.quantity, pmc_eur=pos.pmc_eur, total_invested_eur=cost,
+            realized_pnl_eur=pos.realized_pnl_eur,
+            current_price=price_map.get(aid, {}).get("price"),
+            current_price_eur=peur, current_value_eur=val,
+            unrealized_pnl_eur=unreal,
+            unrealized_pnl_pct=(unreal / cost * 100 if unreal and cost > 0 else None),
+            change_pct=price_map.get(aid, {}).get("change_pct"),
+        ))
+
+    total_value = sum(p.current_value_eur or 0 for p in positions_out)
+
+    # Ricalcola allocazione (serve by_type, by_currency, by_account, by_continent)
+    from app.models.account import Account as AccModel
+    from app.services.portfolio.allocation import calculate_allocation
+
+    assets_list = list(asset_map.values())
+    asset_info = {
+        a.id: {
+            "type": a.type if isinstance(a.type, str) else a.type.value,
+            "currency": a.currency,
+            "sectors": a.sectors,
+            "countries": a.countries,
+            "sectors_override": a.sectors_override,
+            "countries_override": a.countries_override,
+        }
+        for a in assets_list
+    }
+    accs_result = await db.execute(select(AccModel).where(AccModel.user_id == current_user.id))
+    accs = accs_result.scalars().all()
+    account_values: dict[str, float] = {}
+    for acc in accs:
+        acc_txs = [t for t in transactions if t.account_id == acc.id]
+        acc_pos = calculate_positions(acc_txs)
+        v = sum(pos.quantity * price_eur[aid] for aid, pos in acc_pos.items() if aid in price_eur)
+        if v > 0:
+            account_values[acc.name] = v
+    allocation = calculate_allocation(positions_map, asset_info, price_eur, account_values)
+
+    return compute_xray(
+        positions=positions_out,
+        allocation=allocation,
+        transactions=transactions,
+        total_value=total_value,
+    )
 
 
 @router.post("/backfill-history", status_code=202)

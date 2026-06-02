@@ -12,7 +12,8 @@
     "admin": "Amministrazione",
     "settings": "Impostazioni",
     "about": "Info",
-    "logout": "Esci"
+    "logout": "Esci",
+    "xray": "X-Ray"
   },
   "about": {
     "title": "Informazioni sull'app",
@@ -683,5 +684,13 @@
     "installTitle": "Installa Nextfolio",
     "installDesc": "Aggiungi alla schermata Home per accesso rapido",
     "install": "Installa"
+  },
+  "xray": {
+    "title": "X-Ray",
+    "healthScore": "Punteggio di salute del portafoglio",
+    "scoreDesc": "{{ok}} regole su {{total}} superate",
+    "scoreLow": "Rischio elevato",
+    "scoreHigh": "Portafoglio sano",
+    "noData": "Aggiungi transazioni per avviare l'analisi X-Ray"
   }
 }

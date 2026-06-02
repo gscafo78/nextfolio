@@ -12,7 +12,8 @@
     "admin": "Verwaltung",
     "settings": "Einstellungen",
     "about": "Über",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "xray": "X-Ray"
   },
   "about": {
     "title": "Über Nextfolio",
@@ -683,5 +684,13 @@
     "installTitle": "Nextfolio installieren",
     "installDesc": "Zum Startbildschirm hinzufügen für schnellen Zugriff",
     "install": "Installieren"
+  },
+  "xray": {
+    "title": "X-Ray",
+    "healthScore": "Portfolio-Gesundheitsscore",
+    "scoreDesc": "{{ok}} von {{total}} Regeln bestanden",
+    "scoreLow": "Hohes Risiko",
+    "scoreHigh": "Gesundes Portfolio",
+    "noData": "Fügen Sie Transaktionen hinzu, um die X-Ray-Analyse zu starten"
   }
 }

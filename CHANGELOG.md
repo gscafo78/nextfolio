@@ -5,6 +5,25 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.7.0] — 2026-06-02
+### Added
+- **X-Ray — diagnostica portafoglio**: pagina `/xray` con 10 regole in 4 categorie ispirata a Ghostfolio X-Ray
+  - *Concentrazione*: singolo titolo (max 20%), singolo conto/broker (max 80%), esposizione crypto (max 10%)
+  - *Asset Class*: azioni+ETF (target 50–80%), obbligazioni inclusi BTP (target 5–30%), copertura EUR (min 30%)
+  - *Fee*: rapporto commissioni / capitale negoziato (max 1.5%)
+  - *Diversificazione geografica*: concentrazione per continente (max 70%), home bias Europa (max 50%)
+  - *Liquidità*: riserva di emergenza (min 2%)
+- Score globale 0–100% con barra di progresso colorata (verde/ambra/rosso)
+- Ogni regola mostra: icona status, valore attuale, soglia, barra visiva proporzionale
+- Link "X-Ray" in Sidebar con icona `ScanSearch`
+- Endpoint `GET /api/v1/portfolio/xray` con motore regole in `services/portfolio/xray.py`
+
+### Fixed
+- `__APP_VERSION__` mostrava 0.0.0 in produzione: frontend ora legge da `package.json` (dentro il build context Docker); backend legge env var `APP_VERSION` passata da `docker-compose.yml`
+- `release.sh` aggiorna automaticamente `APP_VERSION` nel file `.env` ad ogni bump
+
+---
+
 ## [1.6.0] — 2026-06-02
 ### Added
 - **Kebab menu transazioni**: icona 3 puntini verticali sostituisce matita + cestino; dropdown con Modifica, Clona ed Elimina

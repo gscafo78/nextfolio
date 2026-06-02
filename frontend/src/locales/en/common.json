@@ -12,7 +12,8 @@
     "admin": "Administration",
     "settings": "Settings",
     "about": "About",
-    "logout": "Log out"
+    "logout": "Log out",
+    "xray": "X-Ray"
   },
   "about": {
     "title": "About Nextfolio",
@@ -683,5 +684,13 @@
     "installTitle": "Install Nextfolio",
     "installDesc": "Add to Home Screen for quick access",
     "install": "Install"
+  },
+  "xray": {
+    "title": "X-Ray",
+    "healthScore": "Portfolio health score",
+    "scoreDesc": "{{ok}} out of {{total}} rules passed",
+    "scoreLow": "High risk",
+    "scoreHigh": "Healthy portfolio",
+    "noData": "Add transactions to run the X-Ray analysis"
   }
 }

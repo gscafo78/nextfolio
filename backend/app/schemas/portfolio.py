@@ -180,3 +180,23 @@ class HoldingDetailOut(BaseModel):
     accounts: list[HoldingAccountOut]
     sectors: list[SectorItem] | None = None
     countries: list[CountryItem] | None = None
+
+
+
+class XRayRule(BaseModel):
+    key: str
+    name: str
+    category: str
+    description: str
+    status: str          # "ok" | "warn" | "error" | "info"
+    actual: float | None = None
+    threshold_min: float | None = None
+    threshold_max: float | None = None
+    unit: str = "%"      # "%" | "EUR" | "mesi"
+
+
+class XRayResponse(BaseModel):
+    rules: list[XRayRule]
+    score: int           # 0–100: percentuale regole superate (status == "ok")
+    rules_total: int
+    rules_ok: int
