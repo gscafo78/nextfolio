@@ -6,7 +6,8 @@ from collections import defaultdict
 from app.schemas.portfolio import AllocationItem, AllocationOut
 from app.services.portfolio.positions import PositionCalc
 
-_TYPE_LABELS = {
+# Pubblico: importato anche da xray.py per tradurre i tipi raw nei label usati in by_type
+TYPE_LABELS = {
     "STOCK": "Azioni",
     "ETF": "ETF",
     "BOND": "Obbligazioni",
@@ -14,6 +15,7 @@ _TYPE_LABELS = {
     "COMMODITY": "Commodity",
     "REIT": "REIT",
 }
+_TYPE_LABELS = TYPE_LABELS  # alias privato per compatibilità interna
 
 # Mappa nome paese (come restituito da Yahoo Finance info.country) → continente
 # Ispirata al mapping di Ghostfolio (SymbolProfile.countries → continent grouping)

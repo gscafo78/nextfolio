@@ -11,6 +11,12 @@ Categorie e regole:
 from __future__ import annotations
 
 from app.schemas.portfolio import XRayResponse, XRayRule
+from app.services.portfolio.allocation import TYPE_LABELS as _TL
+
+
+def _lbl(raw: str) -> str:
+    """Converte un tipo raw (es. 'BOND') nel label usato da by_type (es. 'Obbligazioni')."""
+    return _TL.get(raw, raw)
 
 # ── Soglie di default ─────────────────────────────────────────────────────────
 
@@ -117,7 +123,7 @@ def compute_xray(
 
     # 3. Esposizione crypto
     by_type = getattr(allocation, "by_type", [])
-    crypto_pct_val = _alloc_pct(by_type, "CRYPTO")
+    crypto_pct_val = _alloc_pct(by_type, _lbl("CRYPTO"))
     thr = _DEF["concentration_crypto"]["max"]
     if crypto_pct_val is not None:
         status = "ok" if crypto_pct_val <= thr else ("warn" if crypto_pct_val <= thr * 2 else "error")
@@ -150,7 +156,7 @@ def compute_xray(
 
     # 4. Azioni + ETF (equity)
     equity_pct = None
-    for label in ("STOCK", "ETF"):
+    for label in (_lbl("STOCK"), _lbl("ETF")):
         v = _alloc_pct(by_type, label)
         if v is not None:
             equity_pct = (equity_pct or 0) + v
@@ -185,7 +191,7 @@ def compute_xray(
         ))
 
     # 5. Obbligazioni (fixed income — inclusi BTP)
-    bond_pct = _alloc_pct(by_type, "BOND")
+    bond_pct = _alloc_pct(by_type, _lbl("BOND"))
     cfg = _DEF["asset_class_fixed_income"]
     if bond_pct is not None:
         ok = cfg["min"] <= bond_pct <= cfg["max"]
