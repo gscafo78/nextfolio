@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy import select
@@ -112,6 +113,47 @@ async def _price_data(db: AsyncSession, asset: Asset) -> dict | None:
     return await _price_from_db(db, asset)
 
 
+# ── Helpers period P&L ───────────────────────────────────────────────────────
+
+_PERIOD_DAYS_SIMPLE = {"1w": 7, "1m": 30, "3m": 91, "6m": 182, "1y": 365, "3y": 365 * 3}
+
+
+def _period_start_date(period: str) -> date | None:
+    """Restituisce la data di inizio del periodo, o None se non applicabile."""
+    today = date.today()
+    if period in ("today", "max", "all"):
+        return None
+    if period == "ytd":
+        return today.replace(month=1, day=1)
+    if period == "mtd":
+        return today.replace(day=1)
+    if period == "wtd":
+        return today - timedelta(days=today.weekday())
+    if period.isdigit() and len(period) == 4:
+        return date(int(period), 1, 1)
+    days = _PERIOD_DAYS_SIMPLE.get(period)
+    return (today - timedelta(days=days)) if days else None
+
+
+async def _period_start_prices(
+    db: AsyncSession,
+    asset_ids: list[int],
+    start_date: date,
+) -> dict[int, float]:
+    """Ultimo prezzo disponibile ≤ start_date per ogni asset (DISTINCT ON PostgreSQL)."""
+    if not asset_ids:
+        return {}
+    # DISTINCT ON (asset_id) con ORDER BY date DESC → riga più recente prima della data
+    result = await db.execute(
+        select(PriceHistory.asset_id, PriceHistory.close)
+        .where(PriceHistory.asset_id.in_(asset_ids))
+        .where(PriceHistory.date <= start_date)
+        .order_by(PriceHistory.asset_id, PriceHistory.date.desc())
+        .distinct(PriceHistory.asset_id)
+    )
+    return {row.asset_id: row.close for row in result}
+
+
 # ── Posizioni aperte ─────────────────────────────────────────────────────────
 
 
@@ -184,8 +226,10 @@ async def get_dashboard(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    period: str = Query("ytd", pattern=r"^(today|wtd|mtd|ytd|1w|1m|3m|6m|1y|3y|max|\d{4})$"),
 ):
-    """Summary + positions + allocation in una sola chiamata (1 DB session, 1 Redis MGET)."""
+    """Summary + positions + allocation in una sola chiamata (1 DB session, 1 Redis MGET).
+    Il param ``period`` arricchisce ogni posizione con period_pnl_eur/period_pnl_pct."""
     transactions = await _load_all_transactions(db, current_user.id)
     positions = calculate_positions(transactions)
 
@@ -243,6 +287,12 @@ async def get_dashboard(
         positions_count=len(positions),
     )
 
+    # ── Prezzi a inizio periodo (per period_pnl) ──────────────────────────────
+    period_start = _period_start_date(period)
+    start_prices: dict[int, float] = {}
+    if period_start is not None and period != "today":
+        start_prices = await _period_start_prices(db, list(positions.keys()), period_start)
+
     # ── Positions ─────────────────────────────────────────────────────────────
     positions_out: list[PositionOut] = []
     for aid, pos in positions.items():
@@ -261,6 +311,19 @@ async def get_dashboard(
             unrealized / cost_basis * 100
             if unrealized is not None and cost_basis > 0 else None
         )
+
+        # period P&L: usa prezzo di inizio periodo × cambio attuale
+        period_pnl_eur: float | None = None
+        period_pnl_pct: float | None = None
+        if period == "today" and change_pct is not None and value_eur is not None:
+            # Variazione giornaliera in EUR
+            period_pnl_eur = round(value_eur * (change_pct / 100) / (1 + change_pct / 100), 2)
+            period_pnl_pct = round(change_pct, 2)
+        elif value_eur is not None and aid in start_prices and start_prices[aid] > 0:
+            start_value = pos.quantity * start_prices[aid] * fx
+            period_pnl_eur = round(value_eur - start_value, 2)
+            period_pnl_pct = round((value_eur - start_value) / start_value * 100, 2)
+
         positions_out.append(PositionOut(
             asset_id=asset.id,
             symbol=asset.symbol,
@@ -278,6 +341,8 @@ async def get_dashboard(
             unrealized_pnl_eur=round(unrealized, 2) if unrealized is not None else None,
             unrealized_pnl_pct=round(unrealized_pct, 2) if unrealized_pct is not None else None,
             change_pct=change_pct,
+            period_pnl_eur=period_pnl_eur,
+            period_pnl_pct=period_pnl_pct,
         ))
     positions_out.sort(key=lambda x: x.current_value_eur or 0, reverse=True)
 

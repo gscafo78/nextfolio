@@ -20,6 +20,8 @@ class PositionOut(BaseModel):
     unrealized_pnl_eur: float | None
     unrealized_pnl_pct: float | None
     change_pct: float | None
+    period_pnl_eur: float | None = None
+    period_pnl_pct: float | None = None
 
 
 class PortfolioSummaryOut(BaseModel):

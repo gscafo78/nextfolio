@@ -17,6 +17,8 @@ export interface PositionOut {
   unrealized_pnl_eur: number | null;
   unrealized_pnl_pct: number | null;
   change_pct: number | null;
+  period_pnl_eur: number | null;
+  period_pnl_pct: number | null;
 }
 
 export interface PortfolioSummaryOut {
@@ -178,8 +180,8 @@ export interface RiskMetricsOut {
 }
 
 export const portfolioService = {
-  async getDashboard(): Promise<DashboardOut> {
-    const { data } = await api.get<DashboardOut>("/portfolio/dashboard");
+  async getDashboard(period = "ytd"): Promise<DashboardOut> {
+    const { data } = await api.get<DashboardOut>("/portfolio/dashboard", { params: { period } });
     return data;
   },
 

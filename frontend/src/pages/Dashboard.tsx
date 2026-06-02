@@ -108,8 +108,8 @@ export function Dashboard() {
 
   const { pullY, refreshing } = usePullToRefresh({
     onRefresh: async () => {
-      await qc.invalidateQueries({ queryKey: ["portfolio-dashboard"] });
-      await qc.invalidateQueries({ queryKey: ["portfolio-performance"] });
+      await qc.invalidateQueries({ queryKey: ["portfolio-dashboard"], exact: false });
+      await qc.invalidateQueries({ queryKey: ["portfolio-performance"], exact: false });
       await qc.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
@@ -130,8 +130,8 @@ export function Dashboard() {
     queryFn:  accountService.list,
   });
   const { data: dashboard, isLoading: positionsLoading } = useQuery({
-    queryKey: ["portfolio-dashboard"],
-    queryFn:  portfolioService.getDashboard,
+    queryKey: ["portfolio-dashboard", period],
+    queryFn:  () => portfolioService.getDashboard(period),
     staleTime: 5 * 60 * 1000,
   });
   const positions: PositionOut[] = dashboard?.positions ?? [];
@@ -164,9 +164,18 @@ export function Dashboard() {
     const liveValueEur = pos.quantity * live.price * fx;
     const livePnl      = liveValueEur - pos.total_invested_eur;
     const livePnlPct   = pos.total_invested_eur > 0 ? (livePnl / pos.total_invested_eur) * 100 : 0;
+    // Per "today": aggiorna period_pnl con change_pct live (aggiornato in tempo reale)
+    // Per altri periodi: period_pnl viene dal backend (price_history), rimane stabile
+    const livePeriodPnlEur = period === "today" && live.change_pct != null
+      ? liveValueEur * (live.change_pct / 100) / (1 + live.change_pct / 100)
+      : pos.period_pnl_eur;
+    const livePeriodPnlPct = period === "today" && live.change_pct != null
+      ? live.change_pct
+      : pos.period_pnl_pct;
     return { ...pos, current_price: live.price, current_price_eur: live.price * fx,
       current_value_eur: liveValueEur, unrealized_pnl_eur: livePnl,
-      unrealized_pnl_pct: livePnlPct, change_pct: live.change_pct };
+      unrealized_pnl_pct: livePnlPct, change_pct: live.change_pct,
+      period_pnl_eur: livePeriodPnlEur, period_pnl_pct: livePeriodPnlPct };
   });
 
   // ── Aggregates ─────────────────────────────────────────────────────────────
@@ -297,14 +306,13 @@ export function Dashboard() {
     return { acc, value, pnl, pnlPct, txCount };
   }).filter((b) => b.txCount > 0);
 
-  // Per-position period-aware P&L: daily change for "oggi", all-time for everything else
-  const positionsWithPeriod = enrichedPositions.map((pos) => {
-    if (period !== "today") return { ...pos, periodPnlEur: pos.unrealized_pnl_eur, periodPnlPct: pos.unrealized_pnl_pct };
-    const dailyEur = pos.change_pct != null && pos.current_value_eur != null
-      ? pos.current_value_eur * (pos.change_pct / 100) / (1 + pos.change_pct / 100)
-      : null;
-    return { ...pos, periodPnlEur: dailyEur, periodPnlPct: pos.change_pct };
-  });
+  // Per-position period-aware P&L: usa i valori calcolati dal backend (period_pnl_eur/pct)
+  // Il backend ha già distinto: "today" → daily change, altrimenti → price_history a start_date
+  const positionsWithPeriod = enrichedPositions.map((pos) => ({
+    ...pos,
+    periodPnlEur: pos.period_pnl_eur ?? null,
+    periodPnlPct: pos.period_pnl_pct ?? null,
+  }));
 
   // ── Sort positions ──────────────────────────────────────────────────────────
   function handleSort(field: SortField) {

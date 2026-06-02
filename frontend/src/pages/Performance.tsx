@@ -549,8 +549,8 @@ export function Performance() {
   const dfLocale = getDateFnsLocale(i18n.language);
 
   const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
-    queryKey: ["portfolio-dashboard"],
-    queryFn: portfolioService.getDashboard,
+    queryKey: ["portfolio-dashboard", "all"],
+    queryFn: () => portfolioService.getDashboard("max"),
     staleTime: 5 * 60 * 1000,
   });
   const summary: PortfolioSummaryOut | undefined = dashboardData?.summary;

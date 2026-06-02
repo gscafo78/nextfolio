@@ -397,7 +397,7 @@ function OverrideModal({ etf, onClose }: { etf: ETFHoldingOut; onClose: () => vo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["etf-holdings"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio-dashboard"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["country-allocation"] });
       onClose();
     },
@@ -641,8 +641,8 @@ export function Allocation() {
   const { t } = useTranslation();
 
   const { data: dashboard } = useQuery({
-    queryKey: ["portfolio-dashboard"],
-    queryFn: portfolioService.getDashboard,
+    queryKey: ["portfolio-dashboard", "all"],
+    queryFn: () => portfolioService.getDashboard("max"),
     staleTime: 5 * 60 * 1000,
   });
   const allocation = dashboard?.allocation;
