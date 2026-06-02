@@ -11,7 +11,24 @@
     "import": "Import / Export",
     "admin": "Administration",
     "settings": "Settings",
+    "about": "About",
     "logout": "Log out"
+  },
+  "about": {
+    "title": "About Nextfolio",
+    "description": "Nextfolio is a personal dashboard to track, analyse and optimise your investments in real time.",
+    "version": "Version",
+    "environment": "Environment",
+    "changelog": "What's new",
+    "systemInfo": "System info",
+    "uptime": "Server uptime",
+    "copyright": "© 2024–{{year}} Nextfolio. All rights reserved.",
+    "changelog_added": "Added",
+    "changelog_fixed": "Fixed",
+    "changelog_changed": "Changed",
+    "changelog_older": "Older versions",
+    "backend": "Backend",
+    "frontend": "Frontend"
   },
   "common": {
     "save": "Save",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePeriod } from "@/context/PeriodContext";
 import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -541,7 +542,7 @@ function CorrelationSection() {
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export function Performance() {
-  const [period, setPeriod] = useState("1y");
+  const { period, setPeriod } = usePeriod();
   const zenMode = useZenMode();
   const zen = (v: string) => zenMode ? "•••••" : v;
   const { t, i18n } = useTranslation();

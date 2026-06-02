@@ -11,7 +11,24 @@
     "import": "Importa / Esporta",
     "admin": "Amministrazione",
     "settings": "Impostazioni",
+    "about": "Info",
     "logout": "Esci"
+  },
+  "about": {
+    "title": "Informazioni sull'app",
+    "description": "Nextfolio è una dashboard personale per tracciare, analizzare e ottimizzare i tuoi investimenti in tempo reale.",
+    "version": "Versione",
+    "environment": "Ambiente",
+    "changelog": "Novità",
+    "systemInfo": "Info di sistema",
+    "uptime": "Uptime server",
+    "copyright": "© 2024–{{year}} Nextfolio. Tutti i diritti riservati.",
+    "changelog_added": "Aggiunto",
+    "changelog_fixed": "Corretto",
+    "changelog_changed": "Modificato",
+    "changelog_older": "Versioni precedenti",
+    "backend": "Backend",
+    "frontend": "Frontend"
   },
   "common": {
     "save": "Salva",

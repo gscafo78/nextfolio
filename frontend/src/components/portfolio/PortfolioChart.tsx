@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -22,9 +23,11 @@ interface ChartPoint {
 interface PortfolioChartProps {
   series: PerformancePoint[];
   isLoading: boolean;
+  header?: ReactNode;
+  height?: number;
 }
 
-export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
+export function PortfolioChart({ series, isLoading, header, height = 220 }: PortfolioChartProps) {
   const { t, i18n } = useTranslation();
   const dfLocale = getDateFnsLocale(i18n.language);
   const intlLocale = getIntlLocale(i18n.language);
@@ -89,8 +92,9 @@ export function PortfolioChart({ series, isLoading }: PortfolioChartProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden py-4">
-      <ResponsiveContainer width="100%" height={220}>
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden py-4">
+      {header}
+      <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={chartData} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="pf-pos" x1="0" y1="0" x2="0" y2="1">

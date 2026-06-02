@@ -146,4 +146,9 @@ export const assetService = {
     const { data } = await api.patch<Asset>(`/assets/${id}`, body);
     return data;
   },
+
+  async create(body: { isin?: string; symbol: string; name: string; type: AssetType; exchange: Exchange; currency: string }): Promise<Asset> {
+    const { data } = await api.post<Asset>("/assets", body);
+    return data;
+  },
 };

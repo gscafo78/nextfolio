@@ -12,8 +12,10 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.database import celery_db_session
 from app.models.alert import AlertType, PriceAlert
+from app.models.user import User
 from app.services.market_data.updater import get_cached_price
 from app.tasks.celery_app import celery_app
 
@@ -54,7 +56,7 @@ def check_price_alerts(self):
             result = await db.execute(
                 select(PriceAlert)
                 .where(PriceAlert.is_active == True)  # noqa: E712
-                .options(selectinload(PriceAlert.asset))
+                .options(selectinload(PriceAlert.asset), selectinload(PriceAlert.user))
             )
             alerts = result.scalars().all()
 
@@ -81,6 +83,24 @@ def check_price_alerts(self):
                         f"soglia={alert.threshold} prezzo={price:.4f} "
                         f"asset={alert.asset.symbol}"
                     )
+                    if settings.email_configured and alert.user and alert.user.email:
+                        is_pct = alert.alert_type in (
+                            AlertType.CHANGE_PCT_UP, AlertType.CHANGE_PCT_DOWN
+                        )
+                        current_val = change_pct if is_pct else price
+                        try:
+                            from app.services.email import send_price_alert
+                            await send_price_alert(
+                                to=alert.user.email,
+                                asset_name=alert.asset.name,
+                                asset_symbol=alert.asset.symbol,
+                                alert_type=alert.alert_type.value,
+                                threshold=float(alert.threshold),
+                                current_value=current_val,
+                                is_pct=is_pct,
+                            )
+                        except Exception as mail_exc:
+                            logger.warning(f"Invio email alert {alert.id} fallito: {mail_exc}")
 
             if triggered:
                 await db.commit()

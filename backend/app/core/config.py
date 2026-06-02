@@ -1,7 +1,12 @@
+from pathlib import Path
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_SECRET = "change-me-in-production"
+
+_VERSION_FILE = Path(__file__).parents[3] / "VERSION"
+APP_VERSION: str = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0.0"
 
 
 class Settings(BaseSettings):

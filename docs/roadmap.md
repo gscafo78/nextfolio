@@ -486,7 +486,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] Frontend: pagina Alert con autocomplete asset, sezioni attivi/disabilitati, badge "scattato"
 - [ ] Alert dividendo in arrivo *(rimandato — richiede calendario dividendi esterno)*
 - [x] Notifiche email transazionali (reset password, benvenuto utente) — via `smtplib` + STARTTLS *(completato in 4.X.6)*
-- [ ] Notifiche email per price alert *(rimandato — SMTP pronto, manca integrazione con task Celery `check_price_alerts`)*
+- [x] Notifiche email per price alert — `send_price_alert()` in `email.py`; task Celery `check_price_alerts` carica `user` via `selectinload` e invia email ad ogni alert scattato; errori SMTP loggati come warning senza interrompere il task; cooldown 4h invariato
 - [ ] Notifiche push via PWA *(rimandato — richiede VAPID backend)*
 
 ### 6.2 Strumenti di analisi ✅
@@ -682,7 +682,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 ### 10.2 Interazioni touch
 
 - [ ] **Swipe per navigare** tra le tab principali — `touch-action: pan-y`, threshold 60px
-- [ ] **Pull-to-refresh** sulla Dashboard
+- [x] **Pull-to-refresh** sulla Dashboard — `usePullToRefresh` hook: touch start/move/end; soglia 72px, resistance 2.5×; indicatore spinner circolare fisso in cima durante il pull; al rilascio invalida `portfolio-dashboard`, `portfolio-performance`, `transactions`; solo mobile (`md:hidden`)
 - [ ] **Long-press su posizione** per aprire `HoldingDetailModal`
 - [x] BottomNav tap area già 44×44px (`py-2` + icona 20px + label 10px)
 
@@ -943,9 +943,178 @@ Backend:                                         Frontend:
 
 - [x] Sostituito `MemoryRouter` con `BrowserRouter` in `App.tsx` (vedi §12.5)
 
+### 13.2b Token di sessione "Ricordami" — verifica 30 giorni ✅
+
+**Problema riportato:** con "Ricordami" selezionato, il login sembrava scadere dopo ~24 ore invece di 30 giorni.
+
+**Diagnosi:**
+- `create_access_token(remember_me=True)` → durata `ACCESS_TOKEN_EXPIRE_MINUTES × 48 = 30 × 48 = 1440 min = **24 ore**`
+- `create_refresh_token(remember_me=True)` → durata 30 giorni (corretto, flag `rem` propagato nel JWT)
+- **Race condition**: al reload della pagina, 4–6 chiamate API partono in parallelo (dashboard, positions, prices…); tutte ottengono 401 (access_token scaduto); tutte tentavano `/auth/refresh` simultaneamente → alcune fallivano con il refresh token già ruotato → redirect a `/login`
+
+**Fix implementati:**
+
+- [x] **Mutex per il refresh** in `api.ts`: variabile `refreshPromise` condivisa — la prima chiamata che ottiene 401 avvia il refresh; tutte le successive attendono la stessa promessa invece di avviarne una propria; `finally(() => refreshPromise = null)` la resetta dopo ogni ciclo
+- [x] **Refresh proattivo** in `auth.ts` — `refreshIfExpired()`: al mount di `PrivateRoute`, decodifica l'expiry del JWT (`atob(token.split(".")[1])`) senza librerie esterne; se scade entro 60 secondi, chiama `/auth/refresh` prima che qualsiasi altra API parta — azzera alla radice il problema dei 401 in burst
+- [x] **PrivateRoute async-aware**: stato `ready/authenticated` — mostra `null` durante il refresh proattivo, poi renderizza la dashboard o reindirizza al login; elimina il flash di redirect seguito da reload
+
 ### 13.3 Dashboard — percentuale variazione di oggi ✅
 
 - [x] KPI card "Variazione oggi" mostra ora anche la percentuale `(+0.42%)` sotto al valore in EUR, in linea con la card "Performance periodo"
+
+### 13.3b + 13.4 Dashboard — Griglia 4 caselle sulla stessa riga ✅
+
+**Layout finale implementato:**
+```
+Desktop (md+, ≥ 768px) — griglia 5 colonne:
+┌────────────────────────┬────────────┬────────────┬────────────┐
+│       Grafico          │   Valore   │ Perf. YTD  │ Var. oggi  │
+│   col-span-2 (40%)     │   (20%)    │   (20%)    │   (20%)    │
+│      h = 180px         │ € 142.830  │ +€ 12.830  │ +€ 320     │
+│                        │ Inv €120k  │ +18.4%     │ +0.42%     │
+└────────────────────────┴────────────┴────────────┴────────────┘
+
+Mobile: stacked verticalmente (1 colonna)
+```
+
+- [x] Griglia `grid-cols-1 md:grid-cols-5` — grafico `col-span-2` (40%), 3 KPI `col-span-1` (20% ciascuna)
+- [x] Aggiunto prop `height?: number` (default 220) a `PortfolioChart`; Dashboard passa `height={180}` per la vista compatta
+- [x] Aggiunto prop `header?: ReactNode` a `PortfolioChart` (usato in fasi precedenti, mantenuto per estensibilità)
+- [x] Card "Valore portafoglio / Investito" autonoma (non più nell'header del grafico)
+- [x] Card "Performance periodo" e "Variazione oggi" in caselle separate
+- [x] Zen mode e colori verde/rosso mantenuti su tutte le caselle
+- [x] Rimossa `KpiCard` locale (non più necessaria)
+
+### 13.5 Selettore periodo globale ✅
+
+**Obiettivo:** il selettore della timeline nella Dashboard (1D · WTD · MTD · YTD · 1A · Max) diventa lo stato globale dell'app: Dashboard e Performance si sincronizzano automaticamente.
+
+- [x] `src/context/PeriodContext.tsx` — `PeriodProvider` + `usePeriod()` hook; stato persistito in `localStorage("dashboard_period")`, default `"ytd"`
+- [x] `App.tsx` — `PeriodProvider` wrappa `MainLayout` (solo route autenticate)
+- [x] `Dashboard.tsx` — sostituito `useState` locale con `usePeriod()`; rimosso il `localStorage.setItem` duplicato nel `onChange` (ora gestito dal context)
+- [x] `Performance.tsx` — sostituito `useState("1y")` locale con `usePeriod()`; il bottone periodo scrive nel context condiviso
+- [x] Comportamento cross-page: selezionare "YTD" in Dashboard → navigare in Performance → la pagina mostra già YTD; cambiare periodo in Performance → tornare in Dashboard → il grafico riflette la nuova selezione
+- [x] Se il periodo dal context non è nel set di una pagina (es. "wtd" in Performance), l'API lo gestisce correttamente e nessun bottone è evidenziato; l'utente può riallineare con un click
+- [x] Allocazioni, Fiscale, Dividendi: non dipendono da un periodo di performance → nessuna modifica necessaria
+
+---
+
+## FASE 14 — Versioning e changelog ✅
+**Obiettivo: ogni rilascio ha un numero di versione leggibile dall'app; le novità di ogni aggiornamento (anche minor) sono visibili all'utente e al superadmin**
+
+### Strategia di versioning
+
+Adottare **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
+
+| Incremento | Quando |
+|------------|--------|
+| `PATCH` (x.y.**Z**) | Bug fix, fix sicurezza, miglioramenti senza nuove funzioni |
+| `MINOR` (x.**Y**.0) | Nuova funzionalità retrocompatibile (es. selettore periodo globale, pagina register) |
+| `MAJOR` (**X**.0.0) | Redesign profondo, breaking change API, migrazione dati non reversibile |
+
+**Versione attuale di partenza: `1.5.2`**
+_(FASE 1–7 = 1.0.0 · FASE 8–9 = 1.1.0 · FASE 11 go-live = 1.2.0 · FASE 12 = 1.3.0 · FASE 13 fixes = 1.4.x → 1.5.x)_
+
+### 14.1 Sorgente unica della versione
+
+- [x] Creare `/opt/nextfolio/VERSION` — file di testo con il solo numero di versione (es. `1.5.2`)
+- [ ] `backend/app/core/config.py` — `APP_VERSION: str` letta da `VERSION` a runtime:
+  ```python
+  from pathlib import Path
+  APP_VERSION = (Path(__file__).parents[3] / "VERSION").read_text().strip()
+  ```
+- [x] `frontend/vite.config.ts` — legge `VERSION` con `fs.readFileSync` e lo inietta come costante globale `__APP_VERSION__` al build
+- [x] `frontend/src/vite-env.d.ts` — aggiunta dichiarazione `declare const __APP_VERSION__: string`
+
+### 14.2 Endpoint versione
+
+- [x] `GET /health` — aggiunto il campo `version` (da `APP_VERSION`) e `environment` nella risposta:
+  ```json
+  { "status": "ok", "version": "1.5.2", "environment": "production" }
+  ```
+
+### 14.3 Changelog strutturato
+
+- [x] Creato `/opt/nextfolio/CHANGELOG.md` — formato [Keep a Changelog](https://keepachangelog.com/):
+  ```markdown
+  ## [1.5.2] — 2026-06-02
+  ### Fixed
+  - Mutex per refresh token: eliminato logout inatteso a 24h con "Ricordami"
+  - Refresh proattivo al reload: nessun burst di 401 dopo inattività prolungata
+
+  ## [1.5.1] — 2026-05-28
+  ### Added
+  - URL privacy: barra degli indirizzi mostra sempre solo il dominio base
+
+  ## [1.5.0] — 2026-05-28
+  ### Added
+  - Registrazione pubblica con verifica OTP email (abilitabile dal superadmin)
+  - Toggle registrazione pubblica nel pannello Admin
+  ...
+  ```
+- [x] Aggiornare `CHANGELOG.md` ad ogni commit significativo (non solo sui tag)
+
+### 14.4 Versione visibile in app
+
+- [x] **Pagina About** (`/about`) — versione in badge, changelog con badge per tipo (Added/Fixed/Changed), sezione "versioni precedenti" espandibile, copyright con anno dinamico
+- [x] **Sezione Info di sistema** (solo superadmin) — versione frontend (`__APP_VERSION__`) + versione backend (da `GET /health`) + environment + status
+- [x] **Nessun banner popup** — le novità non interrompono l'utilizzo
+
+### 14.5 Processo di rilascio (workflow)
+
+```
+1. Modifiche al codice
+2. Aggiornare CHANGELOG.md con le novità della versione
+3. Bumppare VERSION (es. 1.5.2 → 1.5.3 per patch, → 1.6.0 per minor)
+4. Sincronizzare frontend/package.json "version"
+5. git tag v1.5.3
+6. docker compose build && docker compose up -d
+```
+
+- [ ] Script opzionale `scripts/release.sh <patch|minor|major>` che automatizza i passi 2–4
+
+### 14.6 Pagina About ✅
+
+**Posizione nel menu:** dropdown utente in TopBar → tra "Impostazioni" e "Esci"
+
+```
+┌─────────────────┐
+│ ⚙ Impostazioni  │
+│ ℹ About         │  ← nuovo
+│ ─────────────── │
+│ ⬡ Esci          │
+└─────────────────┘
+```
+
+**Contenuto della pagina `/about`:**
+
+- [x] **Header** — logo Nextfolio + tagline + numero di versione in badge (`v1.5.2`)
+- [x] **Changelog** — ultime 3 versioni visibili; sezione espandibile "versioni precedenti" con chevron toggle; badge colorati per tipo (Added verde, Fixed blu, Changed ambra)
+- [x] **Info di sistema** (solo superadmin) — versione frontend / backend, environment, status (da `GET /health`)
+- [x] **Copyright** — `© 2024–{anno corrente} Nextfolio` con anno dinamico
+
+**Implementazione frontend:**
+
+- [x] Rotta `<Route path="about" element={<About />} />` aggiunta in `App.tsx`
+- [x] `src/pages/About.tsx` — layout card-based, dark mode, stesso stile delle altre pagine
+- [x] `TopBar.tsx` — link "About" con icona `Info` tra Impostazioni e il divisore rosso Esci
+- [ ] **Chiavi i18n — tutte e 4 le lingue** (`src/locales/it|en|fr|de/common.json`), coerente con il resto dell'app:
+
+  | Chiave | IT | EN | FR | DE |
+  |--------|----|----|----|----|
+  | `nav.about` | Info | About | À propos | Über |
+  | `about.title` | Informazioni sull'app | About Nextfolio | À propos de Nextfolio | Über Nextfolio |
+  | `about.description` | Gestione portafoglio... | Portfolio management... | Gestion de portefeuille... | Portfolioverwaltung... |
+  | `about.version` | Versione | Version | Version | Version |
+  | `about.environment` | Ambiente | Environment | Environnement | Umgebung |
+  | `about.changelog` | Novità | What's new | Nouveautés | Neuigkeiten |
+  | `about.systemInfo` | Info di sistema | System info | Infos système | Systeminfo |
+  | `about.uptime` | Uptime server | Server uptime | Uptime serveur | Server-Uptime |
+  | `about.copyright` | © {{from}}–{{year}} Nextfolio | © {{from}}–{{year}} Nextfolio | © {{from}}–{{year}} Nextfolio | © {{from}}–{{year}} Nextfolio |
+  | `about.changelog.added` | Aggiunto | Added | Ajouté | Hinzugefügt |
+  | `about.changelog.fixed` | Corretto | Fixed | Corrigé | Behoben |
+  | `about.changelog.changed` | Modificato | Changed | Modifié | Geändert |
+  | `about.changelog.older` | Versioni precedenti | Older versions | Versions précédentes | Ältere Versionen |
 
 ---
 
@@ -1064,9 +1233,10 @@ docker compose build
 | 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
 | **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | ✅ **Completata** | 🔴 **Critica** | **< 1 sett.** |
 | **12** | **Registrazione pubblica opzionale con verifica email** | ✅ **Completata** | 🟠 Alta | 2–3 giorni |
-| **13** | **Fix post-lancio — sessione persistente, BrowserRouter, dashboard %** | ✅ **Completata** | 🔴 Critica | — |
+| **13** | **Miglioramenti post-lancio — sessione, dashboard, periodo globale, token 30gg** | ✅ **Completata** | 🟠 Alta | — |
+| **14** | **Versioning e changelog — VERSION file, endpoint, pagina About, i18n** | ✅ **Completata** | 🟡 Media | 1–2 gg |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → ~~FASE 13 (fix post-lancio)~~ ✅
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → **FASE 13 (miglioramenti post-lancio)** 🔧
 
 **Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
 

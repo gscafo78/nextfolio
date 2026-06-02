@@ -112,6 +112,49 @@ async def send_verification_code(to: str, code: str, name: str) -> None:
     await send_email(to, "Codice di verifica — Nextfolio", html)
 
 
+async def send_price_alert(
+    to: str,
+    asset_name: str,
+    asset_symbol: str,
+    alert_type: str,
+    threshold: float,
+    current_value: float,
+    is_pct: bool,
+) -> None:
+    fmt = lambda v: f"{v:+.2f}%" if is_pct else f"€ {v:.4f}"
+    label_map = {
+        "PRICE_ABOVE":    "Prezzo sopra soglia",
+        "PRICE_BELOW":    "Prezzo sotto soglia",
+        "CHANGE_PCT_UP":  "Variazione giornaliera positiva oltre soglia",
+        "CHANGE_PCT_DOWN": "Variazione giornaliera negativa oltre soglia",
+    }
+    label = label_map.get(alert_type, alert_type)
+    url = f"{settings.APP_URL}/alert"
+    html = _base(
+        f"Alert scattato: {asset_symbol}",
+        f"""
+        <p>Il tuo alert su <strong>{asset_name}</strong> ({asset_symbol}) è appena scattato.</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px">
+          <tr>
+            <td style="padding:8px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">Condizione</td>
+            <td style="padding:8px 0;font-weight:600;text-align:right;border-bottom:1px solid #f3f4f6">{label}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">Soglia impostata</td>
+            <td style="padding:8px 0;font-weight:600;text-align:right;border-bottom:1px solid #f3f4f6">{fmt(threshold)}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#6b7280">Valore attuale</td>
+            <td style="padding:8px 0;font-weight:700;font-size:18px;text-align:right;color:#111827">{fmt(current_value)}</td>
+          </tr>
+        </table>
+        <a href="{url}" class="btn">Gestisci alert</a>
+        <p class="note">Questo alert non si riattiverà per le prossime 4 ore.</p>
+        """,
+    )
+    await send_email(to, f"Alert Nextfolio: {asset_symbol} — {label}", html)
+
+
 async def send_test(to: str) -> None:
     html = _base(
         "Email di test",

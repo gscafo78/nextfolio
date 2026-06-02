@@ -1,9 +1,16 @@
+import fs from "fs";
+import path from "path";
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import path from "path";
 
 const backendHost = process.env.VITE_BACKEND_HOST ?? "localhost:8000";
+
+const versionFile = path.resolve(__dirname, "../VERSION");
+const APP_VERSION = fs.existsSync(versionFile)
+  ? fs.readFileSync(versionFile, "utf-8").trim()
+  : "0.0.0";
 
 export default defineConfig({
   plugins: [
@@ -79,6 +86,9 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

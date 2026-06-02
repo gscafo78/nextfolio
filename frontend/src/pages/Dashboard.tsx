@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { usePeriod } from "@/context/PeriodContext";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { ArrowRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TopBar } from "@/components/layout/TopBar";
@@ -94,14 +96,21 @@ export function Dashboard() {
   const zen = (v: string) => zenMode ? "•••••" : v;
   const dateLocale = getIntlLocale(i18n.language);
 
-  const [period,    setPeriod]    = useState<Period>(
-    () => localStorage.getItem("dashboard_period") ?? "max"
-  );
+  const { period, setPeriod } = usePeriod();
   const [showClosed, setShowClosed] = useState(false);
   const [sortField, setSortField] = useState<SortField>("allocation");
   const [sortDir,   setSortDir]   = useState<SortDir>("desc");
   const [backfillDone, setBackfillDone] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
+  const qc = useQueryClient();
+
+  const { pullY, refreshing } = usePullToRefresh({
+    onRefresh: async () => {
+      await qc.invalidateQueries({ queryKey: ["portfolio-dashboard"] });
+      await qc.invalidateQueries({ queryKey: ["portfolio-performance"] });
+      await qc.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
 
   const { mutate: runBackfill, isPending: backfillPending } = useMutation({
     mutationFn: () => api.post("/portfolio/backfill-history"),
@@ -322,7 +331,17 @@ export function Dashboard() {
   return (
     <>
       <TopBar title="Dashboard" />
-      <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6" style={{ transform: pullY > 0 ? `translateY(${pullY}px)` : undefined, transition: pullY === 0 ? "transform 0.25s ease" : undefined }}>
+
+        {/* Pull-to-refresh indicator — visible only on mobile while pulling */}
+        {(pullY > 0 || refreshing) && (
+          <div className="md:hidden fixed top-0 inset-x-0 flex justify-center pt-3 z-50 pointer-events-none">
+            <div className={`w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-transform ${refreshing ? "animate-spin" : ""}`}
+              style={{ transform: !refreshing ? `scale(${Math.min(pullY / 40, 1)})` : undefined }}>
+              <RefreshCw className="w-4 h-4 text-brand-600" />
+            </div>
+          </div>
+        )}
 
         {/* Greeting + period selector */}
         <div className="flex items-center justify-between">
@@ -332,7 +351,7 @@ export function Dashboard() {
               {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
-          <PeriodSelector period={period} options={periodOptions} onChange={(p) => { setPeriod(p); localStorage.setItem("dashboard_period", p); }} />
+          <PeriodSelector period={period} options={periodOptions} onChange={setPeriod} />
         </div>
 
         {positions.length === 0 && !positionsLoading ? (
@@ -341,30 +360,67 @@ export function Dashboard() {
           </div>
         ) : (
           <>
-            {/* Performance chart */}
-            <PortfolioChart series={chartSeries} isLoading={perfLoading && chartSeries.length === 0} />
+            {/* 5-column grid: grafico (col-span-2) | valore | performance | variazione oggi */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-stretch">
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <KpiCard
-                label={t("dashboard.portfolioValue")}
-                value={hasPrices ? zen(`€ ${totalValue.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
-                sub={hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : undefined}
-              />
-              <KpiCard
-                label={t("dashboard.performancePeriod", { period: periodLabel })}
-                value={periodPnl != null
-                  ? zen(`€ ${periodPnl.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`)
-                  : "—"}
-                sub={periodPnlPct != null ? `${periodPnlPct >= 0 ? "+" : ""}${periodPnlPct.toFixed(2)}%` : undefined}
-                positive={periodPnl != null ? periodPnl >= 0 : undefined}
-              />
-              <KpiCard
-                label={t("dashboard.dailyChange")}
-                value={hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
-                sub={dailyChangePct != null ? `${dailyChangePct >= 0 ? "+" : ""}${dailyChangePct.toFixed(2)}%` : undefined}
-                positive={hasPrices ? dailyChange >= 0 : undefined}
-              />
+              {/* 1. Grafico — doppia larghezza */}
+              <div className="md:col-span-2">
+                <PortfolioChart
+                  series={chartSeries}
+                  isLoading={perfLoading && chartSeries.length === 0}
+                  height={180}
+                />
+              </div>
+
+              {/* 2. Valore portafoglio / Investito */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 p-5 flex flex-col justify-center gap-1">
+                <p className="text-xs font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wide">
+                  {t("dashboard.portfolioValue")}
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100 tabular-nums">
+                  {hasPrices ? zen(`€ ${totalValue.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">
+                  {hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
+                </p>
+              </div>
+
+              {/* 3. Performance periodo */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 p-5 flex flex-col justify-center gap-1">
+                <p className="text-xs font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wide leading-tight">
+                  {t("dashboard.performancePeriod", { period: periodLabel })}
+                </p>
+                <p className={`text-2xl font-bold tabular-nums ${
+                  periodPnl == null ? "text-gray-400" : periodPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}>
+                  {periodPnl != null
+                    ? zen(`€ ${periodPnl.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`)
+                    : "—"}
+                </p>
+                {periodPnlPct != null && !zenMode && (
+                  <p className={`text-sm font-semibold tabular-nums ${periodPnlPct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {periodPnlPct >= 0 ? "+" : ""}{periodPnlPct.toFixed(2)}%
+                  </p>
+                )}
+              </div>
+
+              {/* 4. Variazione oggi */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 p-5 flex flex-col justify-center gap-1">
+                <p className="text-xs font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wide">
+                  {t("dashboard.dailyChange")}
+                </p>
+                <p className={`text-2xl font-bold tabular-nums ${
+                  !hasPrices ? "text-gray-400" : dailyChange >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}>
+                  {hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
+                </p>
+                {dailyChangePct != null && !zenMode && (
+                  <p className={`text-sm font-semibold tabular-nums ${dailyChangePct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {dailyChangePct >= 0 ? "+" : ""}{dailyChangePct.toFixed(2)}%
+                  </p>
+                )}
+              </div>
+
             </div>
 
             {/* Per-account breakdown */}
@@ -683,18 +739,3 @@ function SkeletonRow({ cols }: { cols: number }) {
   );
 }
 
-function KpiCard({ label, value, sub, positive }: {
-  label: string; value: string; sub?: string; positive?: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${
-        positive === undefined ? "text-gray-900" : positive ? "text-green-600" : "text-red-600"
-      }`}>
-        {value}
-      </p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
-  );
-}

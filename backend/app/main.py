@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 
 from app.api.v1.router import api_router
 from app.api.ws import router as ws_router
-from app.core.config import settings
+from app.core.config import APP_VERSION, settings
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(
@@ -51,4 +51,4 @@ app.include_router(ws_router)
 
 @app.get("/health", tags=["system"])
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": APP_VERSION, "environment": settings.APP_ENV}

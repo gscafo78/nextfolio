@@ -11,7 +11,24 @@
     "import": "Importieren / Exportieren",
     "admin": "Verwaltung",
     "settings": "Einstellungen",
+    "about": "Über",
     "logout": "Abmelden"
+  },
+  "about": {
+    "title": "Über Nextfolio",
+    "description": "Nextfolio ist ein persönliches Dashboard zum Verfolgen, Analysieren und Optimieren Ihrer Investitionen in Echtzeit.",
+    "version": "Version",
+    "environment": "Umgebung",
+    "changelog": "Neuigkeiten",
+    "systemInfo": "Systeminfo",
+    "uptime": "Server-Uptime",
+    "copyright": "© 2024–{{year}} Nextfolio. Alle Rechte vorbehalten.",
+    "changelog_added": "Hinzugefügt",
+    "changelog_fixed": "Behoben",
+    "changelog_changed": "Geändert",
+    "changelog_older": "Ältere Versionen",
+    "backend": "Backend",
+    "frontend": "Frontend"
   },
   "common": {
     "save": "Speichern",

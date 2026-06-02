@@ -2,12 +2,14 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { PeriodProvider } from "@/context/PeriodContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import { Login } from "@/pages/Login";
 import { ForgotPassword } from "@/pages/ForgotPassword";
 import { ResetPassword } from "@/pages/ResetPassword";
 import { Register } from "@/pages/Register";
+import { About } from "@/pages/About";
 import { Dashboard } from "@/pages/Dashboard";
 
 // Lazy-loaded pages — split in separate chunks to reduce initial bundle
@@ -53,7 +55,7 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route element={<PrivateRoute />}>
-            <Route element={<MainLayout />}>
+            <Route element={<PeriodProvider><MainLayout /></PeriodProvider>}>
               <Route index element={<Dashboard />} />
               <Route path="transazioni"  element={<Suspense fallback={<PageSkeleton />}><Transazioni /></Suspense>} />
               <Route path="performance"  element={<Suspense fallback={<PageSkeleton />}><Performance /></Suspense>} />
@@ -65,6 +67,7 @@ export function App() {
               <Route path="dividendi"    element={<Suspense fallback={<PageSkeleton />}><Dividendi /></Suspense>} />
               <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />
               <Route path="admin"        element={<Suspense fallback={<PageSkeleton />}><Admin /></Suspense>} />
+              <Route path="about"        element={<About />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

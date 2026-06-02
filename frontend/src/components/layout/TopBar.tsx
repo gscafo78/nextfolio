@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Settings, LogOut } from "lucide-react";
+import { Info, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -61,6 +61,14 @@ export function TopBar({ title }: TopBarProps) {
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
               {t("nav.settings")}
+            </Link>
+            <Link
+              to="/about"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Info className="w-4 h-4 flex-shrink-0" />
+              {t("nav.about")}
             </Link>
             <div className="my-1 border-t border-gray-100 dark:border-slate-700" />
             <button
