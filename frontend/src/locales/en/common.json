@@ -13,7 +13,8 @@
     "settings": "Settings",
     "about": "About",
     "logout": "Log out",
-    "xray": "X-Ray"
+    "xray": "X-Ray",
+    "watchlist": "Watchlist"
   },
   "about": {
     "title": "About Nextfolio",
@@ -691,6 +692,29 @@
     "scoreDesc": "{{ok}} out of {{total}} rules passed",
     "scoreLow": "High risk",
     "scoreHigh": "Healthy portfolio",
-    "noData": "Add transactions to run the X-Ray analysis"
+    "noData": "Add transactions to run the X-Ray analysis",
+    "rebalance": {
+      "title": "Portfolio rebalancing",
+      "desc": "Set target allocation by asset class and calculate suggested trades to reach it.",
+      "total": "Total",
+      "totalMustBe100": "must be 100%",
+      "cash": "Available cash",
+      "calculate": "Calculate suggestions",
+      "alreadyBalanced": "Portfolio already matches target (difference < 1%)",
+      "suggestions": "Suggested trades",
+      "buy": "Buy",
+      "sell": "Sell"
+    }
+  },
+  "watchlist": {
+    "add": "Add",
+    "addToWatchlist": "Add to watchlist",
+    "subtitle": "{{count}} assets watched",
+    "empty": "No assets in watchlist",
+    "emptyHint": "Add assets to monitor their price without buying",
+    "targetPrice": "Target price",
+    "targetPricePlaceholder": "e.g. 100.00 (optional)",
+    "note": "Note",
+    "notePlaceholder": "e.g. Buy when it drops (optional)"
   }
 }

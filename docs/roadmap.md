@@ -1217,58 +1217,58 @@ class XRayResponse(BaseModel):
 
 #### Categoria: Concentrazione
 
-- [ ] **`concentration_single_asset`** — nessun titolo supera soglia% del portafoglio (default: max 20%)
+- [x] **`concentration_single_asset`** — nessun titolo supera soglia% del portafoglio (default: max 20%)
   - `actual` = peso% del titolo più grande
   - `status = "ok"` se tutti i titoli ≤ 20%; "warn" 20–33%; "error" > 33%
 
-- [ ] **`concentration_single_account`** — nessun conto/broker supera soglia% del portafoglio (default: max 80%)
+- [x] **`concentration_single_account`** — nessun conto/broker supera soglia% del portafoglio (default: max 80%)
   - `actual` = peso% del conto più grande
   - Usa il breakdown per-conto già calcolato
 
-- [ ] **`concentration_crypto`** — esposizione crypto < soglia% (default: max 10%)
+- [x] **`concentration_crypto`** — esposizione crypto < soglia% (default: max 10%)
   - `actual` = % del portafoglio in asset di tipo CRYPTO
   - Usa l'allocazione `by_type` già disponibile
 
 #### Categoria: Asset Class
 
-- [ ] **`asset_class_equity`** — azioni + ETF nell'intervallo [min, max]% (default: 50–80%)
+- [x] **`asset_class_equity`** — azioni + ETF nell'intervallo [min, max]% (default: 50–80%)
   - `actual` = % portafoglio in STOCK + ETF
   - Regola informativa/target, non bloccante
 
-- [ ] **`asset_class_fixed_income`** — obbligazioni nell'intervallo [min, max]% (default: 5–30%)
+- [x] **`asset_class_fixed_income`** — obbligazioni nell'intervallo [min, max]% (default: 5–30%)
   - `actual` = % portafoglio in BOND (inclusi BTP)
   - Utile per il mercato italiano dove i BTP sono comuni
 
-- [ ] **`asset_class_currency_eur`** — esposizione EUR ≥ soglia% (default: min 30%)
+- [x] **`asset_class_currency_eur`** — esposizione EUR ≥ soglia% (default: min 30%)
   - `actual` = % portafoglio in asset denominati in EUR
   - Usa l'allocazione `by_currency`
 
 #### Categoria: Fee
 
-- [ ] **`fee_ratio`** — commissioni totali / capitale investito < soglia% (default: max 1.5%)
+- [x] **`fee_ratio`** — commissioni totali / capitale investito < soglia% (default: max 1.5%)
   - `actual` = sum(fee) / sum(total_invested_eur) × 100
   - Usa le transazioni già caricate; tipi FEE esclusi dall'investimento
 
 #### Categoria: Diversificazione geografica
 
-- [ ] **`geo_diversification`** — nessun continente supera soglia% (default: max 70%)
+- [x] **`geo_diversification`** — nessun continente supera soglia% (default: max 70%)
   - `actual` = peso% del continente più rappresentato (via look-through ETF)
   - Usa `by_continent` dall'allocation service
 
-- [ ] **`geo_home_bias`** — esposizione Europa / Italia < soglia% (default: max 50%)
+- [x] **`geo_home_bias`** — esposizione Europa / Italia < soglia% (default: max 50%)
   - `actual` = % portafoglio con esposizione al continente Europe
   - Segnala "home bias" (sovraesposizione al mercato domestico)
 
 #### Categoria: Liquidità
 
-- [ ] **`liquidity_emergency_fund`** — presenza di riserva di liquidità (min 1 mese di investimento medio)
+- [x] **`liquidity_emergency_fund`** — presenza di riserva di liquidità (min 1 mese di investimento medio)
   - `actual` = cash in portafoglio come % del valore totale
   - Cerca asset di tipo BOND a breve scadenza o contanti (convenzionalmente: assets con yield > 0 e duration < 1y, oppure semplificato: presenza di qualsiasi obbligazione a breve)
   - Regola informativa
 
 **Endpoint:**
-- [ ] `GET /api/v1/portfolio/xray` — risponde con `XRayResponse`
-- [ ] Cache Redis 10 min (chiave `xray:{user_id}`) — invalidata da nuove transazioni
+- [x] `GET /api/v1/portfolio/xray` — risponde con `XRayResponse`
+- [x] Cache Redis 10 min (chiave `xray:{user_id}`) — invalidata da nuove transazioni
 
 ---
 
@@ -1311,29 +1311,73 @@ class XRayResponse(BaseModel):
 └────────────────────────────────────────────────┘
 ```
 
-- [ ] Score globale in badge (regole OK / totale) con barra di progresso
-- [ ] Ogni categoria è una card con lista regole
-- [ ] Ogni regola mostra: icona status (✅ / ⚠️ / ❌), nome, valore attuale, soglia, barra visiva
-- [ ] Dark mode completo
-- [ ] Skeleton loading state
-- [ ] Colori: verde (`ok`), ambra (`warn`), rosso (`error`), grigio (`info`)
-- [ ] Tooltip con spiegazione di ciascuna regola
+- [x] Score globale in badge (regole OK / totale) con barra di progresso
+- [x] Ogni categoria è una card con lista regole
+- [x] Ogni regola mostra: icona status (✅ / ⚠️ / ❌), nome, valore attuale, soglia, barra visiva
+- [x] Dark mode completo
+- [x] Skeleton loading state
+- [x] Colori: verde (`ok`), ambra (`warn`), rosso (`error`), grigio (`info`)
+- [x] Tooltip con spiegazione di ciascuna regola
 
 ---
 
 ### 16.3 Integrazione sidebar e i18n
 
-- [ ] Link "X-Ray" con icona `ScanSearch` in Sidebar (sotto "Analisi dividendi")
-- [ ] Link "X-Ray" in BottomNav mobile (sostituisce o aggiunge — verificare spazio)
-- [ ] Chiavi i18n `nav.xray`, `xray.title`, `xray.score`, `xray.categories.*`, `xray.rules.*` in IT / EN / FR / DE
-- [ ] `NAV_ROUTES` in `BottomNav.tsx` aggiornato (se X-Ray entra tra le 5 tab)
+- [x] Link "X-Ray" con icona `ScanSearch` in Sidebar (sotto "Analisi dividendi")
+- [x] Link "X-Ray" in BottomNav (Sidebar desktop; non aggiunto a BottomNav per limite 5 tab) (sostituisce o aggiunge — verificare spazio)
+- [x] Chiavi i18n `nav.xray`, `xray.title`, `xray.score`, `xray.categories.*`, `xray.rules.*` in IT / EN / FR / DE
+- [x] `NAV_ROUTES` in `BottomNav.tsx` invariato (X-Ray accessibile solo da Sidebar) aggiornato (se X-Ray entra tra le 5 tab)
 
 ---
 
 ### 16.4 Aggiornamento roadmap e CHANGELOG
 
-- [ ] Aggiornare CHANGELOG.md
-- [ ] Bumppare versione → `1.7.0` (nuova feature rilevante)
+- [x] Aggiornare CHANGELOG.md
+- [x] Bumppare versione → `1.7.0` (nuova feature rilevante)
+
+---
+
+## FASE 17 — Watchlist 👀
+**Obiettivo: tenere d'occhio asset che non si posseggono ancora — prezzi live, variazione, note personali**
+
+> Ispirato alla watchlist di Ghostfolio. L'utente aggiunge ticker/ISIN che vuole monitorare senza effettuare transazioni.
+
+### 17.1 Backend
+
+- [x] Migration `0017_watchlist`: tabella `watchlist(id, user_id FK, asset_id FK, note TEXT nullable, target_price FLOAT nullable, added_at TIMESTAMP)`
+- [x] `GET /api/v1/watchlist` — lista con prezzo attuale (Redis cache → DB fallback), variazione%, note, target_price
+- [x] `POST /api/v1/watchlist` — body: `{asset_id, note?, target_price?}` — unico per user+asset
+- [x] `PATCH /api/v1/watchlist/{id}` — aggiorna note e target_price
+- [x] `DELETE /api/v1/watchlist/{id}` — rimuove dalla watchlist
+
+### 17.2 Frontend
+
+- [x] Pagina `/watchlist` — tabella con simbolo, nome, prezzo live, variazione%, distanza da target (se impostato), note, azioni
+- [x] Bottone "Aggiungi" con autocomplete asset (`AssetAutocomplete` già esistente)
+- [x] Badge "Vicino al target" se prezzo ≤ 5% dal target_price (verde)
+- [x] Dark mode, skeleton, mobile responsive
+- [x] Link Sidebar con icona `Eye`
+- [x] i18n IT/EN/FR/DE
+
+---
+
+## FASE 18 — Ribilanciamento portafoglio ⚖️
+**Obiettivo: dato un'allocazione target per asset class, calcolare e mostrare quanto comprare/vendere per riallineare il portafoglio**
+
+> Complemento naturale dell'X-Ray: X-Ray identifica i problemi, il Ribilanciamento suggerisce come risolverli.
+
+### 18.1 Backend
+
+- [x] `POST /api/v1/portfolio/rebalance` — body: `{targets: [{type|label, pct}], cash_available?: float}` → risponde con lista di trade suggeriti `{asset, action: buy|sell, amount_eur, current_pct, target_pct}`
+- [x] Logica: per ogni asset class, confronta `current_pct` con `target_pct`, calcola il delta in EUR, suggerisce buy/sell proporzionale alle posizioni esistenti
+
+### 18.2 Frontend — sezione in pagina X-Ray
+
+- [x] Card "Ribilancia" in fondo alla pagina X-Ray (collapsed di default)
+- [x] Form: 4 slider per le target % (Azioni, Obbligazioni, Crypto, Altro) con somma = 100%
+- [x] Campo "Liquidità disponibile" (opzionale, default 0)
+- [x] Tabella suggerimenti: asset, azione (Compra/Vendi), importo EUR, variazione % allocazione
+- [x] i18n IT/EN/FR/DE
 
 ---
 
@@ -1455,7 +1499,9 @@ docker compose build
 | **13** | **Miglioramenti post-lancio — sessione, dashboard, periodo globale, token 30gg** | ✅ **Completata** | 🟠 Alta | — |
 | **14** | **Versioning e changelog — VERSION file, endpoint, pagina About, i18n, release.sh** | ✅ **Completata** | 🟡 Media | 1–2 gg |
 | **15** | **Manutenzione e performance — Flower, indici DB, code splitting, backup off-site, lazy images, PDF export** | ✅ **Completata** | 🟡 Media | 1 gg |
-| **16** | **X-Ray — diagnostica portafoglio: 10 regole in 4 categorie, score, UI card-based** | 🔵 **In corso** | 🟠 Alta | 3–5 gg |
+| **16** | **X-Ray — diagnostica portafoglio: 10 regole in 4 categorie, score, UI card-based** | ✅ **Completata** | 🟠 Alta | 3–5 gg |
+| **17** | **Watchlist — monitora asset senza possederli: prezzi live, target, note** | 🔵 **In corso** | 🟡 Media | 1–2 gg |
+| **18** | **Ribilanciamento — suggerisce buy/sell per allineare l'allocazione al target** | 🔵 **In corso** | 🟡 Media | 1–2 gg |
 
 **Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → ~~FASE 13 (miglioramenti post-lancio)~~ ✅ → ~~FASE 14 (versioning)~~ ✅ → ~~FASE 15 (manutenzione)~~ ✅
 

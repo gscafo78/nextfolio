@@ -13,7 +13,8 @@
     "settings": "Impostazioni",
     "about": "Info",
     "logout": "Esci",
-    "xray": "X-Ray"
+    "xray": "X-Ray",
+    "watchlist": "Watchlist"
   },
   "about": {
     "title": "Informazioni sull'app",
@@ -691,6 +692,29 @@
     "scoreDesc": "{{ok}} regole su {{total}} superate",
     "scoreLow": "Rischio elevato",
     "scoreHigh": "Portafoglio sano",
-    "noData": "Aggiungi transazioni per avviare l'analisi X-Ray"
+    "noData": "Aggiungi transazioni per avviare l'analisi X-Ray",
+    "rebalance": {
+      "title": "Ribilanciamento portafoglio",
+      "desc": "Imposta l'allocazione target per asset class e calcola i trade suggeriti per raggiungerla.",
+      "total": "Totale",
+      "totalMustBe100": "deve essere 100%",
+      "cash": "Liquidità disponibile",
+      "calculate": "Calcola suggerimenti",
+      "alreadyBalanced": "Il portafoglio è già allineato al target (differenza < 1%)",
+      "suggestions": "Trade suggeriti",
+      "buy": "Acquista",
+      "sell": "Vendi"
+    }
+  },
+  "watchlist": {
+    "add": "Aggiungi",
+    "addToWatchlist": "Aggiungi alla watchlist",
+    "subtitle": "{{count}} asset monitorati",
+    "empty": "Nessun asset nella watchlist",
+    "emptyHint": "Aggiungi asset per monitorarne il prezzo senza acquistarli",
+    "targetPrice": "Prezzo target",
+    "targetPricePlaceholder": "es. 100.00 (opzionale)",
+    "note": "Nota",
+    "notePlaceholder": "es. Da comprare quando scende (opzionale)"
   }
 }

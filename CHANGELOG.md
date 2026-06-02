@@ -5,6 +5,20 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.8.0] — 2026-06-02
+### Added
+- **Watchlist**: pagina `/watchlist` per monitorare asset senza possederli — prezzi live, variazione giornaliera, prezzo target con indicatore di distanza, note personali; icona `Eye` in Sidebar; i18n IT/EN/FR/DE
+- **Ribilanciamento portafoglio**: sezione collapsible in pagina X-Ray — slider per target % per asset class (Azioni, Obbligazioni, Crypto, Altro), campo liquidità disponibile, lista trade suggeriti (buy/sell) con importo EUR e variazione allocazione; endpoint `POST /api/v1/portfolio/rebalance`
+- Migration `0017_watchlist`: tabella `watchlist(user_id, asset_id, note, target_price, added_at)` con unique constraint per user+asset
+- CRUD completo: `GET/POST/PATCH/DELETE /api/v1/watchlist`
+
+### Fixed
+- **X-Ray label mismatch**: le regole `asset_class_fixed_income` (cercava `"BOND"` invece di `"Obbligazioni"`) e `asset_class_equity` (cercava `"STOCK"` invece di `"Azioni"`) non mostravano dati; `_TYPE_LABELS` ora esportato come costante pubblica e usato per il lookup corretto
+- **X-Ray home bias**: cercava il continente `"Europe"` invece di `"Europa"` in `by_continent`
+- **Period P&L null per periodo "max"**: aggiunto fallback a `unrealized_pnl_eur` quando non esiste un prezzo a inizio periodo (copertura anche per asset comprati durante il periodo)
+
+---
+
 ## [1.7.0] — 2026-06-02
 ### Added
 - **X-Ray — diagnostica portafoglio**: pagina `/xray` con 10 regole in 4 categorie ispirata a Ghostfolio X-Ray

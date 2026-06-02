@@ -13,7 +13,8 @@
     "settings": "Einstellungen",
     "about": "Über",
     "logout": "Abmelden",
-    "xray": "X-Ray"
+    "xray": "X-Ray",
+    "watchlist": "Watchlist"
   },
   "about": {
     "title": "Über Nextfolio",
@@ -691,6 +692,29 @@
     "scoreDesc": "{{ok}} von {{total}} Regeln bestanden",
     "scoreLow": "Hohes Risiko",
     "scoreHigh": "Gesundes Portfolio",
-    "noData": "Fügen Sie Transaktionen hinzu, um die X-Ray-Analyse zu starten"
+    "noData": "Fügen Sie Transaktionen hinzu, um die X-Ray-Analyse zu starten",
+    "rebalance": {
+      "title": "Portfolio-Rebalancing",
+      "desc": "Ziel-Allokation nach Anlageklasse festlegen und empfohlene Trades berechnen.",
+      "total": "Gesamt",
+      "totalMustBe100": "muss 100% sein",
+      "cash": "Verfügbare Liquidität",
+      "calculate": "Vorschläge berechnen",
+      "alreadyBalanced": "Portfolio entspricht bereits der Zielallokation (Differenz < 1%)",
+      "suggestions": "Empfohlene Trades",
+      "buy": "Kaufen",
+      "sell": "Verkaufen"
+    }
+  },
+  "watchlist": {
+    "add": "Hinzufügen",
+    "addToWatchlist": "Zur Watchlist hinzufügen",
+    "subtitle": "{{count}} beobachtete Wertpapiere",
+    "empty": "Keine Wertpapiere in der Watchlist",
+    "emptyHint": "Fügen Sie Wertpapiere hinzu, um deren Preis zu beobachten",
+    "targetPrice": "Zielpreis",
+    "targetPricePlaceholder": "z.B. 100.00 (optional)",
+    "note": "Notiz",
+    "notePlaceholder": "z.B. Kaufen wenn es fällt (optional)"
   }
 }

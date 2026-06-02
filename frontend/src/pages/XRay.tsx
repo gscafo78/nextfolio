@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, AlertTriangle, XCircle, Info, ScanSearch } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { CheckCircle2, AlertTriangle, XCircle, Info, ScanSearch, Scale, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
+import { Button } from "@/components/ui/Button";
 import { api } from "@/services/api";
 
 // ── Tipi ─────────────────────────────────────────────────────────────────────
@@ -123,6 +125,141 @@ function RuleRow({ rule }: { rule: XRayRule }) {
   );
 }
 
+// ── Sezione Ribilanciamento ───────────────────────────────────────────────────
+
+interface RebalanceSuggestion {
+  asset_id: number;
+  symbol: string;
+  name: string;
+  action: "buy" | "sell";
+  amount_eur: number;
+  current_pct: number;
+  target_pct: number;
+  delta_pct: number;
+}
+
+const GROUPS = ["Azioni", "Obbligazioni", "Crypto", "Altro"] as const;
+type Group = typeof GROUPS[number];
+const GROUP_DEFAULTS: Record<Group, number> = { Azioni: 70, Obbligazioni: 20, Crypto: 5, Altro: 5 };
+
+function RebalanceSection() {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [targets, setTargets] = useState<Record<Group, number>>(GROUP_DEFAULTS);
+  const [cash, setCash] = useState("0");
+  const [suggestions, setSuggestions] = useState<RebalanceSuggestion[] | null>(null);
+
+  const total = Object.values(targets).reduce((a, b) => a + b, 0);
+  const valid = Math.abs(total - 100) < 0.5;
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => api.post<RebalanceSuggestion[]>("/portfolio/rebalance", {
+      targets: Object.entries(targets).map(([label, pct]) => ({ label, pct })),
+      cash_available: parseFloat(cash) || 0,
+    }),
+    onSuccess: (res) => setSuggestions(res.data),
+  });
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+      <button
+        className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <Scale className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <span className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            {t("xray.rebalance.title")}
+          </span>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-4 border-t border-gray-100 dark:border-slate-700 pt-4">
+          <p className="text-xs text-gray-500 dark:text-slate-400">{t("xray.rebalance.desc")}</p>
+
+          {/* Slider allocazione target */}
+          <div className="grid grid-cols-2 gap-3">
+            {GROUPS.map((g) => (
+              <div key={g}>
+                <div className="flex justify-between mb-1">
+                  <label className="text-xs font-medium text-gray-600 dark:text-slate-400">{g}</label>
+                  <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-slate-100">{targets[g]}%</span>
+                </div>
+                <input
+                  type="range" min={0} max={100} step={1} value={targets[g]}
+                  onChange={(e) => setTargets((p) => ({ ...p, [g]: Number(e.target.value) }))}
+                  className="w-full h-1.5 accent-brand-600"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Totale e warning */}
+          <div className="flex items-center justify-between">
+            <span className={`text-xs font-medium ${valid ? "text-green-600" : "text-red-500"}`}>
+              {t("xray.rebalance.total")}: {total.toFixed(0)}%
+              {!valid && ` (${t("xray.rebalance.totalMustBe100")})`}
+            </span>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">{t("xray.rebalance.cash")}</label>
+              <input
+                type="number" step="any" min={0} value={cash}
+                onChange={(e) => setCash(e.target.value)}
+                className="w-24 px-2 py-1 text-xs border border-gray-300 dark:border-slate-600 rounded-lg dark:bg-slate-800 dark:text-slate-100"
+                placeholder="0"
+              />
+              <span className="text-xs text-gray-400">EUR</span>
+            </div>
+          </div>
+
+          <Button onClick={() => mutate()} loading={isPending} disabled={!valid} className="w-full">
+            {t("xray.rebalance.calculate")}
+          </Button>
+
+          {/* Risultati */}
+          {suggestions && (
+            suggestions.length === 0 ? (
+              <p className="text-xs text-center text-gray-400 py-2">{t("xray.rebalance.alreadyBalanced")}</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">{t("xray.rebalance.suggestions")}</p>
+                {suggestions.map((s) => (
+                  <div key={s.asset_id} className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                    s.action === "buy"
+                      ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                  }`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {s.action === "buy"
+                          ? <TrendingUp className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                          : <TrendingDown className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
+                        <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{s.symbol}</span>
+                        <span className="text-xs text-gray-400 truncate hidden sm:inline">{s.name}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 ml-5">
+                        {s.current_pct.toFixed(1)}% → {s.target_pct.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className={`text-sm font-bold tabular-nums ${s.action === "buy" ? "text-green-600" : "text-red-500"}`}>
+                        {s.action === "buy" ? "+" : "−"} € {s.amount_eur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                      </span>
+                      <div className="text-xs text-gray-400">{s.action === "buy" ? t("xray.rebalance.buy") : t("xray.rebalance.sell")}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Componente principale ─────────────────────────────────────────────────────
 
 export function XRay() {
@@ -195,14 +332,12 @@ export function XRay() {
                   key={category}
                   className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden"
                 >
-                  {/* Header categoria */}
                   <div className="px-5 py-3.5 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">{category}</h3>
                     <span className="text-xs text-gray-400 dark:text-slate-500 tabular-nums">
                       {okCount}/{rules.length}
                     </span>
                   </div>
-                  {/* Lista regole */}
                   <div className="p-4 space-y-2.5">
                     {rules.map((rule) => (
                       <RuleRow key={rule.key} rule={rule} />
@@ -211,6 +346,9 @@ export function XRay() {
                 </div>
               );
             })}
+
+            {/* Sezione ribilanciamento */}
+            <RebalanceSection />
           </>
         )}
       </main>
