@@ -325,6 +325,12 @@ async def get_dashboard(
             start_value = pos.quantity * start_prices[aid] * fx
             period_pnl_eur = round(value_eur - start_value, 2)
             period_pnl_pct = round((value_eur - start_value) / start_value * 100, 2)
+        elif unrealized is not None:
+            # Fallback: periodo "max" (nessun start_price cercato) oppure asset
+            # acquistato durante il periodo (nessun prezzo in price_history prima
+            # della data di inizio) → P&L del periodo = P&L non realizzato totale
+            period_pnl_eur = round(unrealized, 2)
+            period_pnl_pct = round(unrealized_pct, 2) if unrealized_pct is not None else None
 
         positions_out.append(PositionOut(
             asset_id=asset.id,
