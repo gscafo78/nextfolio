@@ -111,7 +111,6 @@
     "registerError": "Registration failed. Email already in use or registration is closed.",
     "alreadyAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
-    "confirmPassword": "Confirm password",
     "verifyEmail": "Verify email",
     "verifyEmailDesc": "We sent a 6-digit code to {{email}}. Enter it below.",
     "verificationCode": "Verification code",
@@ -196,7 +195,11 @@
       "COUPON": "Coupon",
       "FEE": "Fee",
       "INTEREST": "Interest"
-    }
+    },
+    "clone": "Clone",
+    "cloneTransaction": "Clone transaction",
+    "cloneDesc": "Fill in quantity, price and date",
+    "actions": "Actions"
   },
   "transactionForm": {
     "selectAccount": "Select an account...",

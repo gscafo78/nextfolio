@@ -102,6 +102,27 @@ services:
       redis:
         condition: service_healthy
 
+  # ── Flower — dashboard monitoraggio task Celery ──────────────────────────
+  # Accessibile su http://localhost:5555 (solo dev — non aggiungere in produzione)
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: nextfolio_flower
+    command: celery -A app.tasks.celery_app.celery_app flower --port=5555 --basic-auth=admin:admin
+    ports:
+      - "127.0.0.1:5555:5555"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://nextfolio:nextfolio@postgres:5432/nextfolio
+      DATABASE_URL_SYNC: postgresql://nextfolio:nextfolio@postgres:5432/nextfolio
+      SECRET_KEY: dev-secret-key-change-in-production
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend

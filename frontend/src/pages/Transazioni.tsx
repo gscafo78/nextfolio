@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useZenMode } from "@/context/ThemeContext";
-import { Plus, Upload, Trash2, Filter, Pencil, Tag } from "lucide-react";
+import { Plus, Upload, Trash2, Filter, Pencil, Tag, MoreVertical, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
@@ -136,6 +136,171 @@ function EditTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
   );
 }
 
+// ── Clone Transaction Modal ──────────────────────────────────────────────────
+
+function CloneTxModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    account_id: tx.account_id,
+    type:       tx.type,
+    date:       "",   // svuotata
+    quantity:   "",   // svuotata
+    price:      "",   // svuotata
+    exchange_rate: String(tx.exchange_rate),
+    fee:        String(tx.fee),
+    notes:      tx.notes ?? "",
+  });
+
+  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: accountService.list });
+
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: () => transactionService.create({
+      account_id:    Number(form.account_id),
+      asset_id:      tx.asset_id,
+      type:          form.type as TransactionType,
+      date:          form.date,
+      quantity:      Number(form.quantity),
+      price:         Number(form.price),
+      price_currency: tx.price_currency,
+      exchange_rate: Number(form.exchange_rate),
+      fee:           Number(form.fee),
+      fee_currency:  tx.fee_currency,
+      notes:         form.notes || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      onClose();
+    },
+  });
+
+  const set = (k: string, v: unknown) => setForm((p) => ({ ...p, [k]: v }));
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold dark:text-slate-100">{t("transactions.cloneTransaction")}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{tx.asset.name} &middot; {t("transactions.cloneDesc")}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 text-xl leading-none">&times;</button>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t("common.account")}</label>
+          <select
+            value={form.account_id}
+            onChange={(e) => set("account_id", Number(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:bg-slate-800 dark:text-slate-100"
+          >
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}{a.broker ? ` (${a.broker})` : ""}</option>)}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t("common.type")}</label>
+            <select
+              value={form.type}
+              onChange={(e) => set("type", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 dark:bg-slate-800 dark:text-slate-100"
+            >
+              {TX_TYPES_LIST.map((type) => <option key={type} value={type}>{t(`transactions.types.${type}`)}</option>)}
+            </select>
+          </div>
+          <Input label={t("common.date")} type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Input label={t("common.quantity")} type="number" step="any" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} />
+          <Input label={`${t("common.price")} (${tx.price_currency})`} type="number" step="any" value={form.price} onChange={(e) => set("price", e.target.value)} />
+          <Input label={t("transactionForm.fees")} type="number" step="any" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
+        </div>
+
+        {tx.price_currency !== "EUR" && (
+          <Input
+            label={t("transactionForm.fxRate", { currency: tx.price_currency })}
+            type="number" step="any"
+            value={form.exchange_rate}
+            onChange={(e) => set("exchange_rate", e.target.value)}
+          />
+        )}
+
+        <Input label={t("transactionForm.notesLabel")} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+
+        {error && <p className="text-xs text-red-600">{(error as any)?.response?.data?.detail ?? t("transactions.saveError")}</p>}
+
+        <div className="flex gap-3 pt-1">
+          <Button variant="secondary" onClick={onClose} className="flex-1">{t("common.cancel")}</Button>
+          <Button onClick={() => mutate()} loading={isPending} className="flex-1">{t("transactions.clone")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Kebab menu azioni transazione ────────────────────────────────────────────
+
+function TxActionMenu({
+  onEdit, onClone, onDelete,
+}: {
+  onEdit: () => void;
+  onClone: () => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="text-gray-300 hover:text-gray-600 dark:hover:text-slate-300 transition-colors p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700"
+        title={t("transactions.actions")}
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1">
+          <button
+            onClick={() => { setOpen(false); onEdit(); }}
+            className="w-full text-left px-3.5 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("common.edit")}
+          </button>
+          <button
+            onClick={() => { setOpen(false); onClone(); }}
+            className="w-full text-left px-3.5 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+          >
+            <Copy className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("transactions.clone")}
+          </button>
+          <div className="my-1 border-t border-gray-100 dark:border-slate-700" />
+          <button
+            onClick={() => { setOpen(false); onDelete(); }}
+            className="w-full text-left px-3.5 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("common.delete")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Edit Asset Ticker Modal ──────────────────────────────────────────────────
 
 function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker, onClose }: {
@@ -206,7 +371,8 @@ function EditTickerModal({ assetId, assetName, currentSymbol, currentYahooTicker
 export function Transazioni() {
   const { t, i18n } = useTranslation();
   const [modal, setModal] = useState<Modal>(null);
-  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [editTx, setEditTx]   = useState<Transaction | null>(null);
+  const [cloneTx, setCloneTx] = useState<Transaction | null>(null);
   const [editAsset, setEditAsset] = useState<{ id: number; name: string; symbol: string; yahoo_ticker: string | null } | null>(null);
   const [holdingAssetId, setHoldingAssetId] = useState<number | null>(null);
   const [filterAccountId, setFilterAccountId] = useState<number | "">("");
@@ -402,16 +568,12 @@ export function Transazioni() {
                         <div className="text-xs text-gray-400 tabular-nums mt-0.5">
                           {tx.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 4 })} × {tx.price.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}
                         </div>
-                        <div className="flex items-center justify-end gap-2 mt-1.5">
-                          <button onClick={() => setEditTx(tx)} className="text-gray-300 hover:text-brand-500 transition-colors">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="flex items-center justify-end mt-1.5">
+                          <TxActionMenu
+                            onEdit={() => setEditTx(tx)}
+                            onClone={() => setCloneTx(tx)}
+                            onDelete={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -511,23 +673,12 @@ export function Transazioni() {
                       <td className="px-4 py-3 text-right text-gray-400">
                         {tx.fee > 0 ? zen(`€ ${tx.fee.toFixed(2)}`) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setEditTx(tx)}
-                            className="text-gray-300 hover:text-brand-500 transition-colors"
-                            title={t("common.edit")}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
-                            title={t("common.delete")}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <td className="px-2 py-3 text-right">
+                        <TxActionMenu
+                          onEdit={() => setEditTx(tx)}
+                          onClone={() => setCloneTx(tx)}
+                          onDelete={() => { if (confirm(t("transactions.deleteConfirm"))) deleteTx(tx.id); }}
+                        />
                       </td>
                     </tr>
                   );
@@ -606,7 +757,8 @@ export function Transazioni() {
         </div>
       )}
 
-      {editTx && <EditTxModal tx={editTx} onClose={() => setEditTx(null)} />}
+      {editTx  && <EditTxModal  tx={editTx}  onClose={() => setEditTx(null)}  />}
+      {cloneTx && <CloneTxModal tx={cloneTx} onClose={() => setCloneTx(null)} />}
 
       {holdingAssetId != null && (
         <HoldingDetailModal

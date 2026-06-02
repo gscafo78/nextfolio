@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePeriod } from "@/context/PeriodContext";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useLongPress } from "@/hooks/useLongPress";
 import { ArrowRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TopBar } from "@/components/layout/TopBar";
@@ -20,6 +21,7 @@ import { AccountFavicon } from "@/components/AccountFavicon";
 type SortField = "allocation" | "value" | "change" | "performance" | "name";
 type SortDir   = "asc" | "desc";
 type Period    = string;
+type PositionWithPeriod = PositionOut & { periodPnlEur: number | null; periodPnlPct: number | null };
 
 interface PeriodOption { label: string; value: Period }
 
@@ -343,10 +345,12 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Greeting + period selector */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t("dashboard.greeting", { name: user?.name })} 👋</h2>
+        {/* Greeting + period selector — flex-wrap su schermi < 375px */}
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="min-w-0">
+            <h2 className="text-lg xs:text-xl md:text-2xl font-bold text-gray-900 truncate">
+              {t("dashboard.greeting", { name: user?.name })} 👋
+            </h2>
             <p className="hidden md:block text-gray-500 mt-0.5 text-sm">
               {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
             </p>
@@ -582,55 +586,16 @@ export function Dashboard() {
                               ? (pos.current_value_eur / totalValue) * 100 : null;
                             const dateStr = firstBuyDate[pos.asset_id];
                             return (
-                              <tr
+                              <DesktopHoldingRow
                                 key={pos.asset_id}
-                                className="hover:bg-gray-50/70 transition-colors cursor-pointer"
-                                onDoubleClick={() => setSelectedAssetId(pos.asset_id)}
-                                title={t("dashboard.dblClickDetails")}
-                              >
-                                <td className="pl-5 pr-4 py-3.5">
-                                  <div className="font-medium text-gray-900 truncate max-w-[220px]">{pos.name}</div>
-                                  <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
-                                </td>
-                                <td className="px-4 py-3.5 text-right text-xs text-gray-400">
-                                  {dateStr ? new Date(dateStr).toLocaleDateString(getIntlLocale(i18n.language)) : "—"}
-                                </td>
-                                <td className="px-4 py-3.5 text-right text-gray-600 tabular-nums">
-                                  {pos.quantity.toLocaleString(getIntlLocale(i18n.language), { maximumFractionDigits: 4 })}
-                                </td>
-                                <td className="px-4 py-3.5 text-right font-semibold text-gray-900 tabular-nums">
-                                  {pos.current_value_eur != null
-                                    ? zen(`€ ${pos.current_value_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-                                    : <span className="text-gray-300 font-normal">{t("dashboard.na")}</span>}
-                                </td>
-                                <td className="px-4 py-3.5 text-right">
-                                  {alloc != null ? (
-                                    <div className="flex items-center justify-end gap-2">
-                                      <div className="w-20 h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden hidden sm:block">
-                                        <div
-                                          className="h-full bg-brand-500 rounded-full transition-all duration-500"
-                                          style={{ width: `${Math.min(alloc, 100)}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-xs text-gray-600 dark:text-slate-400 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
-                                    </div>
-                                  ) : <span className="text-gray-300 text-xs">—</span>}
-                                </td>
-                                <td className="px-4 py-3.5 text-right tabular-nums">
-                                  {pos.periodPnlEur != null ? (
-                                    <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                      {zenMode ? "•••••" : `${pos.periodPnlEur >= 0 ? "+ " : "− "}${Math.abs(pos.periodPnlEur).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                    </span>
-                                  ) : <span className="text-gray-300 text-xs">—</span>}
-                                </td>
-                                <td className="pr-5 pl-4 py-3.5 text-right tabular-nums">
-                                  {pos.periodPnlPct != null ? (
-                                    <span className={`text-sm font-semibold ${pos.periodPnlPct >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                      {pos.periodPnlPct >= 0 ? "+" : ""}{pos.periodPnlPct.toFixed(2)} %
-                                    </span>
-                                  ) : <span className="text-gray-300 text-xs">—</span>}
-                                </td>
-                              </tr>
+                                pos={pos}
+                                alloc={alloc}
+                                dateStr={dateStr}
+                                onOpen={() => setSelectedAssetId(pos.asset_id)}
+                                zenMode={zenMode}
+                                locale={getIntlLocale(i18n.language)}
+                                t={t}
+                              />
                             );
                           })}
                     </tbody>
@@ -735,6 +700,70 @@ function SkeletonRow({ cols }: { cols: number }) {
           <div className={`h-3.5 bg-gray-100 rounded ${i === 0 ? "w-36" : "w-16 ml-auto"}`} />
         </td>
       ))}
+    </tr>
+  );
+}
+
+/** Riga della tabella desktop con supporto long-press per tablet touch. */
+function DesktopHoldingRow({
+  pos, alloc, dateStr, onOpen, zenMode, locale, t,
+}: {
+  pos: PositionWithPeriod;
+  alloc: number | null;
+  dateStr: string | undefined;
+  onOpen: () => void;
+  zenMode: boolean;
+  locale: string;
+  t: (k: string) => string;
+}) {
+  const lp = useLongPress(onOpen);
+  return (
+    <tr
+      className="hover:bg-gray-50/70 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+      onClick={() => { if (!lp.didFire()) onOpen(); }}
+      onTouchStart={lp.onTouchStart}
+      onTouchEnd={lp.onTouchEnd}
+      onTouchMove={lp.onTouchMove}
+    >
+      <td className="pl-5 pr-4 py-3.5">
+        <div className="font-medium text-gray-900 dark:text-slate-100 truncate max-w-[220px]">{pos.name}</div>
+        <div className="text-xs text-gray-400 mt-0.5">{pos.symbol}</div>
+      </td>
+      <td className="px-4 py-3.5 text-right text-xs text-gray-400">
+        {dateStr ? new Date(dateStr).toLocaleDateString(locale) : "—"}
+      </td>
+      <td className="px-4 py-3.5 text-right text-gray-600 tabular-nums">
+        {pos.quantity.toLocaleString(locale, { maximumFractionDigits: 4 })}
+      </td>
+      <td className="px-4 py-3.5 text-right font-semibold text-gray-900 dark:text-slate-100 tabular-nums">
+        {pos.current_value_eur != null
+          ? (zenMode ? "•••••" : `€ ${pos.current_value_eur.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+          : <span className="text-gray-300 font-normal">{t("dashboard.na")}</span>}
+      </td>
+      <td className="px-4 py-3.5 text-right">
+        {alloc != null ? (
+          <div className="flex items-center justify-end gap-2">
+            <div className="w-20 h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden hidden sm:block">
+              <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(alloc, 100)}%` }} />
+            </div>
+            <span className="text-xs text-gray-600 dark:text-slate-400 tabular-nums w-10 text-right">{alloc.toFixed(2)}%</span>
+          </div>
+        ) : <span className="text-gray-300 text-xs">—</span>}
+      </td>
+      <td className="px-4 py-3.5 text-right tabular-nums">
+        {pos.periodPnlEur != null ? (
+          <span className={`text-sm font-medium ${pos.periodPnlEur >= 0 ? "text-green-600" : "text-red-500"}`}>
+            {zenMode ? "•••••" : `${pos.periodPnlEur >= 0 ? "+ " : "− "}${Math.abs(pos.periodPnlEur).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          </span>
+        ) : <span className="text-gray-300 text-xs">—</span>}
+      </td>
+      <td className="pr-5 pl-4 py-3.5 text-right tabular-nums">
+        {pos.periodPnlPct != null ? (
+          <span className={`text-sm font-semibold ${pos.periodPnlPct >= 0 ? "text-green-600" : "text-red-500"}`}>
+            {pos.periodPnlPct >= 0 ? "+" : ""}{pos.periodPnlPct.toFixed(2)} %
+          </span>
+        ) : <span className="text-gray-300 text-xs">—</span>}
+      </td>
     </tr>
   );
 }

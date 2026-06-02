@@ -34,7 +34,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-64 min-h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 flex-col">
       <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
-        <img src={logo} alt="Nextfolio" className="h-9 w-auto" />
+        <img src={logo} alt="Nextfolio" className="h-9 w-auto" fetchPriority="high" decoding="sync" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

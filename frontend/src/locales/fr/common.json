@@ -111,7 +111,6 @@
     "registerError": "Inscription échouée. Email déjà utilisé ou inscriptions fermées.",
     "alreadyAccount": "Vous avez déjà un compte ?",
     "noAccount": "Pas encore de compte ?",
-    "confirmPassword": "Confirmer le mot de passe",
     "verifyEmail": "Vérifier l'email",
     "verifyEmailDesc": "Nous avons envoyé un code à 6 chiffres à {{email}}. Saisissez-le ci-dessous.",
     "verificationCode": "Code de vérification",
@@ -196,7 +195,11 @@
       "COUPON": "Coupon",
       "FEE": "Frais",
       "INTEREST": "Intérêt"
-    }
+    },
+    "clone": "Dupliquer",
+    "cloneTransaction": "Dupliquer la transaction",
+    "cloneDesc": "Remplir la quantité, le prix et la date",
+    "actions": "Actions"
   },
   "transactionForm": {
     "selectAccount": "Sélectionner un compte...",

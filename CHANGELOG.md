@@ -5,6 +5,28 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.6.0] — 2026-06-02
+### Added
+- **Kebab menu transazioni**: icona 3 puntini verticali sostituisce matita + cestino; dropdown con Modifica, Clona ed Elimina
+- **Clona transazione**: copia tipo, conto, cambio, commissioni e note — svuota quantità, prezzo e data per reinserimento rapido
+- **Swipe navigation mobile**: scorrimento orizzontale tra le 5 tab del BottomNav (`useSwipeNavigation` hook, soglia 60 px)
+- **Long-press su righe desktop**: `useLongPress` hook + `DesktopHoldingRow` — apre HoldingDetailModal con singolo click/long-press (sostituisce il doppio-click)
+- **Flower dashboard**: container Celery monitoring su `localhost:5555` in `docker-compose.dev.yml`
+- **Script `scripts/release.sh`**: automatizza bump VERSION, package.json e intestazione CHANGELOG
+- **Script `scripts/backup-offsite.sh`**: sincronizzazione backup PostgreSQL verso Backblaze B2 via rclone
+
+### Fixed
+- **BottomNav landscape**: etichette nascoste e padding ridotto in orientamento orizzontale per guadagnare spazio verticale
+- **Layout 375px (iPhone SE)**: greeting row usa `flex-wrap + min-w-0 + truncate`; aggiunto breakpoint `xs: 375px` in Tailwind
+- **Immagini ottimizzate**: `loading="lazy" decoding="async"` su favicon account e logo About; `fetchPriority="high"` sul logo Sidebar (LCP)
+
+### Changed
+- **Vite code splitting**: `manualChunks` con 8 chunk vendor separati (react, charts, maps, i18n, forms, sentry, dates, query); avviso chunk > 500 KB
+- **Migration 0016**: 4 indici B-tree su `transactions(asset_id)`, `transactions(account_id, asset_id)`, `price_alerts(is_active, asset_id)`, `price_history(asset_id, date DESC)`
+- Aggiunto breakpoint `landscape` e `xs` in `tailwind.config.js`
+
+---
+
 ## [1.5.2] — 2026-06-02
 ### Fixed
 - Mutex per il refresh token in `api.ts`: eliminato logout inatteso a ~24h con "Ricordami" attivo (race condition su refresh paralleli)

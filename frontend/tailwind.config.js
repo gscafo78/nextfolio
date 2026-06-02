@@ -4,6 +4,10 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      screens: {
+        xs:        "375px",
+        landscape: { raw: "(orientation: landscape)" },
+      },
       colors: {
         brand: {
           50:  "#f0f7ff",

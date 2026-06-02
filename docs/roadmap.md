@@ -189,7 +189,7 @@ Crypto                                 →  CoinGecko
 - [x] Task `cleanup_old_prices` — pulizia dati oltre 5 anni (ogni domenica)
 - [x] Task `backfill_asset_history` — backfill on-demand via API
 - [x] Celery Beat per scheduling automatico
-- [ ] Flower dashboard per monitoraggio task *(facoltativo — aggiungere container in docker-compose)*
+- [x] Flower dashboard per monitoraggio task — container in `docker-compose.dev.yml`, porta 5555, basic-auth *(completato in FASE 15.1)*
 
 ### 3.3 API prezzi e WebSocket
 
@@ -467,7 +467,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] Frontend: pagina Fiscale con selettore anno, KPI, due bracket, tabella eventi collassabile
 - [x] Frontend: **Simulatore vendita** — sezione in pagina Fiscale con dropdown asset e input quantità
 - [x] **Storico minusvalenze multi-anno** — vista dedicata in pagina Fiscale con carryforward visuale
-- [ ] **Export PDF** *(rimandato — richiede libreria reportlab)*
+- [x] **Export PDF** — `GET /portfolio/export/pdf` via `reportlab`; pagine: intestazione brand, riepilogo, posizioni aperte con zebra-table, tutte le transazioni; pulsante in Import/Export con chiavi i18n IT/EN/FR/DE
 - [x] Export Excel incluso nell'export generale (`GET /api/v1/portfolio/export`)
 
 ---
@@ -681,9 +681,9 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 
 ### 10.2 Interazioni touch
 
-- [ ] **Swipe per navigare** tra le tab principali — `touch-action: pan-y`, threshold 60px
+- [x] **Swipe per navigare** tra le tab principali — `useSwipeNavigation` hook, threshold 60px, ignora swipe verticali (scroll); integrato in `MainLayout`
 - [x] **Pull-to-refresh** sulla Dashboard — `usePullToRefresh` hook: touch start/move/end; soglia 72px, resistance 2.5×; indicatore spinner circolare fisso in cima durante il pull; al rilascio invalida `portfolio-dashboard`, `portfolio-performance`, `transactions`; solo mobile (`md:hidden`)
-- [ ] **Long-press su posizione** per aprire `HoldingDetailModal`
+- [x] **Long-press / click su posizione** per aprire `HoldingDetailModal` — `useLongPress` hook + `DesktopHoldingRow` componente; mobile card già usava tap (`onClick`); desktop table usa click singolo + long-press per touch tablet
 - [x] BottomNav tap area già 44×44px (`py-2` + icona 20px + label 10px)
 
 ### 10.3 PWA — completamento
@@ -691,22 +691,22 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] **Install prompt** — `useInstallPrompt()` hook + `InstallBanner` component (dismiss persistito su `localStorage`)
 - [x] **Offline fallback** — `/public/offline.html` + workbox `navigateFallback` configurato
 - [x] **Splash screen** — `theme_color: #1d4ed8` e `background_color: #f0f7ff` in manifest
-- [ ] **Icone PWA** — generare set completo da `favicon.svg`
+- [x] **Icone PWA** — set completo già presente: `icon-192x192-v2.png`, `icon-512x512-v2.png`, `apple-touch-icon-v2.png`, `favicon-32x32.png`; manifest referenzia tutte le taglie
 - [ ] Notifiche push per price alert *(rimandato a VAPID backend)*
 
 ### 10.4 Performance su mobile
 
 - [x] **Lazy load** di tutte le pagine non-dashboard via `React.lazy` + `Suspense` con `PageSkeleton`
 - [ ] **Virtualizzazione tabelle** (> 50 righe) — rimandato
-- [ ] **Riduzione bundle** — analisi con `vite-bundle-visualizer`
-- [ ] Immagini ottimizzate per connessioni lente
+- [x] **Riduzione bundle** — `manualChunks` in `vite.config.ts`: 8 chunk vendor separati (react, charts, maps, i18n, forms, sentry, dates, query) *(completato in FASE 15.3)*
+- [x] Immagini ottimizzate per connessioni lente — `loading="lazy" decoding="async"` su `AccountFavicon` e logo About; `fetchPriority="high" decoding="sync"` sul logo Sidebar (LCP element); topojson mappa già lazy via chunk `vendor-maps` + `React.lazy` Allocation page
 
 ### 10.5 Test su dispositivi reali
 
 - [x] **iPhone safe-area** — `BottomNav` usa `env(safe-area-inset-bottom)`
 - [ ] Verifica completa su iPhone Safari e Android Chrome
-- [ ] Breakpoint **< 375px** (iPhone SE)
-- [ ] **Landscape** su smartphone
+- [x] Breakpoint **< 375px** (iPhone SE) — aggiunto breakpoint `xs: 375px` in Tailwind; greeting row usa `flex-wrap + min-w-0 + truncate`; font ridotto a `text-lg` sotto xs
+- [x] **Landscape** su smartphone — `landscape:` breakpoint Tailwind; `BottomNav` in landscape mostra solo icone (label nascoste, `py-1` ridotto) per risparmiare spazio verticale
 
 ---
 
@@ -769,7 +769,7 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
   ```
 - [x] Backup conservati per 30 giorni (rotazione già nello script)
 - [x] Primo dump eseguito e verificato (208K)
-- [ ] Backup off-site opzionale: `rclone` verso Backblaze B2 o S3-compatible (gratuito fino a 10 GB)
+- [x] Backup off-site: `scripts/backup-offsite.sh` — `rclone sync` verso Backblaze B2, crontab `5 2 * * *` *(completato in FASE 15.4)*
 
 ### 11.6 Monitoraggio e log
 
@@ -798,7 +798,7 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/auth/register \
 - [ ] Monitorare log Celery per errori nei task di market data
 - [ ] Verificare consumo RAM/CPU dopo 24h di uptime (`docker stats`)
 - [ ] Controllare dimensione DB dopo 1 settimana (tabella `price_history` cresce velocemente)
-- [ ] Valutare se attivare indici aggiuntivi su `price_history(asset_id, date)` se query lente
+- [x] Indici aggiuntivi attivati — migration 0016: `transactions(asset_id)`, `transactions(account_id, asset_id)`, `price_alerts(is_active, asset_id)`, `price_history(asset_id, date DESC)` *(completato in FASE 15.2)*
 - [ ] Archiviare `.env.production` in gestore password (non nel repo git)
 
 ---
@@ -997,6 +997,19 @@ Mobile: stacked verticalmente (1 colonna)
 - [x] Se il periodo dal context non è nel set di una pagina (es. "wtd" in Performance), l'API lo gestisce correttamente e nessun bottone è evidenziato; l'utente può riallineare con un click
 - [x] Allocazioni, Fiscale, Dividendi: non dipendono da un periodo di performance → nessuna modifica necessaria
 
+### 13.6 Menu azioni transazione (kebab) ✅
+
+**Motivazione:** le due icone matita + cestino erano scomode su mobile e non consentivano azioni aggiuntive.
+
+- [x] Rimossi pulsanti `Pencil` + `Trash2` da riga desktop e card mobile
+- [x] Sostituiti con icona `MoreVertical` (3 puntini verticali) che apre un dropdown con:
+  - **Modifica** — apre `EditTxModal` (comportamento invariato)
+  - **Clona** — apre `CloneTxModal`: copia il tipo, conto, cambio, commissioni e note ma svuota quantità, prezzo e data; crea una nuova transazione sullo stesso asset
+  - **Elimina** — confirm + delete (comportamento invariato)
+- [x] `TxActionMenu` component con click-away handler e dark mode
+- [x] `CloneTxModal` component — stessa struttura di `EditTxModal`, chiama `transactionService.create()`
+- [x] Chiavi i18n `transactions.clone`, `transactions.cloneTransaction`, `transactions.cloneDesc`, `transactions.actions` in IT / EN / FR / DE
+
 ---
 
 ## FASE 14 — Versioning e changelog ✅
@@ -1018,7 +1031,7 @@ _(FASE 1–7 = 1.0.0 · FASE 8–9 = 1.1.0 · FASE 11 go-live = 1.2.0 · FASE 12
 ### 14.1 Sorgente unica della versione
 
 - [x] Creare `/opt/nextfolio/VERSION` — file di testo con il solo numero di versione (es. `1.5.2`)
-- [ ] `backend/app/core/config.py` — `APP_VERSION: str` letta da `VERSION` a runtime:
+- [x] `backend/app/core/config.py` — `APP_VERSION: str` letta da `VERSION` a runtime:
   ```python
   from pathlib import Path
   APP_VERSION = (Path(__file__).parents[3] / "VERSION").read_text().strip()
@@ -1071,7 +1084,7 @@ _(FASE 1–7 = 1.0.0 · FASE 8–9 = 1.1.0 · FASE 11 go-live = 1.2.0 · FASE 12
 6. docker compose build && docker compose up -d
 ```
 
-- [ ] Script opzionale `scripts/release.sh <patch|minor|major>` che automatizza i passi 2–4
+- [x] Script `scripts/release.sh <patch|minor|major>` che automatizza i passi 2–4
 
 ### 14.6 Pagina About ✅
 
@@ -1098,7 +1111,7 @@ _(FASE 1–7 = 1.0.0 · FASE 8–9 = 1.1.0 · FASE 11 go-live = 1.2.0 · FASE 12
 - [x] Rotta `<Route path="about" element={<About />} />` aggiunta in `App.tsx`
 - [x] `src/pages/About.tsx` — layout card-based, dark mode, stesso stile delle altre pagine
 - [x] `TopBar.tsx` — link "About" con icona `Info` tra Impostazioni e il divisore rosso Esci
-- [ ] **Chiavi i18n — tutte e 4 le lingue** (`src/locales/it|en|fr|de/common.json`), coerente con il resto dell'app:
+- [x] **Chiavi i18n — tutte e 4 le lingue** (`src/locales/it|en|fr|de/common.json`), coerente con il resto dell'app:
 
   | Chiave | IT | EN | FR | DE |
   |--------|----|----|----|----|
@@ -1115,6 +1128,55 @@ _(FASE 1–7 = 1.0.0 · FASE 8–9 = 1.1.0 · FASE 11 go-live = 1.2.0 · FASE 12
   | `about.changelog.fixed` | Corretto | Fixed | Corrigé | Behoben |
   | `about.changelog.changed` | Modificato | Changed | Modifié | Geändert |
   | `about.changelog.older` | Versioni precedenti | Older versions | Versions précédentes | Ältere Versionen |
+
+---
+
+## FASE 15 — Manutenzione e performance ✅
+**Obiettivo: chiudere i punti operativi rimasti aperti dopo il go-live**
+
+### 15.1 Flower — monitoraggio Celery ✅
+
+- [x] Container `flower` aggiunto in `docker-compose.dev.yml` (solo dev, non produzione)
+- [x] Basic-auth `admin:admin` — cambiare se esposto su rete condivisa
+- [x] Accessibile su `http://localhost:5555` — mostra task in coda, eseguiti, falliti, worker attivi
+- [x] `flower>=2.0.0` aggiunto a `requirements.txt`
+
+```bash
+# Per avviarlo: docker compose -f docker-compose.dev.yml up flower
+# Oppure con tutti i servizi: docker compose -f docker-compose.dev.yml up -d
+```
+
+### 15.2 Indici DB — migration 0016 ✅
+
+- [x] `ix_transactions_asset_id` su `transactions(asset_id)` — FIFO e calcoli portafoglio iterano per asset
+- [x] `ix_transactions_account_asset` su `transactions(account_id, asset_id)` — performance per-conto in `/allocation`
+- [x] `ix_price_alerts_active_asset` su `price_alerts(is_active, asset_id)` — task `check_price_alerts` ogni 5 min
+- [x] `ix_price_history_asset_date_desc` su `price_history(asset_id, date DESC)` — query "prezzo più recente"
+
+```bash
+# Applicare in produzione:
+docker compose run --rm backend alembic upgrade head
+```
+
+### 15.3 Vite code splitting ✅
+
+- [x] `build.rollupOptions.output.manualChunks` in `vite.config.ts`:
+  - `vendor-react` — react + react-dom + react-router-dom
+  - `vendor-query` — @tanstack/react-query + axios
+  - `vendor-charts` — recharts (~300 KB separato)
+  - `vendor-maps` — react-simple-maps (solo Allocation)
+  - `vendor-i18n` — i18next stack
+  - `vendor-forms` — react-hook-form + zod
+  - `vendor-sentry` — @sentry/react (non bloccante per il render)
+  - `vendor-dates` — date-fns
+- [x] `chunkSizeWarningLimit: 500` — avviso se un chunk supera 500 KB
+
+### 15.4 Backup off-site — Backblaze B2 ✅
+
+- [x] Script `scripts/backup-offsite.sh` — sincronizza `/opt/nextfolio/backups/*.sql.gz` verso Backblaze B2 via `rclone sync`
+- [x] `--delete-before` mantiene la stessa rotazione 30-giorni del backup locale
+- [x] Crontab suggerito: `5 2 * * *` (5 min dopo il backup locale delle 02:00)
+- [x] Istruzioni setup `rclone config` documentate nell'header dello script
 
 ---
 
@@ -1230,15 +1292,16 @@ docker compose build
 | 7 | Testing + deploy | ✅ Completata (core) | 🟢 Normale | 1–2 sett. |
 | 8 | UX/UI Polish — TopBar, Zen Mode, Login redesign, favicon, paginazione, allocazioni interattive | ✅ Completata | 🟡 Media | — |
 | 9 | Internazionalizzazione (i18n) — IT, EN, FR, DE | ✅ Completata | 🟡 Media | 2–3 sett. |
-| 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ⬜ Non iniziata | 🟠 Alta | 1–2 sett. |
+| 10 | Mobile & Smartphone — audit responsive, touch, PWA completo, performance | ✅ Completata | 🟠 Alta | 1–2 sett. |
 | **11** | **Messa in Produzione — Cloudflare Tunnel, nextfolio.myhomecloud.it, backup, monitoring** | ✅ **Completata** | 🔴 **Critica** | **< 1 sett.** |
 | **12** | **Registrazione pubblica opzionale con verifica email** | ✅ **Completata** | 🟠 Alta | 2–3 giorni |
 | **13** | **Miglioramenti post-lancio — sessione, dashboard, periodo globale, token 30gg** | ✅ **Completata** | 🟠 Alta | — |
-| **14** | **Versioning e changelog — VERSION file, endpoint, pagina About, i18n** | ✅ **Completata** | 🟡 Media | 1–2 gg |
+| **14** | **Versioning e changelog — VERSION file, endpoint, pagina About, i18n, release.sh** | ✅ **Completata** | 🟡 Media | 1–2 gg |
+| **15** | **Manutenzione e performance — Flower, indici DB, code splitting, backup off-site, lazy images, PDF export** | ✅ **Completata** | 🟡 Media | 1 gg |
 
-**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → **FASE 13 (miglioramenti post-lancio)** 🔧
+**Sequenza verso il go-live:** ~~FASE 9 (i18n)~~ ✅ → ~~FASE 10 (mobile)~~ ✅ → ~~FASE 11 (produzione)~~ ✅ → ~~FASE 12 (registrazione pubblica)~~ ✅ → ~~FASE 13 (miglioramenti post-lancio)~~ ✅ → ~~FASE 14 (versioning)~~ ✅ → ~~FASE 15 (manutenzione)~~ ✅
 
-**Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), email per price alert (SMTP pronto, manca integrazione Celery), Vitest/Playwright (frontend testing), Flower (monitoring opzionale).
+**Punti rimandati per scelta:** Metals-API (paid), PIR/IVAFE/LIFO/PMC (complessità contabile), push notifications (VAPID), Vitest/Playwright (frontend testing).
 
 **Tempo totale stimato: 12–18 settimane** (sviluppo part-time)
 

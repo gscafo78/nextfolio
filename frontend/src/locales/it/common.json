@@ -111,7 +111,6 @@
     "registerError": "Registrazione fallita. Email già in uso o registrazioni chiuse.",
     "alreadyAccount": "Hai già un account?",
     "noAccount": "Non hai un account?",
-    "confirmPassword": "Conferma password",
     "verifyEmail": "Verifica email",
     "verifyEmailDesc": "Abbiamo inviato un codice a 6 cifre a {{email}}. Inseriscilo qui sotto.",
     "verificationCode": "Codice di verifica",
@@ -196,7 +195,11 @@
       "COUPON": "Cedola",
       "FEE": "Commissione",
       "INTEREST": "Interesse"
-    }
+    },
+    "clone": "Clona",
+    "cloneTransaction": "Clona transazione",
+    "cloneDesc": "Quantità, prezzo e data da compilare",
+    "actions": "Azioni"
   },
   "transactionForm": {
     "selectAccount": "Seleziona un conto...",

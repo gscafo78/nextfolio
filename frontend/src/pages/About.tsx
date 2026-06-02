@@ -138,7 +138,7 @@ export function About() {
 
           {/* Header card */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm px-6 py-6 flex items-center gap-5">
-            <img src={logo} alt="Nextfolio" className="h-12 w-auto flex-shrink-0" />
+            <img src={logo} alt="Nextfolio" className="h-12 w-auto flex-shrink-0" loading="lazy" decoding="async" />
             <div>
               <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
                 {t("about.description")}

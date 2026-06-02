@@ -89,6 +89,32 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React — cambia raramente, cache a lungo termine
+          "vendor-react":  ["react", "react-dom", "react-router-dom"],
+          // Data fetching
+          "vendor-query":  ["@tanstack/react-query", "axios"],
+          // Grafici — chunk separato: ~300 KB, non caricato su pagine senza grafici
+          "vendor-charts": ["recharts"],
+          // Mappa mondo (Allocation) — separato per non pesare sulle altre pagine
+          "vendor-maps":   ["react-simple-maps"],
+          // i18n — solo al mount iniziale
+          "vendor-i18n":   ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          // Form
+          "vendor-forms":  ["react-hook-form", "@hookform/resolvers", "zod"],
+          // Sentry — non critico per il render iniziale
+          "vendor-sentry": ["@sentry/react"],
+          // Date utils (tree-shakeable ma vale separarlo)
+          "vendor-dates":  ["date-fns"],
+        },
+      },
+    },
+    // Avvisa se un chunk supera 500 KB prima di gzip
+    chunkSizeWarningLimit: 500,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

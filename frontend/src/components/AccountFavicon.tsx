@@ -15,6 +15,8 @@ export function AccountFavicon({ url, size = 5 }: { url: string | null | undefin
     <img
       src={src}
       alt=""
+      loading="lazy"
+      decoding="async"
       className={`w-${size} h-${size} rounded-sm object-contain flex-shrink-0`}
       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
     />

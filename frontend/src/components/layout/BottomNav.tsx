@@ -2,6 +2,9 @@ import { NavLink } from "react-router-dom";
 import { BarChart2, TrendingUp, PieChart, ArrowLeftRight, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+/** Ordine delle route usato anche da useSwipeNavigation */
+export const NAV_ROUTES = ["/", "/performance", "/allocazione", "/transazioni", "/impostazioni"];
+
 export function BottomNav() {
   const { t } = useTranslation();
 
@@ -24,13 +27,14 @@ export function BottomNav() {
           to={to}
           end={to === "/"}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors ${
+            /* In portrait: icona + label. In landscape: solo icona (py ridotto, label nascosta) */
+            `flex-1 flex flex-col items-center justify-center py-2 landscape:py-1 gap-0.5 text-[10px] font-medium transition-colors ${
               isActive ? "text-brand-600 dark:text-brand-400" : "text-gray-400 dark:text-slate-500"
             }`
           }
         >
           <Icon className="w-5 h-5" />
-          <span>{label}</span>
+          <span className="landscape:hidden">{label}</span>
         </NavLink>
       ))}
     </nav>

@@ -111,7 +111,6 @@
     "registerError": "Registrierung fehlgeschlagen. E-Mail bereits verwendet oder Registrierungen geschlossen.",
     "alreadyAccount": "Haben Sie bereits ein Konto?",
     "noAccount": "Noch kein Konto?",
-    "confirmPassword": "Passwort bestätigen",
     "verifyEmail": "E-Mail verifizieren",
     "verifyEmailDesc": "Wir haben einen 6-stelligen Code an {{email}} gesendet. Geben Sie ihn unten ein.",
     "verificationCode": "Verifizierungscode",
@@ -196,7 +195,11 @@
       "COUPON": "Kupon",
       "FEE": "Gebühr",
       "INTEREST": "Zinsen"
-    }
+    },
+    "clone": "Duplizieren",
+    "cloneTransaction": "Transaktion duplizieren",
+    "cloneDesc": "Menge, Preis und Datum ausfüllen",
+    "actions": "Aktionen"
   },
   "transactionForm": {
     "selectAccount": "Konto auswählen...",
