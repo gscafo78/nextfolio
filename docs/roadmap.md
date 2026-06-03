@@ -467,7 +467,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] Frontend: pagina Fiscale con selettore anno, KPI, due bracket, tabella eventi collassabile
 - [x] Frontend: **Simulatore vendita** — sezione in pagina Fiscale con dropdown asset e input quantità
 - [x] **Storico minusvalenze multi-anno** — vista dedicata in pagina Fiscale con carryforward visuale
-- [x] **Export PDF** — `GET /portfolio/export/pdf` via `reportlab`; pagine: intestazione brand, riepilogo, posizioni aperte con zebra-table, tutte le transazioni; pulsante in Import/Export con chiavi i18n IT/EN/FR/DE
+- [x] **Export PDF** — `GET /portfolio/export/pdf` via `reportlab`; pagine: intestazione brand, riepilogo, posizioni aperte con zebra-table, tutte le transazioni; pulsante in Import/Export con chiavi i18n IT/EN/FR/DE; nome file `{user}-{yyyy-mm-dd}.pdf`
 - [x] Export Excel incluso nell'export generale (`GET /api/v1/portfolio/export`)
 
 ### 5.4 Sostituto d'imposta per conto — Regime amministrato vs dichiarativo
@@ -609,7 +609,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 7. Dettaglio eventi fiscali — tabella vendite/dividendi/cedole
 
 **Backend**
-- [x] `GET /api/v1/tax/export/pdf?year=YYYY` — `StreamingResponse` PDF con reportlab; stile coerente con l'export portafoglio; include: riepilogo regime, Quadro RT, Quadro RW/IVAFE, redditi da capitale, storico minusvalenze, tabella eventi, disclaimer
+- [x] `GET /api/v1/tax/export/pdf?year=YYYY` — `StreamingResponse` PDF con reportlab; stile coerente con l'export portafoglio; include: riepilogo regime, Quadro RT, Quadro RW/IVAFE, redditi da capitale, storico minusvalenze, tabella eventi, disclaimer; nome file `{user}-{yyyy-mm-dd}.pdf`
 
 **Frontend**
 - [x] Pulsante "PDF fiscale" nell'header della pagina Fiscale (accanto al selettore anno), link diretto all'endpoint con `download`; chiave i18n `tax.downloadPdf` in IT/EN/FR/DE

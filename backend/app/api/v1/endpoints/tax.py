@@ -423,7 +423,8 @@ async def export_tax_pdf(
     doc.build(elems, onFirstPage=_on_page, onLaterPages=_on_page)
     buf.seek(0)
 
-    filename = f"nextfolio_fiscale_{year}.pdf"
+    user_slug = current_user.name.lower().replace(" ", "-")
+    filename = f"{user_slug}-{datetime.date.today().strftime('%Y-%m-%d')}.pdf"
     return StreamingResponse(
         buf,
         media_type="application/pdf",
