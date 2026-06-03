@@ -1154,6 +1154,20 @@ Mobile: stacked verticalmente (1 colonna)
 - [x] `CloneTxModal` component — stessa struttura di `EditTxModal`, chiama `transactionService.create()`
 - [x] Chiavi i18n `transactions.clone`, `transactions.cloneTransaction`, `transactions.cloneDesc`, `transactions.actions` in IT / EN / FR / DE
 
+### 13.7 Fix tema persistente tra account diversi ✅
+
+**Problema:** dopo il logout da un account con tema scuro, il login con un secondo account a tema chiaro manteneva il tema scuro fino al refresh manuale della pagina.
+
+**Causa radice:** tre problemi concatenati:
+1. `useAuth.logout()` chiamava `queryClient.clear()` ma non resettava il tema sul DOM — durante il caricamento delle nuove impostazioni `isLoading=true` bloccava `applyTheme()` nel `ThemeProvider`
+2. `ThemeContext.tsx` aveva `staleTime: Infinity` — in presenza di cache residua il tema del vecchio utente poteva sopravvivere
+3. `Login.tsx` non invalidava la query `my-settings` dopo il login — le impostazioni del nuovo utente potevano non essere ricaricate
+
+**Fix:**
+- [x] `useAuth.ts` — `logout()` chiama `localStorage.removeItem("nf-theme")` e `applyTheme("system")` **prima** di svuotare il cache e navigare; il DOM è resettato in modo sincrono
+- [x] `ThemeContext.tsx` — `staleTime` abbassato da `Infinity` a 5 minuti; aggiunto `refetchOnMount: true` per garantire dati freschi ad ogni nuovo login
+- [x] `Login.tsx` — sia `loginMutation` che `totpMutation` chiamano `queryClient.invalidateQueries(["my-settings"])` dopo `saveTokens()` e prima di `navigate("/")`
+
 ---
 
 ## FASE 14 — Versioning e changelog ✅
@@ -1522,6 +1536,145 @@ class XRayResponse(BaseModel):
 - [x] Campo "Liquidità disponibile" (opzionale, default 0)
 - [x] Tabella suggerimenti: asset, azione (Compra/Vendi), importo EUR, variazione % allocazione
 - [x] i18n IT/EN/FR/DE
+
+---
+
+## FASE 19 — Gestione cedole BTP automatizzata 🏛️
+**Obiettivo: quando si acquista un BTP (o qualsiasi obbligazione a cedola fissa), l'utente inserisce i parametri della cedola una volta sola; il sistema calcola automaticamente il calendario cedole future, propone le transazioni COUPON alle scadenze e pre-compila l'importo corretto.**
+
+> **Contesto normativo BTP:**
+> - Valore nominale standard: **100 EUR** per unità
+> - Frequenza tipica: **semestrale** (BTP, BTPEI, CCT); **trimestrale** (BTP Italia); **annuale** (alcuni BTP verdi)
+> - Importo cedola per unità = `100 × (aliquota_annua / numero_cedole_anno)`
+> - Esempio: BTP 4% semestrale → cedola = 100 × 0.04 / 2 = **2 EUR per unità**
+> - Per N unità acquistate: cedola totale = N × importo_per_unità
+> - Cedola già pagata al momento dell'acquisto (rateo cedola): la gestisce l'utente nel campo fee della transazione BUY *(fuori scope MVP)*
+
+---
+
+### 19.0 Enrichment automatico da Borsa Italiana
+
+**Fonte dati verificata:** la pagina `dati-completi.html` di Borsa Italiana per i BTP sul mercato MOT espone tutti i dati necessari in modo affidabile e strutturato.
+
+**URL pattern:**
+```
+https://www.borsaitaliana.it/borsa/obbligazioni/mot/btp/dati-completi.html?isin={ISIN}&mic=MOTX
+```
+
+**Campi estratti dalla pagina (verificati su IT0005413171 — BTP 1,65% Dc30):**
+
+| Campo HTML | Valore esempio | Utilizzo |
+|---|---|---|
+| `Nome` | `Btp Tf 1,65% Dc30 Eur` | Tasso annuo via regex `(\d+[,\.]\d+)%` |
+| `Scadenza` | `01/12/30` | `maturity_date` — formato `dd/mm/yy` |
+| `Tasso Cedola Periodale` | `0,825` | Tasso per periodo (es. semestrale 1,65%/2) |
+| `Tasso Cedola su base Annua` | *(vuoto — non affidabile)* | Ricavato da Nome + Periodale |
+| `Data Godimento` | `01/06/20` | `issue_date` e base calcolo `first_coupon_date` |
+| `Tipo Bond` | `Titolo Con Cedole Tf` | Conferma che il bond ha cedole a tasso fisso |
+| `Lotto Minimo` | `1.000` | Informativo |
+
+**Algoritmo di derivazione:**
+```python
+annual_rate    = parse_pct_from_name(nome)          # es. 1.65 → 0.0165
+periodic_rate  = parse_float(tasso_periodale)        # es. 0.825 → 0.00825
+frequency_div  = round(annual_rate / periodic_rate)  # 0.0165 / 0.00825 = 2 → SEMI_ANNUAL
+first_coupon   = issue_date + relativedelta(months=12 // frequency_div)
+face_value     = 100.0                               # sempre 100 per BTP italiani
+```
+
+**Servizio di enrichment:**
+- [x] `app/services/bonds/bi_enrichment.py` — `fetch_bond_details(isin, mic)`: HTTP GET su `dati-completi.html`, parser HTML via `re`, estrae coppie `<td>` label→valore, inferisce frequenza da `annual_pct / periodic_pct`, calcola `first_coupon_date = issue_date + months_between`, gestisce date `dd/mm/yy` e decimali italiani (virgola)
+- [x] Endpoint `GET /assets/{id}/bond-detail/enrich` — chiama `fetch_bond_details`, upsert in `bond_details`, restituisce `BondEnrichmentResult`
+- [x] Il frontend chiama questo endpoint col bottone **"Carica da Borsa Italiana"** nel form transazione BUY — se ha successo pre-compila tutti i campi, se fallisce mostra errore e mantiene input manuale
+
+---
+
+### 19.1 Modello dati — dettagli obbligazione
+
+**Scelta architetturale:** i parametri cedola sono a livello **asset** (un ISIN identifica un titolo con struttura cedolare fissa), non a livello transazione. L'utente li inserisce alla prima operazione BUY sul BOND (manualmente o tramite enrichment automatico); le operazioni successive sul medesimo BOND li trovano già precompilati.
+
+#### Migration 0020 — tabella `bond_details`
+- [x] Tabella `bond_details`: `asset_id` (FK unique), `face_value`, `coupon_rate`, `coupon_frequency`, `first_coupon_date`, `maturity_date`, `issue_date`, `enriched_from_bi`
+- [x] Migration `0020_bond_details.py` — applicata al DB
+
+#### Model SQLAlchemy
+- [x] `app/models/bond_detail.py` — `BondDetail` + enum `CouponFrequency` con proprietà `divisor` e `months_between`; property `coupon_per_unit` sul model
+- [x] Relazione `Asset.bond_detail: Mapped[BondDetail | None]` (one-to-one, cascade delete)
+
+#### Schema Pydantic
+- [x] `app/schemas/bond.py`: `BondDetailCreate`, `BondDetailOut` (con `coupon_per_unit`), `CouponScheduleEntry`, `UpcomingCouponEntry`, `BondEnrichmentResult`
+
+---
+
+### 19.2 API — bond details e calendario cedole
+
+#### Endpoint bond details
+- [x] `GET  /assets/{id}/bond-detail` — 404 se non configurato
+- [x] `POST /assets/{id}/bond-detail` — upsert; solo per asset BOND
+- [x] `GET  /assets/{id}/bond-detail/enrich` — enrichment da Borsa Italiana (vedi 19.0)
+
+#### Servizio calendario cedole
+- [x] `app/services/bonds/coupon_schedule.py`: `generate_coupon_dates()` con `relativedelta` (tollerante a mesi brevi), `coupon_per_unit()`, `upcoming_coupon_entries()`
+
+#### Endpoint calendario
+- [x] `GET /assets/{id}/coupon-schedule?from=&to=&quantity=` — lista date con `already_recorded` (confronto ±5 gg con transazioni COUPON esistenti)
+- [x] `GET /portfolio/upcoming-coupons?days=365` — cedole in arrivo per tutto il portafoglio; aggrega per asset, usa posizioni FIFO
+
+---
+
+### 19.3 Form transazione BUY — sezione dettagli obbligazione
+
+- [x] `TransactionForm.tsx` — sezione collassabile amber "📅 Dettagli cedola" visibile solo per BUY su BOND; campi: tasso %, frequenza, data prima cedola, data scadenza
+- [x] Pre-compilazione automatica se `bond_detail` già esiste (caricamento all'selezione asset)
+- [x] Bottone **"Carica da Borsa Italiana"** con icona Sparkles — chiama `/enrich`, pre-compila tutti i campi; messaggio di errore se fallisce
+- [x] Al submit: salva `bond_detail` via `POST /assets/{id}/bond-detail` prima della transazione
+- [x] Chiavi i18n `bonds.*` in IT/EN/FR/DE
+- [ ] Badge **"📅 Cedole configurate"** nella riga transazione/holding *(rimandato)*
+- [x] **Tab "Cedole"** in `HoldingDetailModal.tsx` (visibile solo per BOND con `bond_detail`): riepilogo parametri (tasso, frequenza, cedola/unità, totale, scadenza), calendario prossime cedole con badge stato (incassata / in arrivo / futura)
+
+---
+
+### 19.4 Registrazione automatica cedole
+
+- [x] `app/tasks/coupons.py` — task `check_due_coupons`: ogni giorno 08:00, finestra ±2 gg, idempotente; log dettagliato per ogni cedola in scadenza
+- [x] Task registrato in `celery_beat_schedule`
+- [x] Modalità `coupon_auto_register=True` su conto: crea transazione COUPON automaticamente
+- [x] Campo `coupon_auto_register` in tabella `accounts` (migration 0021) + toggle UI in Impostazioni conto (terzo toggle accanto a sostituto e estero)
+
+---
+
+### 19.5 UI — calendario cedole in pagina Dividendi
+
+- [x] Componente `UpcomingCouponsSection` in `Dividendi.tsx`: tabella con filtro 30/90/365/1825 gg, badge stato, Zen Mode
+- [x] Selezione periodo via dropdown; dati da `GET /portfolio/upcoming-coupons`
+- [x] Bottone **"Registra"** su ogni cedola non incassata: mini-form inline (conto, quantità, prezzo, totale calcolato live); submit crea transazione COUPON e aggiorna la tabella
+- [ ] Cedole nel calendario mensile esistente *(rimandato)*
+
+---
+
+### 19.6 Dettaglio holding — tab cedole
+
+- [x] Tab **"Cedole"** in `HoldingDetailModal.tsx` — vedi 19.5
+
+---
+
+### 19.7 i18n
+
+- [x] Sezione `bonds.*` in IT/EN/FR/DE: `couponDetails`, `couponRate`, `frequency`, `firstCouponDate`, `maturityDate`, `faceValue`, `couponPerUnit`, `totalCoupon`, `upcomingCoupons`, `autoEnrich`, `autoEnrichDesc`, `statusReceived`, `statusUpcoming`, `statusFuture`, `freqAnnual`, `freqSemiAnnual`, `freqQuarterly`, `freqMonthly`
+  - `bonds.couponDue` (notifica), `bonds.couponRegistered`
+
+---
+
+### Note implementative
+
+| Tema | Decisione |
+|---|---|
+| Arrotondamento cedola | `round(face_value × rate / divisor, 5)` — 5 decimali per evitare errori su quantità grandi |
+| Festivi / week-end | Se la data cedola cade in week-end, i mercati spostano al lunedì successivo — il task accetta ±2 gg |
+| Rateo cedola (accrued interest) | Non gestito nell'MVP — l'utente lo include manualmente nel campo `fee` del BUY |
+| BTP Valore / BTP Italia (cedola indicizzata) | Non supportati nell'MVP — la cedola indicizzata richiede il coefficiente FOI mensile |
+| Import Fineco/Directa | Il parser CSV esistente non mappa i campi bond_detail — rimandato |
+| Fuori scope MVP | Rendimento a scadenza (YTM), duration, modified duration, convexxity |
 
 ---
 

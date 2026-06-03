@@ -71,4 +71,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.alerts.check_price_alerts",
         "schedule": crontab(minute="*/5"),
     },
+    # Cedole BTP: ogni giorno alle 08:00 Europe/Rome
+    "check-due-coupons": {
+        "task": "app.tasks.coupons.check_due_coupons",
+        "schedule": crontab(hour=8, minute=0),
+    },
 }

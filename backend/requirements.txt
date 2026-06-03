@@ -13,6 +13,7 @@ flower>=2.0.0
 redis>=5.0.0
 yfinance>=0.2.36
 httpx>=0.26.0
+python-dateutil>=2.9.0
 pandas>=2.0.0
 numpy>=1.26.0
 slowapi>=0.1.9

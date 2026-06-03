@@ -451,6 +451,27 @@
       "disclaimer": "Geschätzte Werte nach FIFO/DKM. Mit offiziellen Broker-Berichten vergleichen und Steuerberater konsultieren."
     }
   },
+  "bonds": {
+    "couponDetails": "Kupon-Details (optional)",
+    "couponRate": "Jährlicher Kuponsatz",
+    "frequency": "Häufigkeit",
+    "firstCouponDate": "Erster Kuponfälligkeitstag",
+    "maturityDate": "Fälligkeitsdatum",
+    "issueDate": "Ausgabedatum",
+    "faceValue": "Nennwert",
+    "couponPerUnit": "Kupon pro Einheit",
+    "totalCoupon": "Gesamtkupon",
+    "upcomingCoupons": "Bevorstehende BTP-Kupons",
+    "autoEnrich": "Von Borsa Italiana laden",
+    "autoEnrichDesc": "Füllt Daten automatisch aus (ISIN erforderlich)",
+    "statusReceived": "Erhalten",
+    "statusUpcoming": "Bevorstehend",
+    "statusFuture": "Zukünftig",
+    "freqAnnual": "Jährlich",
+    "freqSemiAnnual": "Halbjährlich",
+    "freqQuarterly": "Vierteljährlich",
+    "freqMonthly": "Monatlich"
+  },
   "alerts": {
     "title": "Preisbenachrichtigungen",
     "add": "Neue Benachrichtigung",
@@ -526,6 +547,8 @@
     "sostitutoImpostaDesc": "Der Broker verwaltet die Steuern automatisch (verwaltetes Regime). Deaktiviert = deklaratorisches Regime.",
     "foreignAccount": "Ausländisches Konto",
     "foreignAccountDesc": "Konto bei einem ausländischen Broker (DEGIRO, IBKR, etc.) — unterliegt der IVAFE von 0,2%.",
+    "couponAutoRegister": "Kupons automatisch erfassen",
+    "couponAutoRegisterDesc": "Erstellt automatisch eine COUPON-Transaktion zum Fälligkeitstag (Kupon-Details erforderlich).",
     "accountBadges": {
       "administered": "Verwaltet",
       "declaratory": "Deklaratorisch",

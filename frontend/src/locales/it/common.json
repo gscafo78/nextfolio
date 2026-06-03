@@ -451,6 +451,27 @@
       "disclaimer": "Valori stimati con metodo FIFO/PMC. Confronta con i prospetti ufficiali del broker e consulta un commercialista per la compilazione definitiva."
     }
   },
+  "bonds": {
+    "couponDetails": "Dettagli cedola (opzionale)",
+    "couponRate": "Tasso cedola annuo",
+    "frequency": "Frequenza",
+    "firstCouponDate": "Data prima cedola",
+    "maturityDate": "Data scadenza",
+    "issueDate": "Data godimento",
+    "faceValue": "Valore nominale",
+    "couponPerUnit": "Cedola per unità",
+    "totalCoupon": "Cedola totale",
+    "upcomingCoupons": "Cedole BTP in arrivo",
+    "autoEnrich": "Carica da Borsa Italiana",
+    "autoEnrichDesc": "Compila automaticamente i dati dal sito ufficiale (ISIN richiesto)",
+    "statusReceived": "Incassata",
+    "statusUpcoming": "In arrivo",
+    "statusFuture": "Futura",
+    "freqAnnual": "Annuale",
+    "freqSemiAnnual": "Semestrale",
+    "freqQuarterly": "Trimestrale",
+    "freqMonthly": "Mensile"
+  },
   "alerts": {
     "title": "Alert prezzi",
     "add": "Nuovo alert",
@@ -526,6 +547,8 @@
     "sostitutoImpostaDesc": "Il broker gestisce le tasse (regime amministrato). Disattivato = regime dichiarativo (730).",
     "foreignAccount": "Conto estero",
     "foreignAccountDesc": "Conto presso intermediario estero (DEGIRO, IBKR, ecc.) — soggetto a IVAFE 0,2%.",
+    "couponAutoRegister": "Registra cedole automaticamente",
+    "couponAutoRegisterDesc": "Crea automaticamente la transazione COUPON il giorno della scadenza (richiede bond_detail configurato).",
     "accountBadges": {
       "administered": "Reg. amministrato",
       "declaratory": "Reg. dichiarativo",

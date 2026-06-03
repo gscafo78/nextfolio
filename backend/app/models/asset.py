@@ -57,6 +57,9 @@ class Asset(Base):
 
     price_history: Mapped[list["PriceHistory"]] = relationship(back_populates="asset", cascade="all, delete-orphan")
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="asset")
+    bond_detail: Mapped["BondDetail | None"] = relationship(  # type: ignore[name-defined]
+        "BondDetail", back_populates="asset", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class PriceHistory(Base):

@@ -28,6 +28,7 @@ export interface Account {
   currency: string;
   is_sostituto_imposta: boolean;
   is_foreign: boolean;
+  coupon_auto_register: boolean;
   transaction_count: number;
 }
 

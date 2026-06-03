@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, TrendingUp, BarChart2, Shield, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
@@ -101,6 +101,7 @@ export function Login() {
   useTranslation(); // ensure i18n context is active
   const t = i18n.getFixedT("en");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<"credentials" | "totp">("credentials");
   const [sessionToken, setSessionToken] = useState("");
   const [remember, setRemember] = useState(true);
@@ -131,6 +132,9 @@ export function Login() {
         setStep("totp");
       } else {
         authService.saveTokens(res, remember);
+        // Invalida my-settings per forzare il fetch delle impostazioni del nuovo utente
+        // (tema, lingua, zen mode) prima di navigare, evitando il tema del precedente account.
+        queryClient.invalidateQueries({ queryKey: ["my-settings"] });
         navigate("/");
       }
     },
@@ -140,6 +144,7 @@ export function Login() {
     mutationFn: ({ code }: TotpData) => authService.verify2fa(sessionToken, code, remember),
     onSuccess: (res) => {
       authService.saveTokens(res, remember);
+      queryClient.invalidateQueries({ queryKey: ["my-settings"] });
       navigate("/");
     },
   });

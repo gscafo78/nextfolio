@@ -451,6 +451,27 @@
       "disclaimer": "Valeurs estimées avec méthode FIFO/CMU. Comparez avec les relevés officiels et consultez un expert-comptable."
     }
   },
+  "bonds": {
+    "couponDetails": "Détails coupon (optionnel)",
+    "couponRate": "Taux coupon annuel",
+    "frequency": "Fréquence",
+    "firstCouponDate": "Date premier coupon",
+    "maturityDate": "Date d'échéance",
+    "issueDate": "Date de jouissance",
+    "faceValue": "Valeur nominale",
+    "couponPerUnit": "Coupon par unité",
+    "totalCoupon": "Coupon total",
+    "upcomingCoupons": "Coupons BTP à venir",
+    "autoEnrich": "Charger depuis Borsa Italiana",
+    "autoEnrichDesc": "Remplit automatiquement les données (ISIN requis)",
+    "statusReceived": "Reçu",
+    "statusUpcoming": "À venir",
+    "statusFuture": "Futur",
+    "freqAnnual": "Annuel",
+    "freqSemiAnnual": "Semestriel",
+    "freqQuarterly": "Trimestriel",
+    "freqMonthly": "Mensuel"
+  },
   "alerts": {
     "title": "Alertes de prix",
     "add": "Nouvelle alerte",
@@ -526,6 +547,8 @@
     "sostitutoImpostaDesc": "Le courtier gère les impôts automatiquement (régime géré). Désactivé = régime déclaratif.",
     "foreignAccount": "Compte étranger",
     "foreignAccountDesc": "Compte chez un courtier étranger (DEGIRO, IBKR, etc.) — soumis à l'IVAFE 0,2%.",
+    "couponAutoRegister": "Enregistrement automatique des coupons",
+    "couponAutoRegisterDesc": "Crée automatiquement une transaction COUPON à chaque échéance (détails coupon requis).",
     "accountBadges": {
       "administered": "Géré",
       "declaratory": "Déclaratif",

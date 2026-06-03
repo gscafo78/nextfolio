@@ -27,6 +27,7 @@ class Account(Base):
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     is_sostituto_imposta: Mapped[bool] = mapped_column(default=False)
     is_foreign: Mapped[bool] = mapped_column(default=False)
+    coupon_auto_register: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

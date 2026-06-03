@@ -33,7 +33,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["my-settings"],
     queryFn: authService.getSettings,
     enabled: authService.isAuthenticated(),
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000,  // 5 minuti — garantisce dati freschi dopo switch account
+    refetchOnMount: true,
   });
 
   const mode: ThemeMode = (settings?.theme as ThemeMode | undefined) ?? "system";

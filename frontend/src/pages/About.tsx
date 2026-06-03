@@ -19,7 +19,43 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
-    version: "1.5.2",
+    version: "1.9.1",
+    date: "2026-06-03",
+    sections: [
+      {
+        type: "fixed",
+        items: [
+          "Fix tema persistente tra account diversi: il logout resetta ora il tema in modo sincrono prima di svuotare la cache",
+          "Parsing tasso cedola BTP Valore da Borsa Italiana: gestiti numeri con punto decimale in formato internazionale (es. \"3.35%\")",
+          "Campo currency→price_currency nel backfill cedole storiche",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.9.0",
+    date: "2026-06-03",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Sostituto d'imposta per conto: flag is_sostituto_imposta + regime administered/declaratory nel tax report",
+          "Metodo PMC (Prezzo Medio di Carico) per conti amministrati; FIFO per conti dichiarativi",
+          "IVAFE 0,2% su attività finanziarie estere (flag is_foreign sul conto, calcolo al 31/12)",
+          "Dichiarazione assistita: riepilogo quadri RT / RW / RL con pulsante copia per ogni importo",
+          "Export PDF fiscale: report annuale print-ready con tutti i quadri fiscali",
+          "Gestione cedole BTP: bond_details per asset, enrichment automatico da Borsa Italiana, calendario cedole, backfill storico",
+          "Tab Cedole in HoldingDetailModal: configura / modifica / visualizza cedole direttamente dal dettaglio holding",
+          "Bottone Registra cedola in Dividendi con mini-form inline pre-compilato",
+          "Toggle coupon_auto_register per registrazione automatica cedole alla scadenza",
+          "Ritenuta stimata per tipo di reddito nella sezione Redditi da capitale",
+          "PDF fiscale con enrichment: 7 sezioni incluso Quadro RW/IVAFE e tabella eventi con metodo PMC/FIFO",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.8.1",
     date: "2026-06-02",
     sections: [
       {

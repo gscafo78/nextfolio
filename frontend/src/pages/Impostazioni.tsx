@@ -44,8 +44,9 @@ const accountSchema = z.object({
   broker:                z.string().optional(),
   url:                   z.string().url("URL non valido").optional().or(z.literal("")),
   currency:              z.string().length(3, "3 caratteri").default("EUR"),
-  is_sostituto_imposta:  z.boolean().default(false),
-  is_foreign:            z.boolean().default(false),
+  is_sostituto_imposta:    z.boolean().default(false),
+  is_foreign:              z.boolean().default(false),
+  coupon_auto_register:    z.boolean().default(false),
 });
 type AccountFormData = z.infer<typeof accountSchema>;
 
@@ -60,7 +61,7 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
   const { t } = useTranslation();
   const { register, handleSubmit, control, formState: { errors } } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
-    defaultValues: { type: "BROKERAGE", currency: "EUR", is_sostituto_imposta: false, is_foreign: false, ...initial },
+    defaultValues: { type: "BROKERAGE", currency: "EUR", is_sostituto_imposta: false, is_foreign: false, coupon_auto_register: false, ...initial },
   });
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-3">
@@ -99,7 +100,7 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
         error={errors.url?.message}
         {...register("url")}
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <Controller
           name="is_sostituto_imposta"
           control={control}
@@ -131,6 +132,29 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
               <div>
                 <p className="text-sm font-medium text-gray-800">{t("settings.foreignAccount")}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{t("settings.foreignAccountDesc")}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={field.value}
+                onClick={() => field.onChange(!field.value)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                  field.value ? "bg-brand-600" : "bg-gray-200"
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${field.value ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          )}
+        />
+        <Controller
+          name="coupon_auto_register"
+          control={control}
+          render={({ field }) => (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">{t("settings.couponAutoRegister")}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t("settings.couponAutoRegisterDesc")}</p>
               </div>
               <button
                 type="button"
@@ -652,7 +676,7 @@ export function Impostazioni() {
                       <div className="px-5 py-4 bg-blue-50 border-l-2 border-brand-500">
                         <p className="text-sm font-medium text-gray-700 mb-3">{t("settings.editAccountTitle")}</p>
                         <AccountForm
-                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency, is_sostituto_imposta: acc.is_sostituto_imposta, is_foreign: acc.is_foreign }}
+                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency, is_sostituto_imposta: acc.is_sostituto_imposta, is_foreign: acc.is_foreign, coupon_auto_register: acc.coupon_auto_register }}
                           onSave={(data) => updateMutation.mutate({ id: acc.id, data })}
                           onCancel={() => setEditing(null)}
                           loading={updateMutation.isPending}

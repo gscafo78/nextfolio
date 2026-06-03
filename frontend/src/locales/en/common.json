@@ -451,6 +451,27 @@
       "disclaimer": "Estimated values using FIFO/WAC. Cross-check with broker official reports and consult a tax advisor."
     }
   },
+  "bonds": {
+    "couponDetails": "Coupon details (optional)",
+    "couponRate": "Annual coupon rate",
+    "frequency": "Frequency",
+    "firstCouponDate": "First coupon date",
+    "maturityDate": "Maturity date",
+    "issueDate": "Issue date",
+    "faceValue": "Face value",
+    "couponPerUnit": "Coupon per unit",
+    "totalCoupon": "Total coupon",
+    "upcomingCoupons": "Upcoming BTP coupons",
+    "autoEnrich": "Load from Borsa Italiana",
+    "autoEnrichDesc": "Auto-fills data from the official website (ISIN required)",
+    "statusReceived": "Received",
+    "statusUpcoming": "Upcoming",
+    "statusFuture": "Future",
+    "freqAnnual": "Annual",
+    "freqSemiAnnual": "Semi-annual",
+    "freqQuarterly": "Quarterly",
+    "freqMonthly": "Monthly"
+  },
   "alerts": {
     "title": "Price alerts",
     "add": "New alert",
@@ -526,6 +547,8 @@
     "sostitutoImpostaDesc": "The broker handles taxes automatically (administered regime). Off = declaratory regime (declare in tax return).",
     "foreignAccount": "Foreign account",
     "foreignAccountDesc": "Account at a foreign broker (DEGIRO, IBKR, etc.) — subject to IVAFE 0.2%.",
+    "couponAutoRegister": "Auto-register coupons",
+    "couponAutoRegisterDesc": "Automatically creates a COUPON transaction on each coupon date (requires bond details configured).",
     "accountBadges": {
       "administered": "Administered",
       "declaratory": "Declaratory",
