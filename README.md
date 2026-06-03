@@ -2,25 +2,58 @@
 
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
-**Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker
+**Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
+**Current version:** 1.9.0 · [Changelog](CHANGELOG.md)
 
 ---
 
 ## Features
 
-- **Multi-asset tracking** — Stocks, ETFs, Bonds, Crypto, Cash
-- **Real-time prices** — Yahoo Finance, CoinGecko, Borsa Italiana API, ECB FX rates
+### Portfolio
+- **Multi-asset tracking** — Stocks, ETFs, Bonds (BTP/BOT/CCT), Crypto, Cash
 - **FIFO P&L engine** — Realized and unrealized P&L with FIFO lot matching
-- **Italian tax engine** — Capital gains, dividends, and withholding tax calculations
-- **Portfolio analytics** — Allocation charts, performance history, geographic breakdown
-- **Dividend tracking** — Income history and projections
-- **Import / Export** — CSV import, Ghostfolio-compatible import, PDF export
-- **Zen Mode** — Masks all EUR amounts for privacy (screenshots, screen sharing)
-- **Two-factor authentication** — TOTP (Google Authenticator, Aegis, etc.)
-- **Role-based access** — Superadmin and User roles
-- **WebSocket price streaming** — Live price updates pushed to all connected clients
-- **Alerts** — Price and P&L threshold notifications
-- **i18n** — Italian and English UI
+- **Real-time prices** — Yahoo Finance, CoinGecko, Borsa Italiana API, ECB FX rates via WebSocket
+- **Multi-currency** — Transactions in any currency; all amounts converted to EUR at transaction rate
+- **Multi-account** — Separate investment accounts per broker, with per-account fiscal regime
+
+### Tax engine (Italian market)
+- **Capital gains** — 26% (equities, ETF, crypto) and 12.5% (BTP/BOT/CCT government bonds)
+- **Sostituto d'imposta** — Per-account flag: administered regime (broker manages taxes, PMC cost basis) or declaratory regime (user declares in 730, FIFO cost basis)
+- **PMC / WAC** — Weighted Average Cost method for administered-regime accounts; FIFO for declaratory
+- **Loss carryforward** — Minusvalenze carried forward up to 4 years (two separate pools: standard 26% and government-bond 12.5%)
+- **IVAFE** — 0.2% annual tax on foreign financial assets (per-account `is_foreign` flag); calculated at Dec 31 market value
+- **Income tracking** — Dividends (26%), BTP coupons (12.5%), corporate-bond coupons (26%), interest
+- **Dichiarazione assistita** — Summary of figures to enter in modello Redditi PF (quadri RT, RW, RL) with one-click copy
+- **Fiscal PDF export** — `GET /tax/export/pdf?year=YYYY` — print-ready PDF with all fiscal sections
+
+### Analytics
+- **X-Ray** — Automated portfolio diagnostic (10 rules: concentration, asset class, geography, fees, liquidity)
+- **Allocation** — Donut charts by asset type, currency, geography, sector; ETF look-through
+- **Performance** — Time-series P&L, IRR/XIRR, benchmark comparison (MSCI World / FTSE MIB)
+- **Dividend analytics** — Income calendar, yield on cost, growth history
+- **Sell simulator** — Estimated tax impact before selling (FIFO/PMC-aware)
+- **Loss simulator** — Carryforward visual, multi-year history
+
+### Tools
+- **Rebalancing** — Suggest buy/sell amounts to reach target asset-class weights
+- **Watchlist** — Monitor assets without owning them (price, change %, target price)
+- **PAC calculator** — Simulate a recurring investment plan
+- **Correlation matrix** — Pearson heatmap between portfolio assets
+- **Risk metrics** — Volatility, max drawdown, Sharpe, Sortino, Calmar ratio
+
+### UX
+- **Zen Mode** — Masks all EUR amounts; percentages remain visible (for screenshots, screen sharing)
+- **Dark / Light / System theme**
+- **i18n** — Italian, English, French, German UI
+- **Progressive Web App** — Installable, offline fallback, mobile-optimised layouts
+- **Import** — Fineco, Directa Plus, Degiro, Interactive Brokers (Flex Query CSV)
+- **Export** — Excel (transactions + positions), PDF portfolio report, PDF fiscal report, Ghostfolio JSON
+
+### Security
+- **Two-factor authentication** — TOTP (Google Authenticator, Aegis, Authy, etc.)
+- **Role-based access** — Superadmin (full access) and User
+- **JWT tokens** — Short-lived access tokens (30 min) + refresh tokens with optional "Remember Me" (30 days)
+- **bcrypt** password hashing · Rate limiting via slowapi · Audit log
 
 ---
 
@@ -55,15 +88,11 @@ docker compose -f docker-compose.dev.yml logs -f
 | API      | http://localhost:8000      |
 | API docs | http://localhost:8000/docs |
 
-> **First run:** register the first user via `POST /api/v1/auth/register` — it becomes **Superadmin** automatically. Subsequent registrations are locked; new users are created from the **Administration** page inside the app.
+> **First run:** the first user to register becomes **Superadmin** automatically. Subsequent registrations are locked — new users are created from the **Administration** page inside the app.
 
 ### Production
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions covering:
-
-- Cloudflare Tunnel (recommended — no open ports required)
-- HTTPS with Let's Encrypt
-- Environment variable reference
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions covering Cloudflare Tunnel, HTTPS with Let's Encrypt, and environment variable reference.
 
 ---
 
@@ -71,20 +100,23 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions covering:
 
 ```
 nextfolio/
-├── frontend/               # React + Vite + TypeScript
+├── frontend/               # React + Vite + TypeScript + Tailwind
 │   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── services/       # API clients
-│       └── store/          # Zustand state
+│       ├── components/     # Shared UI components
+│       ├── pages/          # One file per route
+│       ├── services/       # Typed API clients (axios)
+│       └── locales/        # i18n strings (it, en, fr, de)
 │
-├── backend/                # FastAPI + Python
+├── backend/                # FastAPI + Python (async)
 │   └── app/
 │       ├── api/            # Route handlers + WebSocket
 │       ├── models/         # SQLAlchemy ORM models
 │       ├── schemas/        # Pydantic I/O schemas
-│       ├── services/       # Business logic (portfolio, tax, market data)
-│       └── tasks/          # Celery async tasks
+│       ├── services/
+│       │   ├── market_data/    # Price fetchers
+│       │   ├── portfolio/      # P&L, positions, X-Ray, rebalancing
+│       │   └── tax/            # Italian tax engine (FIFO, PMC, IVAFE)
+│       └── tasks/          # Celery price-fetch tasks
 │
 ├── docker-compose.yml          # Production compose
 ├── docker-compose.dev.yml      # Development compose
@@ -97,79 +129,48 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full system diagram and s
 
 ## Price Sources
 
-| Source             | Assets                          | Frequency                   |
-| ------------------ | ------------------------------- | --------------------------- |
-| Yahoo Finance      | Stocks (.MI), ETFs, Bonds (MOT) | Every 15 min (market hours) |
-| CoinGecko          | Crypto                          | Every 5 min                 |
+| Source             | Assets                           | Frequency                   |
+| ------------------ | -------------------------------- | --------------------------- |
+| Yahoo Finance      | Stocks (.MI), ETFs, Bonds (MOT)  | Every 15 min (market hours) |
+| CoinGecko          | Crypto                           | Every 5 min                 |
 | Borsa Italiana API | ISIN on MIL / EuroTLX / MOT     | Every 15 min (market hours) |
-| ECB (Frankfurter)  | FX exchange rates               | On demand                   |
+| ECB (Frankfurter)  | FX exchange rates                | On demand (per transaction) |
 
-Prices are cached in Redis (5 min for equities, 1 min for crypto) and streamed in real time to clients via WebSocket at `/ws/prices`.
-
----
-
-## Authentication & Roles
-
-| Role       | Permissions                                                   |
-| ---------- | ------------------------------------------------------------- |
-| SUPERADMIN | Full access: create/edit/delete users, reset other users' 2FA |
-| USER       | Personal settings (currency, theme), own 2FA                  |
-
-### Two-Factor Authentication (TOTP)
-
-2FA is optional and configured from the **Settings** page:
-
-1. Click "Configure 2FA" → scan the QR code with any TOTP app
-2. Enter the 6-digit code to activate
-3. On subsequent logins the TOTP code is requested after email + password
+Prices are cached in Redis and streamed to clients in real time via WebSocket at `/ws/prices`.
 
 ---
 
-## Remote Access via SSH
+## Documentation
 
-If the app runs on a remote server, forward ports locally:
-
-```bash
-ssh -L 5173:localhost:5173 -L 8000:localhost:8000 user@server-ip
-```
-
-Then open http://localhost:5173 in your local browser.
+| Document | Description |
+|---|---|
+| [USER_GUIDE.md](docs/USER_GUIDE.md) | End-user guide: all features explained |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, service breakdown, data flow |
+| [API.md](docs/API.md) | REST API and WebSocket reference |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | All environment variables explained |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment guide |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ---
 
 ## Useful Commands
 
 ```bash
-# Rebuild a single service (e.g. after editing requirements.txt)
-docker compose -f docker-compose.dev.yml build backend
-docker compose -f docker-compose.dev.yml up -d backend
+# Rebuild a single service after code changes
+docker compose build backend && docker compose up -d backend
 
-# Install an npm package inside the running frontend container
-docker exec nextfolio_frontend npm install <package>
-
-# Run database migrations manually
+# Apply database migrations
 docker exec nextfolio_backend alembic upgrade head
 
-# Run backend tests
-docker exec nextfolio_backend pytest -v --cov=app
+# Check current migration version
+docker exec nextfolio_backend alembic current
 
-# Start Celery worker (not included in dev compose by default)
-cd backend && celery -A app.tasks.celery_app:celery_app worker --loglevel=info
+# View backend logs
+docker compose logs -f backend
+
+# Open a psql shell
+docker exec -it nextfolio_postgres psql -U nextfolio
 ```
-
----
-
-## Documentation
-
-| Document                                   | Description                                 |
-| ------------------------------------------ | ------------------------------------------- |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)    | System design, service breakdown, data flow |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md)        | Production deployment guide                 |
-| [CONFIGURATION.md](docs/CONFIGURATION.md)  | All environment variables explained         |
-| [API.md](docs/API.md)                      | REST API and WebSocket reference            |
-| [CONTRIBUTING.md](.github/CONTRIBUTING.md) | How to contribute                           |
-| [SECURITY.md](.github/SECURITY.md)         | Security policy and vulnerability reporting |
-| [CHANGELOG.md](CHANGELOG.md)               | Release history                             |
 
 ---
 

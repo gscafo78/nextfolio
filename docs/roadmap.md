@@ -449,7 +449,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] **Cedole BTP** — mostrate come reddito informativo (aliquota 12.5%)
 - [x] **Crypto** — trattate come bracket standard 26% (normativa post-2023)
 - [ ] **PIR** — esenzione fiscale se mantenuto 5 anni *(rimandato — richiede flag su asset/account)*
-- [ ] **IVAFE** — imposta 0,2% su attività finanziarie estere *(rimandato — richiede classificazione conti)*
+- [x] **IVAFE** — imposta 0,2% su attività finanziarie estere *(implementato in 5.6 — flag is_foreign su conti)*
 
 ### 5.2 Calcolo FIFO
 
@@ -457,7 +457,7 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] Report per singola operazione con gain/loss dettagliato
 - [x] Simulatore "cosa succede se vendo ora?" (`GET /tax/simulate?asset_id=X&quantity=Y`)
 - [ ] Metodo **LIFO** *(rimandato — regime dichiarativo)*
-- [ ] Metodo **PMC** *(rimandato — regime amministrato)*
+- [x] Metodo **PMC** *(implementato in 5.5 — regime amministrato)*
 
 ### 5.3 API e report fiscali
 
@@ -469,6 +469,150 @@ user_settings   (id, user_id, theme, display_currency, updated_at)
 - [x] **Storico minusvalenze multi-anno** — vista dedicata in pagina Fiscale con carryforward visuale
 - [x] **Export PDF** — `GET /portfolio/export/pdf` via `reportlab`; pagine: intestazione brand, riepilogo, posizioni aperte con zebra-table, tutte le transazioni; pulsante in Import/Export con chiavi i18n IT/EN/FR/DE
 - [x] Export Excel incluso nell'export generale (`GET /api/v1/portfolio/export`)
+
+### 5.4 Sostituto d'imposta per conto — Regime amministrato vs dichiarativo
+
+**Obiettivo:** distinguere i conti per cui il broker gestisce le tasse in autonomia ("regime amministrato") da quelli in cui il contribuente deve dichiarare le plusvalenze sul modello 730/Redditi PF ("regime dichiarativo").
+
+#### Contesto normativo
+- **Regime amministrato** (sostituto d'imposta = SÌ): il broker (es. Fineco, Directa Plus) applica la ritenuta del 26% sulle plusvalenze in tempo reale e compensa automaticamente le minusvalenze nel proprio zainetto interno. L'investitore non ha obblighi dichiarativi per quel conto.
+- **Regime dichiarativo** (sostituto d'imposta = NO): il broker estero (es. DEGIRO, Interactive Brokers, broker crypto) non effettua ritenute. L'investitore deve riportare plusvalenze, minusvalenze e dividendi nel quadro RT/RW del modello Redditi PF. Le minusvalenze dello zainetto Nextfolio sono quelle rilevanti ai fini della dichiarazione.
+
+#### Backend — Modello e migrazione
+- [x] Migration `0018`: aggiunge colonna `is_sostituto_imposta BOOLEAN NOT NULL DEFAULT FALSE` alla tabella `accounts`
+- [x] `app/models/account.py` — campo `is_sostituto_imposta: Mapped[bool]` con default `False`
+- [x] `app/schemas/account.py` — campo in `AccountCreate`, `AccountUpdate`, `AccountOut`
+- [x] Endpoint `POST /accounts` e `PATCH /accounts/{id}` — passthrough del flag via schema (nessuna logica aggiuntiva)
+
+#### Backend — Tax engine
+- [x] `app/services/tax/calculator.py` — `TaxEvent` arricchito con `is_sostituto_imposta: bool`; `compute_tax_events()` legge il flag dal conto tramite `selectinload(Transaction.account)`
+- [x] `GET /api/v1/tax/report?year=YYYY` — risposta arricchita con breakdown per regime: campi `administered_*` e `declaratory_*` (gains, losses, tax per bracket) + `has_declaratory_accounts`
+- [x] **Ritenuta su redditi** — `income_tax_eur` calcolata su dividendi (26%), cedole BTP (12,5%), cedole societarie (26%), interessi (26%); split in `administered_income_tax` e `declaratory_income_tax`; inclusa in `administered_total_tax`
+- [x] Zainetto fiscale — breakdown informativo per regime calcolato sugli eventi; carryforward globale mantenuto (semplificazione MVP documentata)
+- [ ] `GET /api/v1/tax/simulate` — campo `regime` nel response *(rimandato — richiede mapping lotto→conto)*
+
+#### Frontend — Form conto (Impostazioni)
+- [x] `src/pages/Impostazioni.tsx` — `accountSchema` Zod: aggiunge campo `is_sostituto_imposta: z.boolean().default(false)`
+- [x] `AccountForm` — toggle iOS-style con label **"Sostituto d'imposta"** e descrizione breve sotto; gestito via `Controller` di react-hook-form
+- [x] `AccountRow` — mostra badge "Reg. amministrato" (verde) o "Reg. dichiarativo" (arancione) accanto al tipo conto
+- [x] `src/services/transactions.ts` — tipo `Account` aggiornato con `is_sostituto_imposta: boolean`
+
+#### Frontend — Pagina Fiscale
+- [x] `src/pages/Fiscale.tsx` — pannello breakdown regime: card verde "Gestito dal broker" e card arancione "Da dichiarare nel 730" con gains/losses/imposta per ciascuno
+- [x] **IncomeSection** — ogni tipo di reddito mostra il lordo + subrow "↳ ritenuta stimata" con importo in arancione; totale ritenuta in fondo alla sezione
+- [x] Tabella eventi fiscali — colonna "Regime" con badge verde/arancione per ogni evento
+- [x] Banner arancione quando esistono conti dichiarativi con imposta > 0
+- [ ] Storico minusvalenze — filtro per regime *(rimandato)*
+
+#### i18n
+- [x] Chiavi IT/EN/FR/DE per: `settings.sostitutoImposta`, `settings.sostitutoImpostaDesc`, `tax.administered`, `tax.declaratory`, `tax.declareIn730`, `tax.managedByBroker`, `settings.accountBadges.administered`, `settings.accountBadges.declaratory`, `tax.declaratoryDue`, `tax.regime`, `tax.totalIncomeTax`
+
+---
+
+### 5.5 PMC (Prezzo Medio di Carico) per conti in regime amministrato
+
+**Obiettivo:** usare il metodo WAC/PMC per i conti con `is_sostituto_imposta = true`, che corrisponde al comportamento reale dei broker italiani (Fineco, Directa, ecc.). I conti dichiarativi continuano a usare FIFO.
+
+#### Contesto normativo
+- **Regime amministrato** → broker calcola gain/loss con **PMC** (Prezzo Medio di Carico = WAC): ogni acquisto ricalcola il costo medio pesato per conto; ogni vendita usa il costo medio del momento.
+- **Regime dichiarativo** → contribuente sceglie il metodo; **FIFO** è quello prevalente e quello supportato da Nextfolio.
+- I lotti dei due regimi sono **separati per conto**: un asset detenuto su Fineco (PMC) e su DEGIRO (FIFO) ha due pool di costo indipendenti.
+
+#### Backend — Tax engine
+- [x] `_WACLot` — dataclass con metodi `buy()` e `sell()` per aggiornamento WAC in-place
+- [x] `compute_tax_events()` — pool separati: `lots_wac: dict[(account_id, asset_id), _WACLot]` per amministrati; `lots_fifo: dict[asset_id, list[_Lot]]` per dichiarativi
+- [x] BUY su conto amministrato → `_WACLot.buy()`: ricalcola media pesata
+- [x] SELL su conto amministrato → `_WACLot.sell()`: gain = proceeds − qty × avg_cost; azzera lot se qty ≈ 0
+- [x] `TaxEvent` — campo `calculation_method: str` (`"PMC"` | `"FIFO"`, default `"FIFO"`)
+
+#### Schema e API
+- [x] `TaxEventOut` — campo `calculation_method: str = "FIFO"`
+- [x] `_report_to_out` — propaga il campo
+
+#### Frontend
+- [x] `src/services/tax.ts` — campo `calculation_method: "FIFO" | "PMC"` in `TaxEvent`
+- [x] `EventsTable` — badge "PMC" (blu) o "FIFO" (grigio) nella cella regime, solo per eventi SELL
+- [x] Chiavi i18n IT/EN/FR/DE: `tax.methodPMC`, `tax.methodFIFO`, `tax.calcMethod`
+
+---
+
+### 5.6 IVAFE — Imposta sul Valore delle Attività Finanziarie Estere
+
+**Obiettivo:** calcolare e mostrare l'IVAFE (0,2% annuo) per chi detiene attività finanziarie presso intermediari esteri (DEGIRO, Interactive Brokers, ecc.).
+
+#### Contesto normativo
+- Aliquota: **0,2%** sul valore di mercato al **31 dicembre** dell'anno di imposta
+- Si applica alle attività detenute presso intermediari **esteri** (non italiani)
+- Va dichiarata nel **quadro RW** del modello Redditi PF
+- Non si applica ai conti italiani (sostituto d'imposta o meno)
+
+#### Backend
+- [x] Migration `0019`: colonna `is_foreign BOOLEAN DEFAULT FALSE` su `accounts`
+- [x] `app/models/account.py` + `app/schemas/account.py` — campo `is_foreign`
+- [x] `app/services/tax/ivafe.py` — `compute_ivafe(db, transactions, year)`:
+  - Accumula qty nette per (account_id, asset_id) filtrando solo conti `is_foreign=True` con data ≤ 31/12
+  - Raggruppa per `asset_id`; recupera il `close` più recente ≤ 31/12 da `price_history`
+  - Moltiplica per `exchange_rate` dell'ultima transazione (approssimazione MVP)
+  - IVAFE per asset = `market_value × 0,002`
+- [x] `GET /api/v1/tax/report?year=YYYY` — include campo `ivafe: IVAFEReportOut` con posizioni e totale
+
+#### Frontend
+- [x] `src/services/transactions.ts` — campo `is_foreign: boolean` in `Account`
+- [x] `src/services/tax.ts` — interfacce `IVAFEPosition` e `IVAFEReport`; `ivafe` in `AnnualTaxReport`
+- [x] `Impostazioni.tsx` — toggle "Conto estero" affiancato a "Sostituto d'imposta"; badge azzurro "Estero" in `AccountRow`
+- [x] `Fiscale.tsx` — `IVAFESection`: card azzurra con lista posizioni (asset, valore, IVAFE), totale, base imponibile; visibile solo se `has_foreign_accounts`
+
+#### i18n
+- [x] Chiavi IT/EN/FR/DE: `tax.ivafe`, `tax.ivafNote`, `tax.ivafeAt`, `tax.ivafeTotal`, `tax.ivafeBasis`, `tax.ivafNoPositions`, `settings.foreignAccount`, `settings.foreignAccountDesc`, `settings.accountBadges.foreign`
+
+---
+
+### 5.7 Dichiarazione assistita — Riepilogo per modello Redditi PF / 730
+
+**Obiettivo:** mostrare nella pagina Fiscale una sezione "Cosa dichiarare" che mappa i dati già calcolati ai quadri del modello Redditi PF, indicando esattamente i valori da inserire per ogni quadro. Puro frontend — nessun nuovo endpoint, legge dai campi `declaratory_*` e `ivafe` già presenti nel report.
+
+#### Dati → Quadri modello Redditi PF
+
+| Campo report | Quadro | Rigo | Descrizione |
+|---|---|---|---|
+| `declaratory_gains_standard` | **RT** | RT21 | Plusvalenze aliquota 26% |
+| `declaratory_losses_standard` | **RT** | RT22 | Minusvalenze aliquota 26% |
+| `declaratory_tax_standard` | **RT** | RT26 | Imposta 26% |
+| `declaratory_gains_govt` | **RT** | RT51 | Plusvalenze titoli di Stato 12,5% |
+| `declaratory_losses_govt` | **RT** | RT52 | Minusvalenze titoli di Stato 12,5% |
+| `declaratory_tax_govt` | **RT** | RT55 | Imposta 12,5% |
+| `ivafe.ivafe_eur` | **RW** | RW12 | IVAFE 0,2% su attività estere |
+| `ivafe.total_market_value_eur` | **RW** | RW5 | Valore attività finanziarie estere al 31/12 |
+| `declaratory_dividends_eur` | **RL** | RL1 | Dividendi e redditi da capitale dichiarativi |
+| `declaratory_income_tax` | **RL** | RL2 | Imposta su redditi dichiarativi |
+
+#### Frontend
+- [x] `DichiarativoSection` — card collassabile "Cosa dichiarare nel modello Redditi PF" visibile solo se `has_declaratory_accounts || ivafe.has_foreign_accounts`
+- [x] Tre sotto-sezioni: **Quadro RT** (capital gain), **Quadro RW** (IVAFE), **Redditi da capitale (RL)**
+- [x] Ogni riga mostra: badge quadro/rigo (es. `RT` `RT21`), descrizione, importo con bottone "Copia" negli appunti
+- [x] Disclaimer con avviso di verifica con i prospetti ufficiali
+- [x] Chiavi i18n IT/EN/FR/DE: `tax.dichiarativo.*` (title, subtitle, quadri, righe, disclaimer)
+
+---
+
+### 5.8 Export PDF fiscale
+
+**Obiettivo:** generare un PDF print-ready del riepilogo fiscale annuale da consegnare al commercialista o archiviare insieme alla dichiarazione. Riusa l'infrastruttura reportlab già in uso per il PDF portafoglio.
+
+**Contenuto del PDF:**
+1. Intestazione brand + anno fiscale
+2. Riepilogo regime — administered (broker) vs dichiarativo (730)
+3. Quadro RT — plusvalenze/minusvalenze/imposta per bracket
+4. Quadro RW — IVAFE per asset (se conti esteri)
+5. Redditi da capitale — dividendi, cedole, interessi
+6. Storico minusvalenze — carryforward con scadenza
+7. Dettaglio eventi fiscali — tabella vendite/dividendi/cedole
+
+**Backend**
+- [x] `GET /api/v1/tax/export/pdf?year=YYYY` — `StreamingResponse` PDF con reportlab; stile coerente con l'export portafoglio; include: riepilogo regime, Quadro RT, Quadro RW/IVAFE, redditi da capitale, storico minusvalenze, tabella eventi, disclaimer
+
+**Frontend**
+- [x] Pulsante "PDF fiscale" nell'header della pagina Fiscale (accanto al selettore anno), link diretto all'endpoint con `download`; chiave i18n `tax.downloadPdf` in IT/EN/FR/DE
 
 ---
 
@@ -1541,6 +1685,7 @@ docker compose build
 | Concentrazione per singolo titolo (badge > 10%) | 4.2 | Alert visivo per rischio concentrazione |
 | Storico minusvalenze multi-anno | 5.3 | Compensazione Art. 68 TUIR su 4 anni |
 | Campo `url` su `accounts` + favicon Google Favicons API | 4.X.5 | Link diretto al conto broker; favicon come identificatore visivo ovunque appaia il nome conto |
+| Flag `is_sostituto_imposta` su `accounts` | 5.4 | Distingue regime amministrato (broker trattiene le tasse) da regime dichiarativo (investitore dichiara nel 730); tax engine produce breakdown separato per regime |
 | Sistema SMTP completo (`smtplib` + STARTTLS) | 4.X.6 | Password reset self-service, email benvenuto per nuovi utenti, test configurazione; nessuna dipendenza esterna oltre stdlib |
 | Flusso reset password (`/forgot-password`, `/reset-password`) | 4.X.6 | Token JWT 1h tipo `password_reset`; risposta 202 costante per evitare user enumeration |
 | Pannello email admin (config, test, welcome, reset link) | 4.X.6 | Operazioni email manuali per il superadmin senza accesso a shell |

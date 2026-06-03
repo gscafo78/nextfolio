@@ -9,6 +9,8 @@ class AccountCreate(BaseModel):
     broker: str | None = None
     url: str | None = None
     currency: str = "EUR"
+    is_sostituto_imposta: bool = False
+    is_foreign: bool = False
 
 
 class AccountUpdate(BaseModel):
@@ -17,6 +19,8 @@ class AccountUpdate(BaseModel):
     broker: str | None = None
     url: str | None = None
     currency: str | None = None
+    is_sostituto_imposta: bool | None = None
+    is_foreign: bool | None = None
 
 
 class AccountOut(BaseModel):
@@ -26,5 +30,7 @@ class AccountOut(BaseModel):
     broker: str | None
     url: str | None
     currency: str
+    is_sostituto_imposta: bool
+    is_foreign: bool
 
     model_config = {"from_attributes": True}

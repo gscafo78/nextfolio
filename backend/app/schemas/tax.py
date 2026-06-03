@@ -3,6 +3,26 @@ import datetime
 from pydantic import BaseModel
 
 
+class IVAFEPositionOut(BaseModel):
+    asset_id: int
+    asset_name: str
+    asset_type: str
+    quantity: float
+    price_eur: float
+    market_value_eur: float
+    ivafe_eur: float
+    price_date: datetime.date | None
+
+
+class IVAFEReportOut(BaseModel):
+    year: int
+    total_market_value_eur: float = 0.0
+    ivafe_eur: float = 0.0
+    positions: list[IVAFEPositionOut] = []
+    rate: float = 0.002
+    has_foreign_accounts: bool = False
+
+
 class TaxEventOut(BaseModel):
     date: datetime.date
     asset_id: int
@@ -15,6 +35,8 @@ class TaxEventOut(BaseModel):
     gain_loss_eur: float
     tax_bracket: str
     tax_rate: float
+    is_sostituto_imposta: bool
+    calculation_method: str = "FIFO"  # "FIFO" | "PMC"
 
 
 class CarryForwardEntryOut(BaseModel):
@@ -42,6 +64,9 @@ class AnnualTaxReportOut(BaseModel):
     coupons_govt_eur: float
     coupons_standard_eur: float
     interests_eur: float
+    income_tax_eur: float = 0.0
+    administered_income_tax: float = 0.0
+    declaratory_income_tax: float = 0.0
 
     total_tax_due: float
 
@@ -52,6 +77,31 @@ class AnnualTaxReportOut(BaseModel):
     prior_carryforward_govt: list[CarryForwardEntryOut]
 
     events: list[TaxEventOut]
+
+    # Breakdown per regime
+    administered_gains_standard: float = 0.0
+    administered_losses_standard: float = 0.0
+    administered_tax_standard: float = 0.0
+    administered_gains_govt: float = 0.0
+    administered_losses_govt: float = 0.0
+    administered_tax_govt: float = 0.0
+    administered_dividends_eur: float = 0.0
+    administered_income_tax: float = 0.0
+    administered_total_tax: float = 0.0
+
+    declaratory_gains_standard: float = 0.0
+    declaratory_losses_standard: float = 0.0
+    declaratory_tax_standard: float = 0.0
+    declaratory_gains_govt: float = 0.0
+    declaratory_losses_govt: float = 0.0
+    declaratory_tax_govt: float = 0.0
+    declaratory_dividends_eur: float = 0.0
+    declaratory_income_tax: float = 0.0
+    declaratory_total_tax: float = 0.0
+
+    has_declaratory_accounts: bool = False
+
+    ivafe: IVAFEReportOut = IVAFEReportOut(year=0)
 
 
 class SimulateSellOut(BaseModel):

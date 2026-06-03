@@ -43,6 +43,30 @@ class _Lot:
 
 
 @dataclass
+class _WACLot:
+    """Lot aggregato per regime amministrato (Prezzo Medio di Carico / WAC)."""
+    quantity: float = 0.0
+    avg_cost_per_unit: float = 0.0
+
+    def buy(self, qty: float, cost_eur: float) -> None:
+        total_qty = self.quantity + qty
+        self.avg_cost_per_unit = (
+            (self.quantity * self.avg_cost_per_unit + cost_eur) / total_qty
+            if total_qty > 1e-10 else 0.0
+        )
+        self.quantity = total_qty
+
+    def sell(self, qty: float) -> float:
+        """Restituisce il costo base al PMC e aggiorna il lot."""
+        cost_of_sold = qty * self.avg_cost_per_unit
+        self.quantity -= qty
+        if self.quantity < 1e-10:
+            self.quantity = 0.0
+            self.avg_cost_per_unit = 0.0
+        return cost_of_sold
+
+
+@dataclass
 class TaxEvent:
     date: datetime.date
     asset_id: int
@@ -54,6 +78,8 @@ class TaxEvent:
     cost_eur: float | None
     gain_loss_eur: float
     is_government_bond: bool
+    is_sostituto_imposta: bool = False   # regime del conto sorgente
+    calculation_method: str = "FIFO"    # "FIFO" | "PMC"
 
     @property
     def tax_rate(self) -> float:
@@ -89,11 +115,14 @@ class AnnualTaxReport:
     net_taxable_govt: float = 0.0
     tax_govt: float = 0.0
 
-    # Reddito (informativo — spesso ritenuta alla fonte)
+    # Reddito (cedole, dividendi, interessi)
     dividends_eur: float = 0.0
     coupons_govt_eur: float = 0.0
     coupons_standard_eur: float = 0.0
     interests_eur: float = 0.0
+    income_tax_eur: float = 0.0          # ritenuta stimata su redditi (tutti i conti)
+    administered_income_tax: float = 0.0  # ritenuta già applicata dal broker
+    declaratory_income_tax: float = 0.0  # ritenuta da dichiarare nel 730
 
     total_tax_due: float = 0.0
 
@@ -107,55 +136,93 @@ class AnnualTaxReport:
 
     events: list[TaxEvent] = field(default_factory=list)
 
+    # Breakdown per regime (calcolato sugli eventi, senza carryforward separato)
+    administered_gains_standard: float = 0.0   # gestito dal broker
+    administered_losses_standard: float = 0.0
+    administered_tax_standard: float = 0.0
+    administered_gains_govt: float = 0.0
+    administered_losses_govt: float = 0.0
+    administered_tax_govt: float = 0.0
+    administered_dividends_eur: float = 0.0
+    administered_total_tax: float = 0.0
+
+    declaratory_gains_standard: float = 0.0    # da dichiarare nel 730
+    declaratory_losses_standard: float = 0.0
+    declaratory_tax_standard: float = 0.0
+    declaratory_gains_govt: float = 0.0
+    declaratory_losses_govt: float = 0.0
+    declaratory_tax_govt: float = 0.0
+    declaratory_dividends_eur: float = 0.0
+    declaratory_total_tax: float = 0.0
+
+    has_declaratory_accounts: bool = False
+
 
 # ── Engine principale ─────────────────────────────────────────────────────────
 
 def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
     """
     Scorre le transazioni in ordine cronologico e genera gli eventi fiscali.
-    BUY: accumula lotti FIFO.
-    SELL: scarica i lotti FIFO e calcola gain/loss.
-    DIVIDEND/COUPON/INTEREST: reddito imponibile.
+
+    Metodo di calcolo del costo base:
+    - Regime amministrato (is_sostituto_imposta=True) → PMC/WAC per conto
+      Pool: lots_wac[(account_id, asset_id)]
+    - Regime dichiarativo (is_sostituto_imposta=False) → FIFO globale per asset
+      Pool: lots_fifo[asset_id]
     """
-    lots: dict[int, list[_Lot]] = defaultdict(list)
+    lots_fifo: dict[int, list[_Lot]] = defaultdict(list)
+    lots_wac: dict[tuple[int, int], _WACLot] = defaultdict(_WACLot)
     events: list[TaxEvent] = []
 
     for tx in sorted(transactions, key=lambda t: (t.date, t.id)):
-        asset: Asset = tx.asset  # caricato con selectinload nel router
+        asset: Asset = tx.asset
         govt = _is_government_bond(asset)
+        sostituto = getattr(tx.account, "is_sostituto_imposta", False)
+        asset_type_str = asset.type if isinstance(asset.type, str) else asset.type.value
 
         if tx.type == TransactionType.BUY:
             cost_eur = tx.quantity * tx.price * tx.exchange_rate + tx.fee
-            cost_per_unit = cost_eur / tx.quantity if tx.quantity > 0 else 0.0
-            lots[tx.asset_id].append(_Lot(tx.quantity, cost_per_unit))
+            if sostituto:
+                lots_wac[(tx.account_id, tx.asset_id)].buy(tx.quantity, cost_eur)
+            else:
+                cost_per_unit = cost_eur / tx.quantity if tx.quantity > 0 else 0.0
+                lots_fifo[tx.asset_id].append(_Lot(tx.quantity, cost_per_unit))
 
         elif tx.type == TransactionType.SELL:
             proceeds = tx.quantity * tx.price * tx.exchange_rate - tx.fee
-            remaining = tx.quantity
-            cost_of_sold = 0.0
-            asset_lots = lots[tx.asset_id]
 
-            i = 0
-            while remaining > 1e-10 and i < len(asset_lots):
-                lot = asset_lots[i]
-                used = min(remaining, lot.quantity)
-                cost_of_sold += used * lot.cost_per_unit_eur
-                remaining -= used
-                lot.quantity -= used
-                i += 1
-            lots[tx.asset_id] = [l for l in asset_lots if l.quantity > 1e-10]
+            if sostituto:
+                wac = lots_wac[(tx.account_id, tx.asset_id)]
+                cost_of_sold = wac.sell(tx.quantity)
+                method = "PMC"
+            else:
+                remaining = tx.quantity
+                cost_of_sold = 0.0
+                asset_lots = lots_fifo[tx.asset_id]
+                i = 0
+                while remaining > 1e-10 and i < len(asset_lots):
+                    lot = asset_lots[i]
+                    used = min(remaining, lot.quantity)
+                    cost_of_sold += used * lot.cost_per_unit_eur
+                    remaining -= used
+                    lot.quantity -= used
+                    i += 1
+                lots_fifo[tx.asset_id] = [l for l in asset_lots if l.quantity > 1e-10]
+                method = "FIFO"
 
             events.append(TaxEvent(
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
+                asset_type=asset_type_str,
                 tx_type="SELL",
                 quantity=tx.quantity,
                 proceeds_eur=proceeds,
                 cost_eur=cost_of_sold,
                 gain_loss_eur=proceeds - cost_of_sold,
                 is_government_bond=govt,
+                is_sostituto_imposta=sostituto,
+                calculation_method=method,
             ))
 
         elif tx.type == TransactionType.DIVIDEND:
@@ -164,13 +231,14 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
+                asset_type=asset_type_str,
                 tx_type="DIVIDEND",
                 quantity=None,
                 proceeds_eur=amount,
                 cost_eur=None,
                 gain_loss_eur=amount,
-                is_government_bond=False,  # dividendi sempre 26%
+                is_government_bond=False,
+                is_sostituto_imposta=sostituto,
             ))
 
         elif tx.type == TransactionType.COUPON:
@@ -179,13 +247,14 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
+                asset_type=asset_type_str,
                 tx_type="COUPON",
                 quantity=None,
                 proceeds_eur=amount,
                 cost_eur=None,
                 gain_loss_eur=amount,
                 is_government_bond=govt,
+                is_sostituto_imposta=sostituto,
             ))
 
         elif tx.type == TransactionType.INTEREST:
@@ -194,13 +263,14 @@ def compute_tax_events(transactions: list[Transaction]) -> list[TaxEvent]:
                 date=tx.date,
                 asset_id=tx.asset_id,
                 asset_name=asset.name,
-                asset_type=asset.type if isinstance(asset.type, str) else asset.type.value,
+                asset_type=asset_type_str,
                 tx_type="INTEREST",
                 quantity=None,
                 proceeds_eur=amount,
                 cost_eur=None,
                 gain_loss_eur=amount,
                 is_government_bond=False,
+                is_sostituto_imposta=sostituto,
             ))
 
     return events
@@ -335,8 +405,53 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
         report.coupons_govt_eur = sum(e.gain_loss_eur for e in coupons_govt)
         report.coupons_standard_eur = sum(e.gain_loss_eur for e in coupons_std)
         report.interests_eur = sum(e.gain_loss_eur for e in interests)
+        report.income_tax_eur = round(
+            report.dividends_eur * RATE_STANDARD
+            + report.coupons_govt_eur * RATE_GOVT
+            + report.coupons_standard_eur * RATE_STANDARD
+            + report.interests_eur * RATE_STANDARD,
+            2,
+        )
 
         report.total_tax_due = round(report.tax_standard + report.tax_govt, 2)
+
+        # ── Breakdown per regime ──────────────────────────────────────────────
+        for administered in (True, False):
+            prefix = "administered" if administered else "declaratory"
+            ev_sell_s = [e for e in year_events if e.tx_type == "SELL" and not e.is_government_bond and e.is_sostituto_imposta == administered]
+            ev_sell_g = [e for e in year_events if e.tx_type == "SELL" and e.is_government_bond and e.is_sostituto_imposta == administered]
+            ev_div    = [e for e in year_events if e.tx_type in ("DIVIDEND", "COUPON", "INTEREST") and e.is_sostituto_imposta == administered]
+
+            g_s = sum(e.gain_loss_eur for e in ev_sell_s if e.gain_loss_eur > 0)
+            l_s = sum(-e.gain_loss_eur for e in ev_sell_s if e.gain_loss_eur < 0)
+            net_s = max(0.0, g_s - l_s)
+            t_s = round(net_s * RATE_STANDARD, 2)
+
+            g_g = sum(e.gain_loss_eur for e in ev_sell_g if e.gain_loss_eur > 0)
+            l_g = sum(-e.gain_loss_eur for e in ev_sell_g if e.gain_loss_eur < 0)
+            net_g = max(0.0, g_g - l_g)
+            t_g = round(net_g * RATE_GOVT, 2)
+
+            divs = sum(e.gain_loss_eur for e in ev_div)
+            ev_div_govt = [e for e in ev_div if e.is_government_bond]
+            ev_div_std  = [e for e in ev_div if not e.is_government_bond]
+            inc_tax = round(
+                sum(e.gain_loss_eur for e in ev_div_govt) * RATE_GOVT
+                + sum(e.gain_loss_eur for e in ev_div_std) * RATE_STANDARD,
+                2,
+            )
+
+            setattr(report, f"{prefix}_gains_standard", g_s)
+            setattr(report, f"{prefix}_losses_standard", l_s)
+            setattr(report, f"{prefix}_tax_standard", t_s)
+            setattr(report, f"{prefix}_gains_govt", g_g)
+            setattr(report, f"{prefix}_losses_govt", l_g)
+            setattr(report, f"{prefix}_tax_govt", t_g)
+            setattr(report, f"{prefix}_dividends_eur", divs)
+            setattr(report, f"{prefix}_income_tax", inc_tax)
+            setattr(report, f"{prefix}_total_tax", round(t_s + t_g + inc_tax, 2))
+
+        report.has_declaratory_accounts = any(not e.is_sostituto_imposta for e in year_events)
 
         reports.append(report)
 

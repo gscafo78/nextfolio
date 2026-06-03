@@ -23,7 +23,7 @@ async def get_transactions(
         select(Transaction)
         .join(Transaction.account)
         .where(Transaction.account.has(user_id=user_id))
-        .options(selectinload(Transaction.asset))
+        .options(selectinload(Transaction.asset), selectinload(Transaction.account))
         .order_by(Transaction.date.desc(), Transaction.id.desc())
         .limit(limit)
         .offset(offset)

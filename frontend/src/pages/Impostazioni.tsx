@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Building2, Coins, Landmark, Briefcase, HelpCircle, ShieldCheck, ShieldOff, Copy, Check, CheckCircle2, XCircle, Send } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import QRCode from "react-qr-code";
@@ -39,11 +39,13 @@ function AccountTypeBadge({ type }: { type: AccountType }) {
 }
 
 const accountSchema = z.object({
-  name:     z.string().min(1, "Nome obbligatorio"),
-  type:     z.enum(["BROKERAGE", "BANK", "CRYPTO", "PENSION", "OTHER"]),
-  broker:   z.string().optional(),
-  url:      z.string().url("URL non valido").optional().or(z.literal("")),
-  currency: z.string().length(3, "3 caratteri").default("EUR"),
+  name:                  z.string().min(1, "Nome obbligatorio"),
+  type:                  z.enum(["BROKERAGE", "BANK", "CRYPTO", "PENSION", "OTHER"]),
+  broker:                z.string().optional(),
+  url:                   z.string().url("URL non valido").optional().or(z.literal("")),
+  currency:              z.string().length(3, "3 caratteri").default("EUR"),
+  is_sostituto_imposta:  z.boolean().default(false),
+  is_foreign:            z.boolean().default(false),
 });
 type AccountFormData = z.infer<typeof accountSchema>;
 
@@ -56,9 +58,9 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
   loading: boolean;
 }) {
   const { t } = useTranslation();
-  const { register, handleSubmit, formState: { errors } } = useForm<AccountFormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
-    defaultValues: { type: "BROKERAGE", currency: "EUR", ...initial },
+    defaultValues: { type: "BROKERAGE", currency: "EUR", is_sostituto_imposta: false, is_foreign: false, ...initial },
   });
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-3">
@@ -97,6 +99,54 @@ function AccountForm({ initial, onSave, onCancel, loading }: {
         error={errors.url?.message}
         {...register("url")}
       />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Controller
+          name="is_sostituto_imposta"
+          control={control}
+          render={({ field }) => (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">{t("settings.sostitutoImposta")}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t("settings.sostitutoImpostaDesc")}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={field.value}
+                onClick={() => field.onChange(!field.value)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                  field.value ? "bg-brand-600" : "bg-gray-200"
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${field.value ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          )}
+        />
+        <Controller
+          name="is_foreign"
+          control={control}
+          render={({ field }) => (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">{t("settings.foreignAccount")}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t("settings.foreignAccountDesc")}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={field.value}
+                onClick={() => field.onChange(!field.value)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                  field.value ? "bg-brand-600" : "bg-gray-200"
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${field.value ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          )}
+        />
+      </div>
       <div className="flex gap-2 justify-end pt-1">
         <Button type="button" variant="secondary" onClick={onCancel}>{t("common.cancel")}</Button>
         <Button type="submit" loading={loading}>{t("common.save")}</Button>
@@ -128,6 +178,20 @@ function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (
           {nameNode}
           <AccountTypeBadge type={account.type} />
           {account.currency !== "EUR" && <span className="text-xs text-gray-400 font-mono">{account.currency}</span>}
+          {account.is_sostituto_imposta ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+              {t("settings.accountBadges.administered")}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+              {t("settings.accountBadges.declaratory")}
+            </span>
+          )}
+          {account.is_foreign && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+              {t("settings.accountBadges.foreign")}
+            </span>
+          )}
         </div>
         <div className="text-xs text-gray-400 mt-0.5">
           {account.broker && <span>{account.broker} · </span>}
@@ -588,7 +652,7 @@ export function Impostazioni() {
                       <div className="px-5 py-4 bg-blue-50 border-l-2 border-brand-500">
                         <p className="text-sm font-medium text-gray-700 mb-3">{t("settings.editAccountTitle")}</p>
                         <AccountForm
-                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency }}
+                          initial={{ name: acc.name, type: acc.type, broker: acc.broker ?? undefined, url: acc.url ?? undefined, currency: acc.currency, is_sostituto_imposta: acc.is_sostituto_imposta, is_foreign: acc.is_foreign }}
                           onSave={(data) => updateMutation.mutate({ id: acc.id, data })}
                           onCancel={() => setEditing(null)}
                           loading={updateMutation.isPending}

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History } from "lucide-react";
+import { ChevronDown, TrendingDown, TrendingUp, Wallet, AlertCircle, Info, Calculator, History, Building2, FileWarning } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getIntlLocale } from "@/utils/format";
 import i18n from "@/i18n";
-import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut } from "@/services/tax";
+import { taxService, type AnnualTaxReport, type TaxEvent, type SimulateSellOut, type IVAFEReport } from "@/services/tax";
+import { api } from "@/services/api";
 import { portfolioService } from "@/services/portfolio";
 import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
@@ -158,6 +159,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                 <th className="px-3 md:px-4 py-3 font-medium text-right">{t("tax.proceeds")}</th>
                 <th className="px-3 md:px-4 py-3 font-medium text-right">{t("tax.gainLoss")}</th>
                 <th className="hidden sm:table-cell px-4 py-3 font-medium text-right">{t("tax.rate", { pct: "" }).trim()}</th>
+                <th className="hidden md:table-cell px-4 py-3 font-medium">{t("tax.regime")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -183,10 +185,42 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                   <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-gray-500">
                     {ev.tax_bracket === "government_bond" ? "12.5%" : ev.tax_bracket === "standard" ? "26%" : ev.tax_bracket}
                   </td>
+                  <td className="hidden md:table-cell px-4 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      {ev.is_sostituto_imposta ? (
+                        <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">{t("tax.administered")}</span>
+                      ) : (
+                        <span className="inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">{t("tax.declaratory")}</span>
+                      )}
+                      {ev.tx_type === "SELL" && (
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ev.calculation_method === "PMC" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
+                          {t(ev.calculation_method === "PMC" ? "tax.methodPMC" : "tax.methodFIFO")}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IncomeRow({ label, gross, tax, zenMode }: { label: string; gross: number; tax: number; zenMode: boolean }) {
+  if (gross < 0.01) return null;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex justify-between text-gray-700">
+        <span>{label}</span>
+        <span className="font-medium">{zenMode ? "•••••" : eur(gross)}</span>
+      </div>
+      {tax > 0.005 && (
+        <div className="flex justify-between text-xs text-gray-400 pl-2">
+          <span>↳ ritenuta stimata</span>
+          <span className="text-orange-600 font-medium">{zenMode ? "•••••" : `−${eur(tax)}`}</span>
         </div>
       )}
     </div>
@@ -200,6 +234,12 @@ function IncomeSection({ report }: { report: AnnualTaxReport }) {
     report.dividends_eur + report.coupons_govt_eur + report.coupons_standard_eur + report.interests_eur;
   if (total < 0.01) return null;
 
+  // Ritenute per tipo (stimate)
+  const taxDividends   = Math.round(report.dividends_eur        * 0.26  * 100) / 100;
+  const taxCouponsGovt = Math.round(report.coupons_govt_eur     * 0.125 * 100) / 100;
+  const taxCouponsStd  = Math.round(report.coupons_standard_eur * 0.26  * 100) / 100;
+  const taxInterests   = Math.round(report.interests_eur        * 0.26  * 100) / 100;
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-3">
@@ -211,34 +251,22 @@ function IncomeSection({ report }: { report: AnnualTaxReport }) {
           </div>
         </div>
       </div>
-      <div className="space-y-2 text-sm">
-        {report.dividends_eur > 0 && (
-          <div className="flex justify-between text-gray-600">
-            <span>{t("tax.stockDividends")}</span>
-            <span className="font-medium">{zenMode ? "•••••" : eur(report.dividends_eur)}</span>
+      <div className="space-y-2.5 text-sm">
+        <IncomeRow label={t("tax.stockDividends")}  gross={report.dividends_eur}        tax={taxDividends}   zenMode={zenMode} />
+        <IncomeRow label={t("tax.govBondCoupons")}  gross={report.coupons_govt_eur}     tax={taxCouponsGovt} zenMode={zenMode} />
+        <IncomeRow label={t("tax.corpBondCoupons")} gross={report.coupons_standard_eur} tax={taxCouponsStd}  zenMode={zenMode} />
+        <IncomeRow label={t("tax.interest")}        gross={report.interests_eur}        tax={taxInterests}   zenMode={zenMode} />
+        <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
+          <div className="flex justify-between font-semibold text-gray-700">
+            <span>{t("tax.totalIncome")}</span>
+            <span>{zenMode ? "•••••" : eur(total)}</span>
           </div>
-        )}
-        {report.coupons_govt_eur > 0 && (
-          <div className="flex justify-between text-gray-600">
-            <span>{t("tax.govBondCoupons")}</span>
-            <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_govt_eur)}</span>
-          </div>
-        )}
-        {report.coupons_standard_eur > 0 && (
-          <div className="flex justify-between text-gray-600">
-            <span>{t("tax.corpBondCoupons")}</span>
-            <span className="font-medium">{zenMode ? "•••••" : eur(report.coupons_standard_eur)}</span>
-          </div>
-        )}
-        {report.interests_eur > 0 && (
-          <div className="flex justify-between text-gray-600">
-            <span>{t("tax.interest")}</span>
-            <span className="font-medium">{zenMode ? "•••••" : eur(report.interests_eur)}</span>
-          </div>
-        )}
-        <div className="border-t border-dashed border-gray-200 pt-2 flex justify-between font-semibold">
-          <span className="text-gray-700">{t("tax.totalIncome")}</span>
-          <span>{zenMode ? "•••••" : eur(total)}</span>
+          {report.income_tax_eur > 0.005 && (
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{t("tax.totalIncomeTax")}</span>
+              <span className="text-orange-600 font-medium">{zenMode ? "•••••" : `−${eur(report.income_tax_eur)}`}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -416,6 +444,39 @@ function SellSimulator() {
 
 // ── Storico minusvalenze ──────────────────────────────────────────────────────
 
+function PdfDownloadButton({ year }: { year: number }) {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+
+  const download = async () => {
+    setLoading(true);
+    try {
+      const resp = await api.get(`/tax/export/pdf?year=${year}`, { responseType: "blob" });
+      const url = URL.createObjectURL(new Blob([resp.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nextfolio_fiscale_${year}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={download}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50 transition-colors"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      </svg>
+      {loading ? "…" : t("tax.downloadPdf")}
+    </button>
+  );
+}
+
 function CarryforwardHistory({ years }: { years: number[] }) {
   const [open, setOpen] = useState(false);
   const zenMode = useZenMode();
@@ -560,7 +621,8 @@ export function Fiscale() {
       <main className="flex-1">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <PdfDownloadButton year={selectedYear} />
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -615,6 +677,60 @@ export function Fiscale() {
             />
           </div>
 
+          {/* Banner dichiarativo */}
+          {report.has_declaratory_accounts && report.declaratory_total_tax > 0 && (
+            <div className="flex items-start gap-3 rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 text-sm text-orange-800">
+              <FileWarning className="w-4 h-4 mt-0.5 flex-shrink-0 text-orange-500" />
+              <p>{t("tax.declareIn730")}</p>
+            </div>
+          )}
+
+          {/* Breakdown per regime */}
+          {(report.administered_total_tax > 0 || report.declaratory_total_tax > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-semibold text-green-800">{t("tax.managedByBroker")}</span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{t("tax.totalGains")}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(report.administered_gains_standard + report.administered_gains_govt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{t("tax.totalLosses")}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(report.administered_losses_standard + report.administered_losses_govt)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-green-200 pt-1.5 mt-1.5">
+                    <span className="font-semibold text-green-800">{t("tax.administered")}</span>
+                    <span className="font-bold text-green-800">{zenMode ? "•••••" : eur(report.administered_total_tax)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileWarning className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-800">{t("tax.declaratory")}</span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{t("tax.totalGains")}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(report.declaratory_gains_standard + report.declaratory_gains_govt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{t("tax.totalLosses")}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(report.declaratory_losses_standard + report.declaratory_losses_govt)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-orange-200 pt-1.5 mt-1.5">
+                    <span className="font-semibold text-orange-800">{t("tax.declaratoryDue")}</span>
+                    <span className="font-bold text-orange-800">{zenMode ? "•••••" : eur(report.declaratory_total_tax)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Bracket cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Bracket
@@ -644,6 +760,12 @@ export function Fiscale() {
           {/* Income */}
           <IncomeSection report={report} />
 
+          {/* Dichiarazione assistita */}
+          <DichiarativoSection report={report} />
+
+          {/* IVAFE */}
+          <IVAFESection ivafe={report.ivafe} />
+
           {/* Storico minusvalenze */}
           <CarryforwardHistory years={availableYears} />
 
@@ -660,6 +782,170 @@ export function Fiscale() {
     </div>
       </main>
     </>
+  );
+}
+
+// ── Dichiarazione assistita ───────────────────────────────────────────────────
+
+function CopyButton({ value }: { value: number }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value.toFixed(2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button
+      onClick={copy}
+      className="ml-2 text-gray-400 hover:text-brand-600 transition-colors"
+      title="Copia"
+    >
+      {copied ? <span className="text-xs text-green-600 font-medium">✓</span> : <span className="text-xs">⎘</span>}
+    </button>
+  );
+}
+
+function DichiarativoRow({
+  quadro, rigo, label, value, zenMode,
+}: { quadro: string; rigo: string; label: string; value: number; zenMode: boolean }) {
+  if (value < 0.005) return null;
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="flex-shrink-0 w-20 text-center">
+        <span className="inline-block rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-bold text-indigo-700">{quadro}</span>
+        <span className="block text-xs text-gray-400 mt-0.5">{rigo}</span>
+      </div>
+      <span className="flex-1 text-sm text-gray-600">{label}</span>
+      <div className="flex items-center flex-shrink-0">
+        <span className="font-semibold text-sm text-gray-900">{zenMode ? "•••••" : eur(value)}</span>
+        {!zenMode && <CopyButton value={value} />}
+      </div>
+    </div>
+  );
+}
+
+function DichiarativoSection({ report }: { report: AnnualTaxReport }) {
+  const [open, setOpen] = useState(false);
+  const zenMode = useZenMode();
+  const { t } = useTranslation();
+
+  const hasDeclaratory = report.has_declaratory_accounts && (
+    report.declaratory_gains_standard > 0.005 ||
+    report.declaratory_losses_standard > 0.005 ||
+    report.declaratory_gains_govt > 0.005 ||
+    report.declaratory_losses_govt > 0.005 ||
+    report.declaratory_dividends_eur > 0.005
+  );
+  const hasForeign = report.ivafe.has_foreign_accounts && report.ivafe.ivafe_eur > 0.005;
+
+  if (!hasDeclaratory && !hasForeign) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-indigo-200 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-indigo-800 hover:bg-indigo-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <FileWarning className="w-4 h-4 text-indigo-500" />
+          <span>{t("tax.dichiarativo.title")}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="border-t border-indigo-100 px-5 pb-5 pt-3 space-y-5">
+          <p className="text-xs text-indigo-600">{t("tax.dichiarativo.subtitle")}</p>
+
+          {/* Quadro RT */}
+          {hasDeclaratory && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t("tax.dichiarativo.quadroRT")}</p>
+              <DichiarativoRow quadro="RT" rigo="RT21" label={t("tax.dichiarativo.gains26")}    value={report.declaratory_gains_standard}  zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="RT22" label={t("tax.dichiarativo.losses26")}   value={report.declaratory_losses_standard} zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="RT26" label={t("tax.dichiarativo.tax26")}      value={report.declaratory_tax_standard}    zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="RT51" label={t("tax.dichiarativo.gainsGovt")}  value={report.declaratory_gains_govt}      zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="RT52" label={t("tax.dichiarativo.lossesGovt")} value={report.declaratory_losses_govt}     zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="RT55" label={t("tax.dichiarativo.taxGovt")}    value={report.declaratory_tax_govt}        zenMode={zenMode} />
+            </div>
+          )}
+
+          {/* Quadro RW */}
+          {hasForeign && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t("tax.dichiarativo.quadroRW")}</p>
+              <DichiarativoRow quadro="RW" rigo="RW5"  label={t("tax.dichiarativo.foreignValue")} value={report.ivafe.total_market_value_eur} zenMode={zenMode} />
+              <DichiarativoRow quadro="RW" rigo="RW12" label={t("tax.dichiarativo.ivafe")}         value={report.ivafe.ivafe_eur}              zenMode={zenMode} />
+            </div>
+          )}
+
+          {/* Quadro RL */}
+          {hasDeclaratory && report.declaratory_dividends_eur > 0.005 && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t("tax.dichiarativo.quadroRL")}</p>
+              <DichiarativoRow quadro="RL" rigo="RL1" label={t("tax.dichiarativo.incomeDecl")}    value={report.declaratory_dividends_eur} zenMode={zenMode} />
+              <DichiarativoRow quadro="RL" rigo="RL2" label={t("tax.dichiarativo.incomeTaxDecl")} value={report.declaratory_income_tax}    zenMode={zenMode} />
+            </div>
+          )}
+
+          <div className="flex items-start gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-600">
+            <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <p>{t("tax.dichiarativo.disclaimer")}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IVAFESection({ ivafe }: { ivafe: IVAFEReport }) {
+  const zenMode = useZenMode();
+  const { t } = useTranslation();
+  if (!ivafe.has_foreign_accounts && ivafe.ivafe_eur < 0.01) return null;
+
+  return (
+    <div className="rounded-xl border border-sky-200 bg-sky-50 p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Building2 className="w-4 h-4 text-sky-600" />
+        <p className="text-sm font-semibold text-sky-800">{t("tax.ivafe")}</p>
+        <div className="group relative">
+          <Info className="w-3.5 h-3.5 text-sky-400 cursor-help" />
+          <div className="absolute left-4 bottom-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg p-2 shadow-lg">
+            {t("tax.ivafNote")}
+          </div>
+        </div>
+      </div>
+
+      {ivafe.positions.length > 0 ? (
+        <div className="space-y-2 text-sm">
+          {ivafe.positions.map((pos) => (
+            <div key={pos.asset_id} className="flex justify-between text-gray-600">
+              <div className="min-w-0">
+                <span className="truncate">{pos.asset_name}</span>
+                {pos.price_date && (
+                  <span className="text-xs text-gray-400 ml-1.5">
+                    ({t("tax.ivafeAt")} {new Date(pos.price_date).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
+              <div className="text-right flex-shrink-0 ml-4">
+                <span className="font-medium text-sky-700">{zenMode ? "•••••" : eur(pos.ivafe_eur)}</span>
+                {!zenMode && (
+                  <div className="text-xs text-gray-400">{eur(pos.market_value_eur)} × 0,2%</div>
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="border-t border-sky-200 pt-2 flex justify-between font-semibold text-sky-800">
+            <span>{t("tax.ivafeTotal")}</span>
+            <span>{zenMode ? "•••••" : eur(ivafe.ivafe_eur)}</span>
+          </div>
+          <p className="text-xs text-sky-600 mt-1">{t("tax.ivafeBasis", { value: zenMode ? "•••••" : eur(ivafe.total_market_value_eur) })}</p>
+        </div>
+      ) : (
+        <p className="text-sm text-sky-600">{t("tax.ivafNoPositions")}</p>
+      )}
+    </div>
   );
 }
 

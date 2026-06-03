@@ -26,6 +26,8 @@ export interface Account {
   broker: string | null;
   url: string | null;
   currency: string;
+  is_sostituto_imposta: boolean;
+  is_foreign: boolean;
   transaction_count: number;
 }
 

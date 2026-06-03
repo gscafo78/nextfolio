@@ -1,5 +1,25 @@
 import { api } from "./api";
 
+export interface IVAFEPosition {
+  asset_id: number;
+  asset_name: string;
+  asset_type: string;
+  quantity: number;
+  price_eur: number;
+  market_value_eur: number;
+  ivafe_eur: number;
+  price_date: string | null;
+}
+
+export interface IVAFEReport {
+  year: number;
+  total_market_value_eur: number;
+  ivafe_eur: number;
+  positions: IVAFEPosition[];
+  rate: number;
+  has_foreign_accounts: boolean;
+}
+
 export interface TaxEvent {
   date: string;
   asset_id: number;
@@ -12,6 +32,8 @@ export interface TaxEvent {
   gain_loss_eur: number;
   tax_bracket: "standard" | "government_bond";
   tax_rate: number;
+  is_sostituto_imposta: boolean;
+  calculation_method: "FIFO" | "PMC";
 }
 
 export interface CarryForwardEntry {
@@ -49,6 +71,30 @@ export interface AnnualTaxReport {
   prior_carryforward_govt: CarryForwardEntry[];
 
   events: TaxEvent[];
+
+  administered_gains_standard: number;
+  administered_losses_standard: number;
+  administered_tax_standard: number;
+  administered_gains_govt: number;
+  administered_losses_govt: number;
+  administered_tax_govt: number;
+  administered_dividends_eur: number;
+  administered_income_tax: number;
+  administered_total_tax: number;
+
+  declaratory_gains_standard: number;
+  declaratory_losses_standard: number;
+  declaratory_tax_standard: number;
+  declaratory_gains_govt: number;
+  declaratory_losses_govt: number;
+  declaratory_tax_govt: number;
+  declaratory_dividends_eur: number;
+  declaratory_income_tax: number;
+  declaratory_total_tax: number;
+
+  income_tax_eur: number;
+  has_declaratory_accounts: boolean;
+  ivafe: IVAFEReport;
 }
 
 export interface SimulateSellOut {
