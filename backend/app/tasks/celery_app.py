@@ -18,7 +18,7 @@ celery_app = Celery(
     "nextfolio",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.prices", "app.tasks.alerts", "app.tasks.registration"],
+    include=["app.tasks.prices", "app.tasks.alerts", "app.tasks.registration", "app.tasks.coupons"],
 )
 
 celery_app.conf.update(
