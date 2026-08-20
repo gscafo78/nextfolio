@@ -14,6 +14,7 @@ Logica di selezione della fonte dati:
 import datetime as _dt
 import json
 import logging
+import math
 from datetime import date
 
 import redis.asyncio as aioredis
@@ -237,7 +238,7 @@ async def upsert_price_history(db: AsyncSession, asset_id: int, records: list[di
         )
         row = result.scalar_one_or_none()
         close = r.get("close") or r.get("marketPrice")
-        if close is None:
+        if close is None or (isinstance(close, float) and math.isnan(close)):
             continue
 
         if row:

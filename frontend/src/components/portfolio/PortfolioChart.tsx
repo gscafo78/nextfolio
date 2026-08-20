@@ -36,9 +36,9 @@ export function PortfolioChart({ series, isLoading, header, height = 220 }: Port
 
   const chartData: ChartPoint[] = series.map((pt) => ({
     date: pt.date,
-    value: pt.value_eur,
-    pct: pt.twrr_pct,
-    pnlEur: pt.pnl_eur - pnlAtStart,
+    value: pt.value_eur ?? 0,
+    pct: pt.twrr_pct ?? 0,
+    pnlEur: (pt.pnl_eur ?? 0) - pnlAtStart,
   }));
 
   const yearTicks = chartData

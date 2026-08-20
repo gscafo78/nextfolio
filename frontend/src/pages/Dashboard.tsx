@@ -289,8 +289,8 @@ export function Dashboard() {
       const firstPt = series[0];
       const lastPt  = series[series.length - 1];
       if (firstPt && lastPt) {
-        pnl    = lastPt.pnl_eur - firstPt.pnl_eur;
-        pnlPct = lastPt.twrr_pct;
+        pnl    = (lastPt.pnl_eur ?? firstPt.pnl_eur ?? 0) - (firstPt.pnl_eur ?? 0);
+        pnlPct = lastPt.twrr_pct ?? firstPt.twrr_pct ?? 0;
       } else {
         // Fallback while loading: net invested all-time
         const buyCost      = accTxs.filter((tx) => tx.type === "BUY").reduce((s, tx) => s + tx.total_eur, 0);

@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline
+RUN rm -f package-lock.json && npm install
 
 COPY . .
 ARG VITE_SENTRY_DSN=""
