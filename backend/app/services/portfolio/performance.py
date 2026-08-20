@@ -132,16 +132,25 @@ async def get_portfolio_performance(
 
     for d in all_dates:
         txs_up_to = [tx for tx in transactions if tx.date <= d]
-        positions = calculate_positions(txs_up_to)
+        # include_closed=True: una posizione venduta per intero deve comunque contare
+        # il proprio cash flow nel giorno della vendita (altrimenti il suo valore sparisce
+        # da `value` senza che il corrispondente incasso compensi `start_value`, generando
+        # una "perdita" fittizia pari all'intera posizione chiusa quel giorno).
+        positions = calculate_positions(txs_up_to, include_closed=True)
 
         value = 0.0
         priced_ids: set[int] = set()
         for asset_id, pos in positions.items():
-            close = _last_price_on_or_before(price_map.get(asset_id, {}), d)
-            if close is None:
-                continue
-            fx = avg_fx.get(asset_id, 1.0)
-            value += pos.quantity * close * fx
+            if pos.quantity > 1e-6:
+                close = _last_price_on_or_before(price_map.get(asset_id, {}), d)
+                if close is not None:
+                    fx = avg_fx.get(asset_id, 1.0)
+                    value += pos.quantity * close * fx
+                else:
+                    # Nessuno storico prezzi disponibile per questo asset (fonte dati priva
+                    # di OHLCV, es. ISIN scarsamente scambiato): usa il costo di carico come
+                    # stima, invece di escludere silenziosamente la posizione dal periodo.
+                    value += pos.quantity * pos.pmc_eur
             priced_ids.add(asset_id)
 
         # TWRR: solo il cash flow degli asset priced oggi, coerente con value
@@ -153,8 +162,8 @@ async def get_portfolio_performance(
             running_twrr *= value / start_value
         prev_value = value
 
-        # Capitale investito netto: conta solo gli asset per cui abbiamo il prezzo,
-        # così pnl_eur è sempre coerente con value_eur (nessun asset "invisibile" gonfia invested).
+        # Capitale investito netto: conta solo gli asset per cui abbiamo un valore (reale
+        # o stimato al costo), così pnl_eur resta sempre coerente con value_eur.
         invested = sum(
             tx.quantity * tx.price * tx.exchange_rate + tx.fee
             for tx in txs_up_to
