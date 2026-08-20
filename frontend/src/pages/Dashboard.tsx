@@ -390,10 +390,10 @@ export function Dashboard() {
                   {t("dashboard.portfolioValue")}
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-slate-100 tabular-nums">
-                  {hasPrices ? zen(`€ ${totalValue.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
+                  {hasPrices ? zen(`€ ${totalValue.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : "—"}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-slate-500">
-                  {hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })}`) : "—"}
+                  {hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : "—"}
                 </p>
               </div>
 
@@ -406,7 +406,7 @@ export function Dashboard() {
                   periodPnl == null ? "text-gray-400" : periodPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
                   {periodPnl != null
-                    ? zen(`€ ${periodPnl.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`)
+                    ? zen(`€ ${periodPnl.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "always" })}`)
                     : "—"}
                 </p>
                 {periodPnlPct != null && !zenMode && (
@@ -424,7 +424,7 @@ export function Dashboard() {
                 <p className={`text-2xl font-bold tabular-nums ${
                   !hasPrices ? "text-gray-400" : dailyChange >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}>
-                  {hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
+                  {hasPrices ? zen(`€ ${dailyChange.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "always" })}`) : "—"}
                 </p>
                 {dailyChangePct != null && !zenMode && (
                   <p className={`text-sm font-semibold tabular-nums ${dailyChangePct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>

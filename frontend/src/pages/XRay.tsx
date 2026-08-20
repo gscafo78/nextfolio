@@ -245,7 +245,7 @@ function RebalanceSection() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className={`text-sm font-bold tabular-nums ${s.action === "buy" ? "text-green-600" : "text-red-500"}`}>
-                        {s.action === "buy" ? "+" : "−"} € {s.amount_eur.toLocaleString("it-IT", { minimumFractionDigits: 2 })}
+                        {s.action === "buy" ? "+" : "−"} € {s.amount_eur.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <div className="text-xs text-gray-400">{s.action === "buy" ? t("xray.rebalance.buy") : t("xray.rebalance.sell")}</div>
                     </div>
