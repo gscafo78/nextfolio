@@ -491,9 +491,11 @@ export function Transazioni() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {accounts.map((acc) => {
               const accTxs = transactions.filter((tx) => tx.account_id === acc.id);
-              const invested = accTxs
-                .filter((tx) => tx.type === "BUY")
-                .reduce((s, tx) => s + tx.total_eur, 0);
+              const invested = accTxs.reduce((s, tx) => {
+                if (tx.type === "BUY") return s + tx.total_eur;
+                if (tx.type === "SELL") return s - (tx.quantity * tx.price * tx.exchange_rate - tx.fee);
+                return s;
+              }, 0);
               return (
                 <button
                   key={acc.id}
@@ -663,7 +665,7 @@ export function Transazioni() {
                         <div>{tx.price.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 })} {tx.price_currency}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {zen("€ " + tx.total_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 }))}
+                        {zen("€ " + tx.total_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-400 text-xs">
                         {tx.price_currency !== "EUR"
@@ -691,7 +693,7 @@ export function Transazioni() {
                       {t("transactions.totalNetBuySell")}
                     </td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
-                      {zen("€ " + totalEur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2 }))}
+                      {zen("€ " + totalEur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                     </td>
                     <td colSpan={3} />
                   </tr>
