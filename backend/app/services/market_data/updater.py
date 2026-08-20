@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 _CACHE_TTL_STOCK = 5 * 60        # 5 min during market hours
 _CACHE_TTL_STOCK_EOD = 4 * 3600  # 4 h after market close / weekends
 _CACHE_TTL_CRYPTO = 60           # 1 min (crypto always live)
+_CACHE_TTL_FX = 4 * 3600         # tassi ECB via Frankfurter, aggiornati 1 volta al giorno
 
 
 def _stock_ttl() -> int:
@@ -71,6 +72,23 @@ async def get_cached_prices_bulk(asset_ids: list[int]) -> list[dict | None]:
     async with _redis() as r:
         values = await r.mget(*[f"price:{aid}" for aid in asset_ids])
     return [json.loads(v) if v else None for v in values]
+
+
+async def _cached_eur_rate(currency: str) -> float:
+    """Tasso di cambio verso EUR, cache Redis (i tassi ECB si aggiornano 1 volta al giorno)."""
+    currency = currency.upper()
+    if currency == "EUR":
+        return 1.0
+    async with _redis() as r:
+        cached = await r.get(f"fx:{currency}")
+    if cached:
+        return float(cached)
+
+    from app.services.fx import get_exchange_rate
+    rate = await get_exchange_rate(currency, "EUR")
+    async with _redis() as r:
+        await r.setex(f"fx:{currency}", _CACHE_TTL_FX, str(rate))
+    return rate
 
 
 # ── Cache performance ────────────────────────────────────────────────────────
@@ -168,6 +186,59 @@ async def _fetch_history(
     end_date: date | None = None,
 ) -> list[dict]:
     """
+    Scarica storico OHLCV (fonte migliore) e lo converte in EUR se la fonte
+    quota in un'altra valuta (es. share class USD su Yahoo Finance).
+    """
+    records = await _fetch_history_raw(asset, period, start_date, end_date)
+    if not records or asset.type == AssetType.CRYPTO:
+        return records
+
+    price_data = await _fetch_current_price(asset)
+    currency = (price_data or {}).get("currency", "EUR")
+    return await _convert_history_to_eur(records, currency)
+
+
+async def _convert_history_to_eur(records: list[dict], currency: str) -> list[dict]:
+    currency = (currency or "EUR").upper()
+    if currency == "EUR" or not records:
+        return records
+
+    dates = [date.fromisoformat(r["date"]) for r in records]
+    start, end = min(dates), max(dates)
+
+    from app.services.fx import get_exchange_rate_series
+    try:
+        fx_series = await get_exchange_rate_series(currency, "EUR", start, end)
+    except Exception as e:
+        logger.warning(f"[FX] serie storica {currency}→EUR fallita ({e}), storico non convertito")
+        return records
+    if not fx_series:
+        return records
+
+    sorted_fx = sorted(fx_series.items())
+
+    def _rate_for(d: date) -> float:
+        applicable = [r for dd, r in sorted_fx if dd <= d]
+        return applicable[-1] if applicable else sorted_fx[0][1]
+
+    converted = []
+    for r in records:
+        rate = _rate_for(date.fromisoformat(r["date"]))
+        row = dict(r)
+        for k in ("open", "high", "low", "close"):
+            if row.get(k) is not None:
+                row[k] = row[k] * rate
+        converted.append(row)
+    return converted
+
+
+async def _fetch_history_raw(
+    asset: Asset,
+    period: str = "1y",
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[dict]:
+    """
     Scarica storico OHLCV scegliendo la fonte migliore.
     """
     if asset.type == AssetType.CRYPTO:
@@ -216,6 +287,18 @@ async def refresh_asset_price(db: AsyncSession, asset: Asset) -> dict | None:
     data = await _fetch_current_price(asset)
     if not data or data.get("price") is None:
         return None
+
+    source_currency = (data.get("currency") or "EUR").upper()
+    if source_currency != "EUR":
+        try:
+            rate = await _cached_eur_rate(source_currency)
+            data["price"] = data["price"] * rate
+            if data.get("prev_close") is not None:
+                data["prev_close"] = data["prev_close"] * rate
+            data["currency"] = "EUR"
+            data["exchange_rate"] = 1.0
+        except Exception as e:
+            logger.warning(f"[FX] conversione {source_currency}→EUR fallita per {asset.symbol} ({e})")
 
     ttl = _CACHE_TTL_CRYPTO if asset.type == AssetType.CRYPTO else _stock_ttl()
     await cache_price(asset.id, data, ttl)
