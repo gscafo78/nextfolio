@@ -1,4 +1,5 @@
 import asyncio
+import math
 from datetime import date, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
@@ -33,14 +34,15 @@ from app.services.market_data.updater import (
 
 
 async def _price_from_db(db: AsyncSession, asset: Asset) -> dict | None:
-    """Fast DB-only fallback: last 2 rows from price_history."""
+    """Fast DB-only fallback: last 2 rows from price_history.
+    Filtra righe NaN (barra del giorno corrente non ancora chiusa su alcune fonti)."""
     result = await db.execute(
         select(PriceHistory)
         .where(PriceHistory.asset_id == asset.id)
         .order_by(PriceHistory.date.desc())
-        .limit(2)
+        .limit(5)
     )
-    rows = list(result.scalars())
+    rows = [r for r in result.scalars() if not math.isnan(r.close)][:2]
     if not rows:
         return None
     last = rows[0]

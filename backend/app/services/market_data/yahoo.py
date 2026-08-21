@@ -198,7 +198,7 @@ def get_price_history(
                 "open": round(float(row["Open"]), 6) if pd.notna(row["Open"]) else None,
                 "high": round(float(row["High"]), 6) if pd.notna(row["High"]) else None,
                 "low": round(float(row["Low"]), 6) if pd.notna(row["Low"]) else None,
-                "close": round(float(row["Close"]), 6),
+                "close": round(float(row["Close"]), 6) if pd.notna(row["Close"]) else None,
                 "volume": float(row["Volume"]) if pd.notna(row["Volume"]) else None,
             })
         return records

@@ -9,6 +9,7 @@ Algoritmo:
    delle transazioni (approssimazione accettabile per MVP).
 4. Calcola il TWRR come prodotto dei sub-return giornalieri.
 """
+import math
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -92,8 +93,12 @@ async def get_portfolio_performance(
     history_rows = result.scalars().all()
 
     # price_map[asset_id][date] = close
+    # (NaN difensivo: la barra del giorno corrente non ancora chiusa può arrivare
+    # come NaN da alcune fonti dati; va trattata come "nessun prezzo", non usata)
     price_map: dict[int, dict[date, float]] = {}
     for row in history_rows:
+        if row.close is None or math.isnan(row.close):
+            continue
         price_map.setdefault(row.asset_id, {})[row.date] = row.close
 
     # FX: media dei tassi storici delle transazioni per asset non-EUR
