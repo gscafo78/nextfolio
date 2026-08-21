@@ -5,6 +5,16 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.9.2] — 2026-08-21
+### Fixed
+- **Prezzi in valuta non-EUR trattati come EUR**: Yahoo Finance quota alcuni ETF (iShares Core MSCI World, Xtrackers EM) in USD ma non veniva mai calcolato un `exchange_rate` — il prezzo USD finiva usato as-is come EUR, gonfiando valore posizioni/conti del 15-18%. Aggiunta conversione FX (cache Redis) su prezzi live e storico `price_history`, via Frankfurter API (nel frattempo migrata da `.app` a `.dev`, redirect ora seguito)
+- **Performance Max ignorava posizioni chiuse e asset senza storico**: `calculate_positions()` esclude di default le posizioni a quantità zero — nel loop giorno-per-giorno questo faceva sparire, il giorno stesso di una vendita totale, sia il valore che il cash flow della posizione, generando una perdita fittizia e falsando il TWRR da quel giorno in poi. Aggiunto anche un fallback al costo di carico per asset privi di storico prezzi (es. ISIN scarsamente scambiati), prima esclusi silenziosamente
+- **Close NaN sulla barra odierna non chiusa propagava NaN in Performance Max**: `get_price_history` applicava il guard anti-NaN a open/high/low/volume ma non a `close` — il NaN restituito da Yahoo per la candela del giorno corrente finiva salvato in `price_history` e si propagava in tutto `get_portfolio_performance` (value/pnl/twrr = NaN). Guard aggiunto alla fonte, più filtro difensivo nei consumer
+- **Importi monetari mostrati con 3 decimali invece di 2**: `toLocaleString` con solo `minimumFractionDigits` (senza `maximumFractionDigits`) usa un massimo di 3 decimali per default, mostrando cifre spurie sui totali calcolati lato client (es. "Variazione oggi": -27,038 invece di -27,04)
+- **Card "investito" per conto ignorava le vendite**: sommava solo il costo degli acquisti (BUY), senza sottrarre le vendite — una posizione venduta per intero restava comunque conteggiata nel capitale investito
+
+---
+
 ## [1.8.0] — 2026-06-02
 ### Added
 - **Watchlist**: pagina `/watchlist` per monitorare asset senza possederli — prezzi live, variazione giornaliera, prezzo target con indicatore di distanza, note personali; icona `Eye` in Sidebar; i18n IT/EN/FR/DE
