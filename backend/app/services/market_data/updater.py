@@ -179,6 +179,29 @@ async def _fetch_current_price(asset: Asset) -> dict | None:
     return None
 
 
+async def _source_currency(asset: Asset) -> str:
+    """
+    Valuta di quotazione della fonte per questo asset, cache Redis 24h.
+    Senza questa cache, ogni chiamata a _fetch_history ri-rileva la valuta da
+    zero: un singolo esito diverso (fonte instabile, hiccup temporaneo) tra due
+    backfill dello stesso asset spezza lo storico a metà tra USD e EUR — è
+    esattamente il bug osservato il 17→20 luglio su IE00B4L5Y983/IE00BTJRMP35.
+    Fissare la valuta per 24h garantisce che tutte le scritture di un giorno
+    (backfill manuali, task EOD, refresh live) siano coerenti tra loro.
+    """
+    async with _redis() as r:
+        cached = await r.get(f"srccur:{asset.id}")
+    if cached:
+        return cached
+
+    price_data = await _fetch_current_price(asset)
+    currency = (price_data or {}).get("currency", "EUR").upper()
+
+    async with _redis() as r:
+        await r.setex(f"srccur:{asset.id}", 24 * 3600, currency)
+    return currency
+
+
 async def _fetch_history(
     asset: Asset,
     period: str = "1y",
@@ -193,8 +216,7 @@ async def _fetch_history(
     if not records or asset.type == AssetType.CRYPTO:
         return records
 
-    price_data = await _fetch_current_price(asset)
-    currency = (price_data or {}).get("currency", "EUR")
+    currency = await _source_currency(asset)
     return await _convert_history_to_eur(records, currency)
 
 
@@ -306,11 +328,15 @@ async def refresh_asset_price(db: AsyncSession, asset: Asset) -> dict | None:
     return data
 
 
+_CONTINUITY_JUMP_THRESHOLD = 0.15  # oltre il 15% giorno-su-giorno è implausibile per ETF/bond
+
+
 async def upsert_price_history(db: AsyncSession, asset_id: int, records: list[dict]) -> int:
     if not records:
         return 0
 
     written = 0
+    prev_close: float | None = None
     for r in records:
         d = date.fromisoformat(r["date"])
         result = await db.execute(
@@ -323,6 +349,17 @@ async def upsert_price_history(db: AsyncSession, asset_id: int, records: list[di
         close = r.get("close") or r.get("marketPrice")
         if close is None or (isinstance(close, float) and math.isnan(close)):
             continue
+
+        # Guard di continuità: un salto >15% giorno-su-giorno su un singolo asset è
+        # quasi sempre un artefatto (es. mismatch di valuta), non un movimento reale —
+        # non blocca la scrittura ma lo segnala subito nei log invece di corrompere
+        # silenziosamente lo storico (vedi bug USD/EUR di IE00B4L5Y983 del 17-20/07).
+        if prev_close and abs(close - prev_close) / prev_close > _CONTINUITY_JUMP_THRESHOLD:
+            logger.warning(
+                f"[price_history] asset {asset_id}: salto sospetto "
+                f"{prev_close:.4f} → {close:.4f} ({d}) — verificare valuta/fonte"
+            )
+        prev_close = close
 
         if row:
             row.close = close
