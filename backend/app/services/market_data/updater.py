@@ -97,7 +97,8 @@ _CACHE_TTL_PERF = 5 * 60  # 5 min — si aggiorna con i prezzi EOD
 
 
 def _perf_key(user_id: int, period: str, account_id: int | None) -> str:
-    return f"perf:{user_id}:{period}:{account_id or 'all'}"
+    # v2: rendimenti neutralizzati dai flussi e proventi inclusi (invalida la cache precedente)
+    return f"perf:v2:{user_id}:{period}:{account_id or 'all'}"
 
 
 async def get_cached_perf(user_id: int, period: str, account_id: int | None) -> dict | None:
@@ -114,7 +115,7 @@ async def set_cached_perf(user_id: int, period: str, account_id: int | None, dat
 async def invalidate_perf_cache(user_id: int) -> None:
     """Elimina tutte le chiavi perf:{user_id}:* — chiamato dopo update_prices_eod."""
     async with _redis() as r:
-        keys = await r.keys(f"perf:{user_id}:*")
+        keys = await r.keys(f"perf:v2:{user_id}:*") + await r.keys(f"perf:{user_id}:*")
         if keys:
             await r.delete(*keys)
 

@@ -39,3 +39,6 @@ Thumbs.db
 # Database
 *.sqlite3
 *.db
+
+# Backup database (scripts/backup-postgres.sh)
+backups/

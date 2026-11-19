@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,6 +51,13 @@ class Asset(Base):
     sectors_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     countries_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     holdings_override: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # Fiscale: forza (True/False) il trattamento da titolo di Stato (12,5%);
+    # None = riconoscimento automatico dal nome
+    govt_bond_override: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # Asset class del sottostante (EQUITY/BOND/MONEY_MARKET/CRYPTO/OTHER); None = automatica
+    asset_class_override: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # ETF/OICR: quota investita in titoli di Stato white list (0-1) → base imponibile ridotta
+    govt_bond_share: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

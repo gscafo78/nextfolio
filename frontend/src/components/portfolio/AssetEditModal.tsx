@@ -21,8 +21,22 @@ export interface AssetFull {
   sector: string | null;
   sectors_override: { name: string; weight: number }[] | null;
   countries_override: { code: string; name: string; weight: number }[] | null;
+  govt_bond_override: boolean | null;
+  asset_class_override: AssetClassOverride | null;
+  govt_bond_share: number | null;
   enriched_at: string | null;
 }
+
+type AssetClassOverride = "EQUITY" | "BOND" | "MONEY_MARKET" | "CRYPTO" | "OTHER";
+
+const ASSET_CLASS_OPTIONS: { value: AssetClassOverride | ""; label: string }[] = [
+  { value: "", label: "Automatica (da tipo, nome e look-through)" },
+  { value: "EQUITY", label: "Azioni" },
+  { value: "BOND", label: "Obbligazioni" },
+  { value: "MONEY_MARKET", label: "Monetario / liquidità" },
+  { value: "CRYPTO", label: "Crypto" },
+  { value: "OTHER", label: "Altro (materie prime, ecc.)" },
+];
 
 interface WeightedSector { name: string; weight: number }
 interface WeightedCountry { code: string; name: string; weight: number }
@@ -464,6 +478,10 @@ export function AssetEditModal({ assetId, initialData, onClose, onSaved }: Props
   const [assetType, setAssetType] = useState<AssetType>((initialData.asset_type as AssetType) ?? "OTHER");
   const [exchange, setExchange] = useState<Exchange>((initialData.exchange as Exchange) ?? "OTHER");
   const [currency, setCurrency] = useState(initialData.currency);
+  // "auto" = riconoscimento dal nome, "yes"/"no" = forzato
+  const [govtBond, setGovtBond] = useState<"auto" | "yes" | "no">("auto");
+  const [assetClass, setAssetClass] = useState<AssetClassOverride | "">("");
+  const [govtShare, setGovtShare] = useState("");
   const [sectors, setSectors] = useState<WeightedSector[]>([]);
   const [countries, setCountries] = useState<WeightedCountry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -476,6 +494,9 @@ export function AssetEditModal({ assetId, initialData, onClose, onSaved }: Props
       if (a.wkn) setWkn(a.wkn);
       if (a.sectors_override?.length) setSectors(a.sectors_override);
       if (a.countries_override?.length) setCountries(a.countries_override);
+      setGovtBond(a.govt_bond_override == null ? "auto" : a.govt_bond_override ? "yes" : "no");
+      setAssetClass(a.asset_class_override ?? "");
+      setGovtShare(a.govt_bond_share != null ? String(Math.round(a.govt_bond_share * 1000) / 10) : "");
       setLoaded(true);
     });
   }, [assetId]);
@@ -493,6 +514,12 @@ export function AssetEditModal({ assetId, initialData, onClose, onSaved }: Props
         currency,
         sectors_override: sectors.length > 0 ? sectors : null,
         countries_override: countries.length > 0 ? countries : null,
+        govt_bond_override: assetType === "BOND" && govtBond !== "auto" ? govtBond === "yes" : null,
+        asset_class_override: assetClass || null,
+        govt_bond_share:
+          assetType === "ETF" && govtShare.trim() !== ""
+            ? Math.min(Math.max(Number(govtShare.replace(",", ".")) / 100, 0), 1)
+            : null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holding-detail", assetId] });
@@ -500,6 +527,9 @@ export function AssetEditModal({ assetId, initialData, onClose, onSaved }: Props
       qc.invalidateQueries({ queryKey: ["positions"] });
       qc.invalidateQueries({ queryKey: ["country-allocation"] });
       qc.invalidateQueries({ queryKey: ["allocation"] });
+      qc.invalidateQueries({ queryKey: ["tax-report"] });
+      qc.invalidateQueries({ queryKey: ["portfolio-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["xray"] });
       onSaved();
       onClose();
     },
@@ -629,6 +659,49 @@ export function AssetEditModal({ assetId, initialData, onClose, onSaved }: Props
               <SelectChevron />
             </div>
           </Field>
+
+          <Field
+            label="Asset class del sottostante"
+            tooltip={"Classe usata per allocazione e X-Ray.\nEs. un ETF obbligazionario va in Obbligazioni, non in Azioni.\n\nAutomatica = dedotta da tipo, nome e look-through."}
+          >
+            <div className="relative">
+              <select className={selectCls} value={assetClass} onChange={(e) => setAssetClass(e.target.value as AssetClassOverride | "")}>
+                {ASSET_CLASS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <SelectChevron />
+            </div>
+          </Field>
+
+          {assetType === "ETF" && (
+            <Field
+              label="Quota titoli di Stato white list (%)"
+              tooltip={"Percentuale del fondo investita in titoli di Stato italiani ed esteri white list, comunicata semestralmente dall'emittente.\nQuella parte di plusvalenze e minusvalenze è tassata al 12,5% (base al 48,08%).\n\nLascia vuoto se non nota."}
+            >
+              <input
+                className={inputCls}
+                inputMode="decimal"
+                value={govtShare}
+                onChange={(e) => setGovtShare(e.target.value)}
+                placeholder="es. 85"
+              />
+            </Field>
+          )}
+
+          {assetType === "BOND" && (
+            <Field
+              label="Trattamento fiscale"
+              tooltip={"Titoli di Stato ed equiparati (BTP, BOT, Bund, OAT, BEI, BIRS…): plus/minus al 48,08%, cedole al 12,5%.\nAltre obbligazioni (anche societarie italiane): 26%.\n\nAutomatico = riconoscimento dal nome del titolo."}
+            >
+              <div className="relative">
+                <select className={selectCls} value={govtBond} onChange={(e) => setGovtBond(e.target.value as "auto" | "yes" | "no")}>
+                  <option value="auto">Automatico (dal nome)</option>
+                  <option value="yes">Titolo di Stato o equiparato (12,5%)</option>
+                  <option value="no">Altra obbligazione (26%)</option>
+                </select>
+                <SelectChevron />
+              </div>
+            </Field>
+          )}
 
           {/* ── Composizione ───────────────────────────────────────── */}
           <div className="pt-2 border-t border-gray-100">

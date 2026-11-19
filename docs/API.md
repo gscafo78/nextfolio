@@ -87,7 +87,7 @@ DELETE /accounts/{id}         # delete account (only if no transactions)
 
 | Field | Description |
 |---|---|
-| `is_sostituto_imposta` | `true` = broker handles Italian taxes (administered regime, PMC cost basis); `false` = user must declare in 730 (declaratory regime, FIFO cost basis) |
+| `is_sostituto_imposta` | `true` = broker handles Italian taxes (administered regime, PMC per account); `false` = user must declare in 730 (declaratory regime, PMC per asset across declaratory accounts) |
 | `is_foreign` | `true` = account at a non-Italian intermediary; enables IVAFE 0.2% calculation in the tax report |
 
 ---
@@ -110,17 +110,45 @@ Single endpoint returning positions + performance + allocation in one call (used
 ```
 GET /portfolio/summary
 ```
+`total_pnl_eur` = unrealized + realized (closed positions included) + `income_eur` (coupons, dividends, interest net of separate fees). `total_invested_eur` is the cost basis of open positions.
 
 ### Performance History
 ```
-GET /portfolio/performance?from=2024-01-01&to=2024-12-31
+GET /portfolio/performance?period=1y&account_id=1
 ```
+`period`: `today|wtd|mtd|ytd|1w|1m|3m|6m|1y|3y|max|YYYY`.
+
+| Field | Description |
+|---|---|
+| `twrr_pct` | Time-weighted return of the period, income included, flow-neutral |
+| `twrr_annualized_pct` | Only for periods ≥ 1 year, otherwise `null` |
+| `start_date` / `end_date` / `requested_start_date` | Actual and requested period bounds |
+| `history_truncated` | `true` if the history is shorter than the requested period |
+| `start_value_eur` / `end_value_eur` | Value at the opening / end of the period |
+| `net_flows_eur` | Purchases − sales in the period |
+| `income_eur` | Coupons, dividends, interest − fees in the period |
+| `pnl_eur` | `end − start − net_flows + income` |
+| `invested_eur` | `start_value + net_flows` |
+| `series[]` | `date, value_eur, invested_eur, pnl_eur, twrr_pct, daily_return_pct, reliable, flow_eur, income_eur` (trading days only) |
+
+### Risk Metrics
+```
+GET /portfolio/risk?period=3y&account_id=1
+```
+Volatility, max drawdown (on the TWRR index), Sharpe, Sortino, Calmar, best/worst day, positive days on flow-neutral trading-day returns. Also returns `risk_free_pct` (from `RISK_FREE_RATE_PCT`) and `warnings[]` (excluded low-base days, implausible values). `twrr_annualized_pct` and `calmar_ratio` are `null` with less than one year of data.
 
 ### Allocation
 ```
 GET /portfolio/allocation
 ```
-Returns breakdown by type, platform, currency, asset_class, exchange, sector, continent. Includes ETF look-through for geography and sector.
+Returns breakdown by type, platform, currency, sector, continent, plus the look-through fields:
+
+| Field | Description |
+|---|---|
+| `by_asset_class` | Azioni / Obbligazioni / Monetario / Crypto / Altro, by underlying (bond ETFs = Obbligazioni) |
+| `by_currency_exposure` | Underlying currencies (hedged ETFs = EUR; `Non dettagliata` = countries not provided) |
+| `by_continent_equity` / `by_continent_bond` | Geography of the equity / bond part |
+| `italy_exposure_pct` | Italy on the total portfolio (BTPs included) |
 
 ### X-Ray
 ```
@@ -131,9 +159,9 @@ Returns an array of `XRayRule` objects plus an overall `score` (0–100).
 **Response:**
 ```json
 {
-  "score": 70,
-  "rules_total": 10,
-  "rules_ok": 7,
+  "score": 82,
+  "rules_total": 11,
+  "rules_ok": 9,
   "rules": [
     {
       "key": "concentration_single_asset",
@@ -198,7 +226,17 @@ GET /assets/search?q=MSCI+World
 GET /assets/lookup?isin=IE00B4L5Y983
 GET /prices/{asset_id}
 POST /assets/{id}/backfill      # trigger historical price backfill
+PATCH /assets/{id}              # update asset data and overrides
 ```
+
+`PATCH /assets/{id}` accepts, besides the master data:
+
+| Field | Values | Description |
+|---|---|---|
+| `asset_class_override` | `EQUITY` \| `BOND` \| `MONEY_MARKET` \| `CRYPTO` \| `OTHER` \| `null` | Underlying asset class (`null` = automatic) |
+| `govt_bond_override` | `true` \| `false` \| `null` | Force government-bond tax treatment for a BOND |
+| `govt_bond_share` | `0`–`1` \| `null` | ETF share invested in white-list government bonds (reduced tax base) |
+| `sectors_override`, `countries_override` | list \| `null` | Manual look-through |
 
 ---
 
@@ -257,9 +295,9 @@ Returns a list of years that have at least one fiscal event.
 
 ### Sell Simulator
 ```
-GET /tax/simulate?asset_id=42&quantity=10
+GET /tax/simulate?asset_id=42&quantity=10&account_id=1
 ```
-Returns estimated tax impact of a hypothetical sale at the current price.
+Returns estimated tax impact of a hypothetical sale at the current price, at weighted average cost. With `account_id` the cost of that account's pool is used (administered) or the declaratory pool; without it, the average of all pools for the asset.
 
 ### Fiscal PDF Export
 ```
@@ -295,6 +333,43 @@ DELETE /watchlist/{id}             # remove from watchlist
 **POST body:**
 ```json
 { "asset_id": 42, "note": "Wait for 10% correction", "target_price": 95.00 }
+```
+
+---
+
+## AI
+
+### Chatbot prompt
+```
+GET /ai/prompt?mode=analysis&lang=it&include_values=true&account_id=1&asset_type=ETF
+```
+| Param | Values | Default | Notes |
+|---|---|---|---|
+| `mode` | `analysis` \| `portfolio` | `analysis` | `portfolio` = data only; `analysis` = data + analysis instructions |
+| `lang` | `it` \| `en` \| `fr` \| `de` | `it` | Language of the instructions / answer |
+| `include_values` | bool | `true` | `false` omits all EUR amounts, keeping weights and percentages |
+| `account_id`, `asset_type` | optional | — | Filters |
+
+Response: `{ "prompt": "..." }` (Markdown tables).
+
+### MCP access tokens
+```
+GET    /ai/mcp-tokens            # { enabled, path, tokens: [...] } — active tokens, never the secret
+POST   /ai/mcp-tokens            # { name, can_read_values } → token returned in clear ONCE
+DELETE /ai/mcp-tokens/{id}       # revoke
+```
+
+### MCP server
+`POST /api/mcp` — Streamable HTTP transport (stateless, JSON responses), header `Authorization: Bearer nfmcp_…`.
+Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp"`.
+
+Read-only tools: `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`,
+`get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-tax-report`.
+Tokens without `can_read_values` get percentages only (`get-tax-report` is refused).
+
+```bash
+claude mcp add --transport http nextfolio https://nextfolio.example.com/api/mcp \
+  --header "Authorization: Bearer nfmcp_..."
 ```
 
 ---

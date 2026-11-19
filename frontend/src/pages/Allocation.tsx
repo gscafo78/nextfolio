@@ -652,9 +652,13 @@ export function Allocation() {
   const holdingItems = buildHoldingItems(positions, total);
   const exchangeItems = buildExchangeItems(positions, total);
 
-  const continentItems = (allocation?.by_continent ?? []).filter(
-    (c) => c.label !== "Altro" || (allocation?.by_continent ?? []).every((x) => x.label === "Altro")
+  // Geografia della sola parte azionaria (le obbligazioni in euro non sono "home bias")
+  const continentSource = allocation?.by_continent_equity?.length ? allocation.by_continent_equity : allocation?.by_continent ?? [];
+  const continentItems = continentSource.filter(
+    (c) => c.label !== "Altro" || continentSource.every((x) => x.label === "Altro")
   );
+  const assetClassItems = allocation?.by_asset_class?.length ? allocation.by_asset_class : allocation?.by_type ?? [];
+  const currencyItems = allocation?.by_currency_exposure?.length ? allocation.by_currency_exposure : allocation?.by_currency ?? [];
 
   const isEmpty = !allocation || total === 0;
 
@@ -675,13 +679,20 @@ export function Allocation() {
 
             {/* Per Piattaforma / Valuta / Asset Class / Borsa */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <SmallDonutCard title={t("allocation.byAssetClass")} items={assetClassItems} />
+              <SmallDonutCard title={t("allocation.byCurrencyExposure")} items={currencyItems} />
+              <SmallDonutCard title={t("allocation.byInstrument")} items={allocation.by_type} />
               <SmallDonutCard title={t("allocation.byPlatform")} items={allocation.by_account} />
-              <SmallDonutCard title={t("allocation.byCurrency")} items={allocation.by_currency} />
-              <SmallDonutCard title={t("allocation.byAssetClass")} items={allocation.by_type} />
               {exchangeItems.length > 0 && (
                 <SmallDonutCard title={t("allocation.byExchange")} items={exchangeItems} />
               )}
             </div>
+
+            {allocation.italy_exposure_pct != null && (
+              <p className="text-xs text-gray-500">
+                {t("allocation.italyExposure", { pct: allocation.italy_exposure_pct.toFixed(1) })}
+              </p>
+            )}
 
             {/* Mappa Geografica — primo */}
             <WorldMapSection />
@@ -698,7 +709,7 @@ export function Allocation() {
                   />
                 )}
                 {continentItems.length > 0 && (
-                  <SmallDonutCard title={t("performance.allocationContinent")} items={continentItems} />
+                  <SmallDonutCard title={t("allocation.equityGeography")} items={continentItems} />
                 )}
                 {holdingItems.length > 0 && (
                   <SmallDonutCard title={t("performance.allocationHolding")} items={holdingItems} />

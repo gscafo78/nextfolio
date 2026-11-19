@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     EMAILS_FROM: str = ""
     APP_URL: str = "http://localhost:5173"
 
+    # Server MCP (Model Context Protocol) su /api/mcp — sola lettura, token per utente
+    ENABLE_MCP: bool = True
+
+    # Tasso risk-free annuo (%) per Sharpe/Sortino, es. il rendimento di un BOT 12 mesi
+    RISK_FREE_RATE_PCT: float = 0.0
+
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
         if self.APP_ENV == "production" and self.SECRET_KEY == _DEFAULT_SECRET:

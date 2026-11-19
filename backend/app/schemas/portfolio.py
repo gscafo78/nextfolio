@@ -26,27 +26,44 @@ class PositionOut(BaseModel):
 
 class PortfolioSummaryOut(BaseModel):
     total_value_eur: float
-    total_invested_eur: float
-    total_pnl_eur: float
+    total_invested_eur: float          # costo di carico delle posizioni aperte
+    total_pnl_eur: float               # non realizzato + realizzato + proventi netti
     total_pnl_pct: float
-    realized_pnl_eur: float
+    realized_pnl_eur: float            # incluse le posizioni chiuse
     unrealized_pnl_eur: float
     daily_change_eur: float
     positions_count: int
+    income_eur: float = 0.0            # dividendi + cedole + interessi − costi FEE
 
 
 class PerformancePoint(BaseModel):
     date: datetime.date
     value_eur: float
-    invested_eur: float
-    pnl_eur: float
-    twrr_pct: float
+    invested_eur: float           # valore di apertura + flussi netti dall'inizio del periodo
+    pnl_eur: float                # valore − investito + proventi
+    twrr_pct: float               # cumulato dall'inizio del periodo, proventi inclusi
+    daily_return_pct: float | None = None   # rendimento neutralizzato dai flussi
+    reliable: bool = True         # False se la base del rendimento è troppo piccola
+    flow_eur: float = 0.0         # acquisti − vendite dall'ultima data di valutazione
+    income_eur: float = 0.0       # proventi netti dall'ultima data di valutazione
 
 
 class PerformanceOut(BaseModel):
     period: str
     twrr_pct: float
     series: list[PerformancePoint]
+    start_date: datetime.date | None = None            # inizio effettivo
+    end_date: datetime.date | None = None
+    requested_start_date: datetime.date | None = None
+    history_truncated: bool = False    # storico più corto del periodo richiesto
+    days: int = 0
+    start_value_eur: float = 0.0
+    end_value_eur: float = 0.0
+    net_flows_eur: float = 0.0         # acquisti − vendite nel periodo
+    income_eur: float = 0.0            # proventi netti nel periodo
+    invested_eur: float = 0.0          # start_value + net_flows
+    pnl_eur: float = 0.0               # end − start − net_flows + income
+    twrr_annualized_pct: float | None = None   # solo per periodi ≥ 1 anno
 
 
 class AllocationItem(BaseModel):
@@ -62,6 +79,12 @@ class AllocationOut(BaseModel):
     by_account: list[AllocationItem]
     by_sector: list[AllocationItem] = []
     by_continent: list[AllocationItem] = []
+    # Per sottostante (look-through)
+    by_asset_class: list[AllocationItem] = []          # Azioni / Obbligazioni / Monetario / Crypto / Altro
+    by_currency_exposure: list[AllocationItem] = []    # valute del sottostante (hedged → EUR)
+    by_continent_equity: list[AllocationItem] = []     # geografia della sola parte azionaria
+    by_continent_bond: list[AllocationItem] = []       # geografia della sola parte obbligazionaria
+    italy_exposure_pct: float | None = None            # peso Italia sul totale (BTP inclusi)
     total_value_eur: float
 
 
@@ -115,10 +138,12 @@ class RiskMetricsOut(BaseModel):
     sharpe_ratio: float | None
     sortino_ratio: float | None
     calmar_ratio: float | None
-    twrr_annualized_pct: float
+    twrr_annualized_pct: float | None
     best_day_pct: float
     worst_day_pct: float
     positive_days_pct: float
+    risk_free_pct: float = 0.0
+    warnings: list[str] = []      # indicatori fuori da intervalli plausibili
 
 
 class HoldingPricePoint(BaseModel):

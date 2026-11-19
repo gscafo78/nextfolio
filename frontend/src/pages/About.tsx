@@ -19,6 +19,31 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.10.0",
+    date: "2026-11-19",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Pagina AI: prompt per chatbot con i dati del portafoglio (analisi o solo dati, filtri, importi opzionali)",
+          "Server MCP in sola lettura su /api/mcp con token per utente revocabili e permesso opzionale sugli importi",
+          "Asset class per sottostante, esposizione valutaria look-through, geografia separata azioni/obbligazioni, esposizione Italia",
+          "Modifica titolo: asset class manuale, trattamento fiscale delle obbligazioni, quota titoli di Stato degli ETF",
+          "Performance: statistiche per periodo (valore iniziale, flussi, proventi, P&L) e avvisi \"dati sospetti\" sulle metriche di rischio",
+        ],
+      },
+      {
+        type: "fixed",
+        items: [
+          "Metriche di rischio con rendimenti neutralizzati dai flussi e solo giorni di borsa (volatilità e miglior giorno non più gonfiati da versamenti)",
+          "TWRR e P&L totale includono cedole, dividendi e interessi; P&L realizzato include le posizioni chiuse",
+          "X-Ray: concentrazione solo su titoli singoli, liquidità solo monetario e scadenze < 12 mesi, copertura EUR sulla valuta del sottostante",
+          "Fisco: titoli di Stato dal nome/emittente, zainetto unico al 48,08%, plus ETF come redditi di capitale, costo medio ponderato anche in dichiarativo, cripto al 33% dal 2026",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.9.1",
     date: "2026-06-03",
     sections: [

@@ -277,6 +277,8 @@ function AuditLogSection() {
     CREATE_USER:        { label: t("admin.createUser"), color: "text-green-700 bg-green-50 border-green-200" },
     UPDATE_USER:        { label: t("admin.editUser"), color: "text-amber-700 bg-amber-50 border-amber-200" },
     BULK_ENRICH_ASSETS: { label: t("admin.enrichTitle"), color: "text-blue-600 bg-blue-50 border-blue-200" },
+    CREATE_MCP_TOKEN:   { label: "MCP " + t("ai.createToken").toLowerCase(), color: "text-purple-700 bg-purple-50 border-purple-200" },
+    REVOKE_MCP_TOKEN:   { label: "MCP " + t("ai.revoke").toLowerCase(), color: "text-red-600 bg-red-50 border-red-200" },
   };
 
   const { data: logs = [], isLoading } = useQuery({

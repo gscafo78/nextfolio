@@ -7,5 +7,6 @@ from app.models.alert import PriceAlert, AlertType
 from app.models.audit_log import AuditLog
 from app.models.watchlist import WatchlistItem
 from app.models.bond_detail import BondDetail, CouponFrequency
+from app.models.mcp_token import McpAccessToken
 
-__all__ = ["User", "UserRole", "UserSettings", "Account", "Asset", "PriceHistory", "Transaction", "PriceAlert", "AlertType", "AuditLog", "WatchlistItem", "BondDetail", "CouponFrequency"]
+__all__ = ["User", "UserRole", "UserSettings", "Account", "Asset", "PriceHistory", "Transaction", "PriceAlert", "AlertType", "AuditLog", "WatchlistItem", "BondDetail", "CouponFrequency", "McpAccessToken"]

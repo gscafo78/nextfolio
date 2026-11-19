@@ -43,7 +43,9 @@ function Bracket({
   tax,
   newCarry,
   priorEntries,
+  note,
 }: {
+  note?: string;
   label: string;
   rate: number;
   gains: number;
@@ -68,6 +70,7 @@ function Bracket({
         </div>
         <p className="text-xl font-bold text-gray-900">{zenMode ? "•••••" : eur(tax)}</p>
       </div>
+      {note && <p className="-mt-2 mb-3 text-xs text-gray-400">{note}</p>}
 
       <div className="space-y-2 text-sm">
         <Row label={t("tax.grossGains")} value={gains} positive />
@@ -183,7 +186,7 @@ function EventsTable({ events }: { events: TaxEvent[] }) {
                     <GainBadge value={ev.gain_loss_eur} />
                   </td>
                   <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-gray-500">
-                    {ev.tax_bracket === "government_bond" ? "12.5%" : ev.tax_bracket === "standard" ? "26%" : ev.tax_bracket}
+                    {pct(ev.tax_rate)}
                   </td>
                   <td className="hidden md:table-cell px-4 py-3">
                     <div className="flex flex-col gap-0.5">
@@ -412,7 +415,7 @@ function SellSimulator() {
               </span>
             </p>
             <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-              {result.tax_bracket === "government_bond" ? `${t("tax.govBondBracket")} 12.5%` : `Standard 26%`}
+              {t(`tax.brackets.${result.tax_bracket}`)} {pct(result.tax_rate)}
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -502,16 +505,14 @@ function CarryforwardHistory({ years }: { years: number[] }) {
       if (!r) return null;
       return {
         year,
-        losses_std: r.losses_standard,
+        losses_std: r.losses_standard + r.losses_funds + r.losses_crypto,
         losses_govt: r.losses_govt,
         carry_applied_std: r.carryforward_applied_standard,
-        carry_applied_govt: r.carryforward_applied_govt,
         carry_new_std: r.new_carryforward_standard,
-        carry_new_govt: r.new_carryforward_govt,
         available_std: r.prior_carryforward_standard.reduce((s, e) => s + e.amount, 0),
-        available_govt: r.prior_carryforward_govt.reduce((s, e) => s + e.amount, 0),
-        expiring: r.prior_carryforward_standard
-          .filter((e) => e.expires_year === year + 1)
+        available_crypto: r.prior_carryforward_crypto.reduce((s, e) => s + e.amount, 0),
+        expiring: [...r.prior_carryforward_standard, ...r.prior_carryforward_crypto]
+          .filter((e) => e.expires_year === year)
           .reduce((s, e) => s + e.amount, 0),
       };
     })
@@ -565,9 +566,9 @@ function CarryforwardHistory({ years }: { years: number[] }) {
                       <td className={`px-5 py-3 text-right text-xs ${h.carry_applied_std > 0 ? "text-green-600 font-medium" : "text-gray-300"}`}>
                         {h.carry_applied_std > 0 ? (zenMode ? "•••••" : `+ ${eur(h.carry_applied_std)}`) : "—"}
                       </td>
-                      <td className={`px-5 py-3 text-right text-xs font-semibold ${(h.available_std + h.available_govt) > 0 ? "text-amber-600" : "text-gray-300"}`}>
-                        {(h.available_std + h.available_govt) > 0
-                          ? (zenMode ? "•••••" : eur(h.available_std + h.available_govt))
+                      <td className={`px-5 py-3 text-right text-xs font-semibold ${(h.available_std + h.available_crypto) > 0 ? "text-amber-600" : "text-gray-300"}`}>
+                        {(h.available_std + h.available_crypto) > 0
+                          ? (zenMode ? "•••••" : eur(h.available_std + h.available_crypto))
                           : "—"}
                       </td>
                       <td className={`px-5 py-3 text-right text-xs ${h.expiring > 0 ? "text-red-500 font-semibold" : "text-gray-300"}`}>
@@ -612,8 +613,13 @@ export function Fiscale() {
 
   const totalCarryStd =
     report?.prior_carryforward_standard.reduce((s, e) => s + e.amount, 0) ?? 0;
-  const totalCarryGovt =
-    report?.prior_carryforward_govt.reduce((s, e) => s + e.amount, 0) ?? 0;
+  const totalCarryCrypto =
+    report?.prior_carryforward_crypto.reduce((s, e) => s + e.amount, 0) ?? 0;
+  const sumKinds = (r: AnnualTaxReport, prefix: "" | "administered_" | "declaratory_", kind: "gains" | "losses") =>
+    (["standard", "govt", "funds", "crypto"] as const).reduce(
+      (acc, c) => acc + ((r as unknown as Record<string, number>)[`${prefix}${kind}_${c}`] ?? 0),
+      0,
+    );
 
   return (
     <>
@@ -659,19 +665,19 @@ export function Fiscale() {
             />
             <KpiCard
               label={t("tax.totalGains")}
-              value={zenMode ? "•••••" : eur(report.gains_standard + report.gains_govt)}
+              value={zenMode ? "•••••" : eur(sumKinds(report, "", "gains"))}
               sub={t("tax.totalGainsDesc")}
               icon={<TrendingUp className="w-4 h-4 text-green-500" />}
             />
             <KpiCard
               label={t("tax.totalLosses")}
-              value={zenMode ? "•••••" : eur(report.losses_standard + report.losses_govt)}
+              value={zenMode ? "•••••" : eur(sumKinds(report, "", "losses"))}
               sub={t("tax.totalLossesDesc")}
               icon={<TrendingDown className="w-4 h-4 text-red-500" />}
             />
             <KpiCard
               label={t("tax.carryforward")}
-              value={zenMode ? "•••••" : eur(totalCarryStd + totalCarryGovt)}
+              value={zenMode ? "•••••" : eur(totalCarryStd + totalCarryCrypto)}
               sub={t("tax.carryforwardDesc")}
               icon={<Wallet className="w-4 h-4 text-brand-600" />}
             />
@@ -696,11 +702,11 @@ export function Fiscale() {
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t("tax.totalGains")}</span>
-                    <span className="font-medium">{zenMode ? "•••••" : eur(report.administered_gains_standard + report.administered_gains_govt)}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(sumKinds(report, "administered_", "gains"))}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t("tax.totalLosses")}</span>
-                    <span className="font-medium">{zenMode ? "•••••" : eur(report.administered_losses_standard + report.administered_losses_govt)}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(sumKinds(report, "administered_", "losses"))}</span>
                   </div>
                   <div className="flex justify-between border-t border-green-200 pt-1.5 mt-1.5">
                     <span className="font-semibold text-green-800">{t("tax.administered")}</span>
@@ -716,11 +722,11 @@ export function Fiscale() {
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t("tax.totalGains")}</span>
-                    <span className="font-medium">{zenMode ? "•••••" : eur(report.declaratory_gains_standard + report.declaratory_gains_govt)}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(sumKinds(report, "declaratory_", "gains"))}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t("tax.totalLosses")}</span>
-                    <span className="font-medium">{zenMode ? "•••••" : eur(report.declaratory_losses_standard + report.declaratory_losses_govt)}</span>
+                    <span className="font-medium">{zenMode ? "•••••" : eur(sumKinds(report, "declaratory_", "losses"))}</span>
                   </div>
                   <div className="flex justify-between border-t border-orange-200 pt-1.5 mt-1.5">
                     <span className="font-semibold text-orange-800">{t("tax.declaratoryDue")}</span>
@@ -734,27 +740,45 @@ export function Fiscale() {
           {/* Bracket cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Bracket
-              label={t("tax.standardBracket")}
+              label={t("tax.brackets.standard")}
+              note={t("tax.standardNote", { weight: pct(report.govt_weight) })}
               rate={0.26}
-              gains={report.gains_standard}
-              losses={report.losses_standard}
+              gains={report.taxable_gains_standard}
+              losses={report.taxable_losses_standard}
               carryApplied={report.carryforward_applied_standard}
               netTaxable={report.net_taxable_standard}
               tax={report.tax_standard}
               newCarry={report.new_carryforward_standard}
               priorEntries={report.prior_carryforward_standard}
             />
-            <Bracket
-              label={t("tax.govBondBracket")}
-              rate={0.125}
-              gains={report.gains_govt}
-              losses={report.losses_govt}
-              carryApplied={report.carryforward_applied_govt}
-              netTaxable={report.net_taxable_govt}
-              tax={report.tax_govt}
-              newCarry={report.new_carryforward_govt}
-              priorEntries={report.prior_carryforward_govt}
-            />
+            {(report.gains_funds > 0.005 || report.losses_funds > 0.005) && (
+              <Bracket
+                label={t("tax.brackets.fund")}
+                note={t("tax.fundNote")}
+                rate={0.26}
+                gains={report.gains_funds}
+                losses={0}
+                carryApplied={0}
+                netTaxable={report.gains_funds}
+                tax={report.tax_funds}
+                newCarry={0}
+                priorEntries={[]}
+              />
+            )}
+            {(report.gains_crypto > 0.005 || report.losses_crypto > 0.005 || report.prior_carryforward_crypto.length > 0) && (
+              <Bracket
+                label={t("tax.brackets.crypto")}
+                note={t("tax.cryptoNote")}
+                rate={report.crypto_rate}
+                gains={report.gains_crypto}
+                losses={report.losses_crypto}
+                carryApplied={report.carryforward_applied_crypto}
+                netTaxable={report.net_taxable_crypto}
+                tax={report.tax_crypto}
+                newCarry={report.new_carryforward_crypto}
+                priorEntries={report.prior_carryforward_crypto}
+              />
+            )}
           </div>
 
           {/* Income */}
@@ -830,10 +854,11 @@ function DichiarativoSection({ report }: { report: AnnualTaxReport }) {
   const { t } = useTranslation();
 
   const hasDeclaratory = report.has_declaratory_accounts && (
-    report.declaratory_gains_standard > 0.005 ||
-    report.declaratory_losses_standard > 0.005 ||
-    report.declaratory_gains_govt > 0.005 ||
-    report.declaratory_losses_govt > 0.005 ||
+    report.declaratory_taxable_gains > 0.005 ||
+    report.declaratory_taxable_losses > 0.005 ||
+    report.declaratory_gains_crypto > 0.005 ||
+    report.declaratory_losses_crypto > 0.005 ||
+    report.declaratory_gains_funds > 0.005 ||
     report.declaratory_dividends_eur > 0.005
   );
   const hasForeign = report.ivafe.has_foreign_accounts && report.ivafe.ivafe_eur > 0.005;
@@ -861,12 +886,14 @@ function DichiarativoSection({ report }: { report: AnnualTaxReport }) {
           {hasDeclaratory && (
             <div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t("tax.dichiarativo.quadroRT")}</p>
-              <DichiarativoRow quadro="RT" rigo="RT21" label={t("tax.dichiarativo.gains26")}    value={report.declaratory_gains_standard}  zenMode={zenMode} />
-              <DichiarativoRow quadro="RT" rigo="RT22" label={t("tax.dichiarativo.losses26")}   value={report.declaratory_losses_standard} zenMode={zenMode} />
-              <DichiarativoRow quadro="RT" rigo="RT26" label={t("tax.dichiarativo.tax26")}      value={report.declaratory_tax_standard}    zenMode={zenMode} />
-              <DichiarativoRow quadro="RT" rigo="RT51" label={t("tax.dichiarativo.gainsGovt")}  value={report.declaratory_gains_govt}      zenMode={zenMode} />
-              <DichiarativoRow quadro="RT" rigo="RT52" label={t("tax.dichiarativo.lossesGovt")} value={report.declaratory_losses_govt}     zenMode={zenMode} />
-              <DichiarativoRow quadro="RT" rigo="RT55" label={t("tax.dichiarativo.taxGovt")}    value={report.declaratory_tax_govt}        zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="26%" label={t("tax.dichiarativo.gains26")}   value={report.declaratory_taxable_gains}  zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="26%" label={t("tax.dichiarativo.losses26")}  value={report.declaratory_taxable_losses} zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo="26%" label={t("tax.dichiarativo.tax26")}     value={report.declaratory_tax_standard}   zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo={pct(report.crypto_rate)} label={t("tax.dichiarativo.gainsCrypto")}  value={report.declaratory_gains_crypto}  zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo={pct(report.crypto_rate)} label={t("tax.dichiarativo.lossesCrypto")} value={report.declaratory_losses_crypto} zenMode={zenMode} />
+              <DichiarativoRow quadro="RT" rigo={pct(report.crypto_rate)} label={t("tax.dichiarativo.taxCrypto")}    value={report.declaratory_tax_crypto}    zenMode={zenMode} />
+              <DichiarativoRow quadro="RM" rigo="26%" label={t("tax.dichiarativo.gainsFunds")} value={report.declaratory_gains_funds} zenMode={zenMode} />
+              <DichiarativoRow quadro="RM" rigo="26%" label={t("tax.dichiarativo.taxFunds")}   value={report.declaratory_tax_funds}   zenMode={zenMode} />
             </div>
           )}
 

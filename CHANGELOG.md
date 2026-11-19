@@ -5,6 +5,55 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.10.0] — 2026-11-19
+### Added
+- **Pagina AI** (`/ai`, icona `Sparkles` in Sidebar; i18n IT/EN/FR/DE), ispirata alle funzioni AI/MCP di Ghostfolio
+- **Prompt per chatbot**: `GET /api/v1/ai/prompt` genera un testo con riepilogo, posizioni, allocazione (tipo/valuta/conto/settore/area), performance TWRR, XIRR, metriche di rischio, X-Ray e dividendi in tabelle Markdown, più le istruzioni di analisi (modalità `analysis`) o solo i dati (modalità `portfolio`); filtri per conto e tipo asset; importi in EUR opzionali (default disattivati in Zen Mode); pulsante Copia
+- **Server MCP in sola lettura** su `/api/mcp` (SDK `mcp` 2.x, Streamable HTTP stateless): tool `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-tax-report`
+- **Token di accesso MCP** per utente (`nfmcp_…`, salvati come SHA-256, mostrati una sola volta, revocabili, permesso opzionale "leggi importi"); `GET/POST/DELETE /api/v1/ai/mcp-tokens`; azioni audit `CREATE_MCP_TOKEN` / `REVOKE_MCP_TOKEN`
+- Migration `0022_mcp_tokens`: tabella `mcp_access_tokens`
+- Variabile `ENABLE_MCP` (default `true`)
+- **Trattamento fiscale manuale delle obbligazioni**: campo `govt_bond_override` sugli asset (migration `0023`), selettore "Trattamento fiscale" nel modale *Modifica titolo*
+- Simulatore vendita: parametro opzionale `account_id` per usare il costo medio di un conto specifico
+
+### Fixed — performance e rischio
+- **Metriche di rischio gonfiate dai flussi di cassa**: i rendimenti giornalieri ora sono neutralizzati dai flussi (acquisti a inizio giornata, vendite e proventi a fine giornata), anche per flussi in giorni senza prezzi (prima un acquisto nel weekend diventava un "rendimento" il giorno dopo); volatilità, Sharpe, Sortino, miglior/peggior giorno ricalcolati su questi rendimenti
+- **Giorni di borsa**: un giorno conta solo se almeno metà del valore ha un prezzo nuovo (niente weekend/festivi piatti da una crypto o da una borsa aperta)
+- **Max drawdown** sull'indice TWRR invece che sul valore (una vendita non è un drawdown); basi minime (< 1% del valore massimo o 50 €) escluse dalle metriche
+- **Risk-free configurabile** (`RISK_FREE_RATE_PCT`), convertito in giornaliero composto; Sortino con target = risk-free; TWRR annualizzato e Calmar solo con almeno un anno di dati
+- **Avvisi "dati sospetti"** (`warnings`) se |rendimento giornaliero| > 20%, volatilità > 60%, Sharpe > 3 o miglior/peggior giorno > 15%
+- **TWRR con proventi inclusi** (cedole, dividendi, interessi; costi FEE sottratti): prima i proventi erano esclusi
+- **P&L per periodo**: `GET /portfolio/performance` restituisce valore iniziale, flussi netti, proventi, P&L = fine − inizio − flussi + proventi e Investito = inizio + flussi; `history_truncated` se lo storico è più corto del periodo (3Y = n/d nel report)
+- **Doppia conversione valutaria** nello storico: i prezzi di `price_history` sono già in EUR e non vengono più moltiplicati per il cambio delle transazioni
+- **P&L totale** (dashboard, sommario, report) include i proventi incassati e il realizzato delle posizioni chiuse; nuovo campo `income_eur`
+
+### Fixed — classificazione e X-Ray
+- **Asset class per sottostante** (`by_asset_class`): ETF obbligazionari e monetari riconosciuti dal nome/look-through, ETF bilanciati ripartiti; override manuale `asset_class_override` (migration `0024`, campo nel modale *Modifica titolo*)
+- **Concentrazione singolo titolo** solo su azioni e obbligazioni singole: ETF e fondi esclusi
+- **Riserva di liquidità**: solo monetario e obbligazioni con vita residua ≤ 12 mesi (scadenza da `bond_details` o dal nome, es. "Dc30"); un BTP 2030 non è più liquidità
+- **Settori**: ETF obbligazionari in "Bonds" invece di "Non classificato"
+- **Geografia** separata per azionario e obbligazionario (`by_continent_equity`, `by_continent_bond`); home bias sull'azionario; nuova regola **Esposizione Italia** (BTP inclusi, `italy_exposure_pct`)
+- **Esposizione valutaria look-through** (`by_currency_exposure`, ETF hedged = EUR) usata dalla regola "Copertura EUR"
+
+### Fixed — report e fiscalità
+- Report: ticker al posto dell'ISIN nel campo simbolo, broker dedotto da nome/URL del conto se vuoto, imposta patrimoniale stimata per conto (IVAFE 0,2% sui conti esteri, bollo 0,2% sugli intermediari italiani)
+- Report: nuova sezione Fiscalità con plusvalenze per tipo di reddito (redditi diversi vs redditi di capitale) e scadenziario a 4 anni delle minusvalenze
+- **ETF con quota di titoli di Stato** (`govt_bond_share`, migration `0024`): plus/minus del fondo con base ridotta (quota al 48,08%)
+
+### Fixed — motore fiscale
+- **Titoli di Stato riconosciuti dal nome/emittente** (BTP/BOT/CCT/CTZ, Bund, OAT, Treasury, BEI, BIRS…) invece che dall'ISIN `IT`: le obbligazioni societarie italiane tornano al 26%, i titoli di Stato white list e sovranazionali passano al 12,5%
+- **Zainetto unico al 48,08%**: plus/minus su titoli di Stato entrano nello stesso zainetto dei redditi diversi ponderate a 12,5/26, invece di due zainetti separati non compensabili
+- **ETF/OICR**: le plusvalenze sono redditi di capitale (26% pieno, non compensabili con lo zainetto); le minusvalenze alimentano lo zainetto
+- **Costo medio ponderato anche in regime dichiarativo** (art. 68 c.6 TUIR) al posto del FIFO; il simulatore vendita usa lo stesso costo (prima usava sempre FIFO, anche per i conti amministrati)
+- **Cripto-attività al 33% dal 2026** (L. 207/2024), con zainetto separato
+- PDF fiscale e "Cosa dichiarare": rimossi i numeri di rigo RT non verificati, aggiunte le voci cripto e ETF (quadro RM)
+- `test_tax.py`: fixture allineate al modello (campo `isin`, conto con regime fiscale); nuovi test su PMC, titoli di Stato, zainetto, ETF, cripto e simulatore
+
+### Changed (API)
+- `GET /tax/report`: rimossi i campi dello zainetto separato dei titoli di Stato (`carryforward_applied_govt`, `net_taxable_govt`, `tax_govt`, `new_carryforward_govt`, `prior_carryforward_govt`, `*_tax_govt`); aggiunti `govt_weight`, `taxable_*`, `*_funds`, `*_crypto`, `crypto_rate`; `tax_bracket` degli eventi può valere anche `fund` e `crypto`
+
+---
+
 ## [1.9.2] — 2026-08-21
 ### Fixed
 - **Prezzi in valuta non-EUR trattati come EUR**: Yahoo Finance quota alcuni ETF (iShares Core MSCI World, Xtrackers EM) in USD ma non veniva mai calcolato un `exchange_rate` — il prezzo USD finiva usato as-is come EUR, gonfiando valore posizioni/conti del 15-18%. Aggiunta conversione FX (cache Redis) su prezzi live e storico `price_history`, via Frankfurter API (nel frattempo migrata da `.app` a `.dev`, redirect ora seguito)

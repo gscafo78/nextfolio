@@ -44,6 +44,8 @@ Copy `.env.example` to `.env` and fill in the required values before starting th
 | `APP_URL` | **Yes** | — | Public URL of the app (e.g. `https://nextfolio.example.com`). Used in password-reset and email verification links |
 | `CORS_ORIGINS` | **Yes** | — | Comma-separated list of allowed CORS origins (e.g. `https://nextfolio.example.com`) |
 | `ALLOWED_HOSTS` | No | `*` | Comma-separated list of trusted `Host` header values. Set to your domain to block host-header injection. Use `*` to disable the check |
+| `RISK_FREE_RATE_PCT` | No | `0` | Annual risk-free rate (%) used by Sharpe and Sortino, e.g. the 12-month BOT yield |
+| `ENABLE_MCP` | No | `true` | Enables the read-only MCP server at `/api/mcp`. Every request still needs a per-user access token created in the **AI** page |
 
 ---
 

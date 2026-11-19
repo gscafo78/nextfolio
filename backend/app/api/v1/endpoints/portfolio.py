@@ -95,7 +95,8 @@ async def _fetch_prices_parallel(
 from app.services.portfolio.allocation import calculate_allocation
 from app.services.portfolio.performance import get_portfolio_performance
 from app.services.portfolio.risk import compute_risk_metrics
-from app.services.portfolio.positions import calculate_positions
+from app.services.portfolio.classification import build_asset_info
+from app.services.portfolio.positions import calculate_positions, realized_and_income
 from app.services.portfolio.xirr import xirr as compute_xirr
 from app.services.transaction import get_transactions
 
@@ -266,8 +267,8 @@ async def get_dashboard(
     realized_pnl = 0.0
     daily_change = 0.0
 
+    realized_pnl, income = realized_and_income(transactions)
     for aid, pos in positions.items():
-        realized_pnl += pos.realized_pnl_eur
         cost_basis = pos.quantity * pos.pmc_eur
         total_invested += cost_basis
         if aid in price_eur:
@@ -279,7 +280,7 @@ async def get_dashboard(
                 prev_eur = data["prev_close"] * data.get("exchange_rate", 1.0)
                 daily_change += pos.quantity * (price_eur[aid] - prev_eur)
 
-    total_pnl = unrealized_pnl + realized_pnl
+    total_pnl = unrealized_pnl + realized_pnl + income
     summary = PortfolioSummaryOut(
         total_value_eur=round(total_value, 2),
         total_invested_eur=round(total_invested, 2),
@@ -289,6 +290,7 @@ async def get_dashboard(
         unrealized_pnl_eur=round(unrealized_pnl, 2),
         daily_change_eur=round(daily_change, 2),
         positions_count=len(positions),
+        income_eur=round(income, 2),
     )
 
     # ── Prezzi a inizio periodo (per period_pnl) ──────────────────────────────
@@ -357,17 +359,7 @@ async def get_dashboard(
     positions_out.sort(key=lambda x: x.current_value_eur or 0, reverse=True)
 
     # ── Allocation ────────────────────────────────────────────────────────────
-    asset_info = {
-        a.id: {
-            "type": a.type if isinstance(a.type, str) else a.type.value,
-            "currency": a.currency,
-            "sectors": a.sectors,
-            "countries": a.countries,
-            "sectors_override": a.sectors_override,
-            "countries_override": a.countries_override,
-        }
-        for a in assets_list
-    }
+    asset_info = {a.id: build_asset_info(a) for a in assets_list}
     accounts_result = await db.execute(select(Account).where(Account.user_id == current_user.id))
     accounts_list = accounts_result.scalars().all()
     account_values: dict[str, float] = {}
@@ -418,7 +410,6 @@ async def get_summary(
             continue
 
         data = price_map.get(asset_id)
-        realized_pnl += pos.realized_pnl_eur
         cost_basis = pos.quantity * pos.pmc_eur
 
         if data and data.get("price") is not None:
@@ -434,7 +425,8 @@ async def get_summary(
 
         total_invested += cost_basis
 
-    total_pnl = unrealized_pnl + realized_pnl
+    realized_pnl, income = realized_and_income(transactions)
+    total_pnl = unrealized_pnl + realized_pnl + income
     total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0.0
 
     return PortfolioSummaryOut(
@@ -446,6 +438,7 @@ async def get_summary(
         unrealized_pnl_eur=round(unrealized_pnl, 2),
         daily_change_eur=round(daily_change, 2),
         positions_count=len(positions),
+        income_eur=round(income, 2),
     )
 
 
@@ -484,7 +477,8 @@ async def get_risk_metrics(
     if account_id is not None:
         transactions = [tx for tx in transactions if tx.account_id == account_id]
     perf = await get_portfolio_performance(db, transactions, period)
-    return compute_risk_metrics(period, perf.series)
+    from app.core.config import settings
+    return compute_risk_metrics(period, perf.series, risk_free_annual=settings.RISK_FREE_RATE_PCT / 100)
 
 
 # ── XIRR ─────────────────────────────────────────────────────────────────────
@@ -702,17 +696,7 @@ async def get_allocation(
     assets_list = result.scalars().all()
     asset_map = {a.id: a for a in assets_list}
 
-    asset_info = {
-        a.id: {
-            "type": a.type if isinstance(a.type, str) else a.type.value,
-            "currency": a.currency,
-            "sectors": a.sectors,
-            "countries": a.countries,
-            "sectors_override": a.sectors_override,
-            "countries_override": a.countries_override,
-        }
-        for a in assets_list
-    }
+    asset_info = {a.id: build_asset_info(a) for a in assets_list}
 
     price_map = await _fetch_prices_parallel(db, asset_map, background_tasks)
 
@@ -1306,17 +1290,7 @@ async def get_xray(
     from app.services.portfolio.allocation import calculate_allocation
 
     assets_list = list(asset_map.values())
-    asset_info = {
-        a.id: {
-            "type": a.type if isinstance(a.type, str) else a.type.value,
-            "currency": a.currency,
-            "sectors": a.sectors,
-            "countries": a.countries,
-            "sectors_override": a.sectors_override,
-            "countries_override": a.countries_override,
-        }
-        for a in assets_list
-    }
+    asset_info = {a.id: build_asset_info(a) for a in assets_list}
     accs_result = await db.execute(select(AccModel).where(AccModel.user_id == current_user.id))
     accs = accs_result.scalars().all()
     account_values: dict[str, float] = {}
@@ -1328,11 +1302,19 @@ async def get_xray(
             account_values[acc.name] = v
     allocation = calculate_allocation(positions_map, asset_info, price_eur, account_values)
 
+    from app.models.bond_detail import BondDetail
+    bd = await db.execute(
+        select(BondDetail.asset_id, BondDetail.maturity_date).where(BondDetail.asset_id.in_(list(asset_map.keys())))
+    )
+    maturities = {aid: m for aid, m in bd.all() if m is not None}
+
     return compute_xray(
         positions=positions_out,
         allocation=allocation,
         transactions=transactions,
         total_value=total_value,
+        asset_info=asset_info,
+        maturities=maturities,
     )
 
 

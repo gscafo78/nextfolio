@@ -30,6 +30,7 @@ export interface PortfolioSummaryOut {
   unrealized_pnl_eur: number;
   daily_change_eur: number;
   positions_count: number;
+  income_eur: number;
 }
 
 export interface PerformancePoint {
@@ -38,12 +39,28 @@ export interface PerformancePoint {
   invested_eur: number;
   pnl_eur: number;
   twrr_pct: number;
+  daily_return_pct?: number | null;
+  reliable?: boolean;
+  flow_eur?: number;
+  income_eur?: number;
 }
 
 export interface PerformanceOut {
   period: string;
   twrr_pct: number;
   series: PerformancePoint[];
+  start_date: string | null;
+  end_date: string | null;
+  requested_start_date: string | null;
+  history_truncated: boolean;
+  days: number;
+  start_value_eur: number;
+  end_value_eur: number;
+  net_flows_eur: number;
+  income_eur: number;
+  invested_eur: number;
+  pnl_eur: number;
+  twrr_annualized_pct: number | null;
 }
 
 export interface AllocationItem {
@@ -59,6 +76,11 @@ export interface AllocationOut {
   by_account: AllocationItem[];
   by_sector: AllocationItem[];
   by_continent: AllocationItem[];
+  by_asset_class: AllocationItem[];
+  by_currency_exposure: AllocationItem[];
+  by_continent_equity: AllocationItem[];
+  by_continent_bond: AllocationItem[];
+  italy_exposure_pct: number | null;
   total_value_eur: number;
 }
 
@@ -173,10 +195,12 @@ export interface RiskMetricsOut {
   sharpe_ratio: number | null;
   sortino_ratio: number | null;
   calmar_ratio: number | null;
-  twrr_annualized_pct: number;
+  twrr_annualized_pct: number | null;
   best_day_pct: number;
   worst_day_pct: number;
   positive_days_pct: number;
+  risk_free_pct: number;
+  warnings: string[];
 }
 
 export const portfolioService = {

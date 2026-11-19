@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,7 @@ from slowapi.util import get_remote_address
 from app.api.v1.router import api_router
 from app.api.ws import router as ws_router
 from app.core.config import APP_VERSION, settings
+from app.mcp.server import McpMiddleware, mcp_lifespan
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(
@@ -23,15 +26,27 @@ if settings.SENTRY_DSN:
 
 limiter = Limiter(key_func=get_remote_address)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Il server MCP (Streamable HTTP) richiede il proprio session manager attivo
+    async with mcp_lifespan():
+        yield
+
+
 app = FastAPI(
     title="Nextfolio API",
     version="0.1.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Server MCP su /api/mcp — aggiunto per primo così resta *dentro* TrustedHost e CORS
+app.add_middleware(McpMiddleware)
 
 # Blocca richieste con Host header non autorizzato (host header injection)
 if settings.ALLOWED_HOSTS != "*":

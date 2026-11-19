@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.9.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.10.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -17,21 +17,22 @@
 - **Multi-account** — Separate investment accounts per broker, with per-account fiscal regime
 
 ### Tax engine (Italian market)
-- **Capital gains** — 26% (equities, ETF, crypto) and 12.5% (BTP/BOT/CCT government bonds)
-- **Sostituto d'imposta** — Per-account flag: administered regime (broker manages taxes, PMC cost basis) or declaratory regime (user declares in 730, FIFO cost basis)
-- **PMC / WAC** — Weighted Average Cost method for administered-regime accounts; FIFO for declaratory
-- **Loss carryforward** — Minusvalenze carried forward up to 4 years (two separate pools: standard 26% and government-bond 12.5%)
+- **Capital gains** — 26% (equities, corporate bonds, ETCs); government bonds (BTP/BOT/CCT, white-list sovereigns, supranationals) weighted at 48.08% → effective 12.5%; crypto-assets 26% until 2025, 33% from 2026
+- **ETF / funds** — Gains taxed as capital income (26%, not offsettable); losses go into the loss pool
+- **Sostituto d'imposta** — Per-account flag: administered regime (broker manages taxes) or declaratory regime (user declares in Redditi PF)
+- **PMC / WAC** — Weighted average cost (art. 68 c.6 TUIR) in both regimes: per account in the administered regime, per asset across declaratory accounts
+- **Loss carryforward** — Minusvalenze carried forward up to 4 years: one pool for redditi diversi (government bonds at 48.08%), one for crypto-assets
 - **IVAFE** — 0.2% annual tax on foreign financial assets (per-account `is_foreign` flag); calculated at Dec 31 market value
 - **Income tracking** — Dividends (26%), BTP coupons (12.5%), corporate-bond coupons (26%), interest
 - **Dichiarazione assistita** — Summary of figures to enter in modello Redditi PF (quadri RT, RW, RL) with one-click copy
 - **Fiscal PDF export** — `GET /tax/export/pdf?year=YYYY` — print-ready PDF with all fiscal sections
 
 ### Analytics
-- **X-Ray** — Automated portfolio diagnostic (10 rules: concentration, asset class, geography, fees, liquidity)
-- **Allocation** — Donut charts by asset type, currency, geography, sector; ETF look-through
-- **Performance** — Time-series P&L, IRR/XIRR, benchmark comparison (MSCI World / FTSE MIB)
+- **X-Ray** — Automated portfolio diagnostic (11 rules: concentration on single securities, asset class by underlying, look-through currency, equity geography, Italy exposure, fees, liquidity)
+- **Allocation** — Asset class by underlying (bond ETFs = bonds), look-through currency exposure (hedged ETFs = EUR), equity/bond geography, sector, instrument type; manual asset-class override
+- **Performance** — Flow-neutral TWRR (income included), per-period P&L (end − start − net flows + income), IRR/XIRR, benchmark comparison (MSCI World / FTSE MIB)
 - **Dividend analytics** — Income calendar, yield on cost, growth history
-- **Sell simulator** — Estimated tax impact before selling (FIFO/PMC-aware)
+- **Sell simulator** — Estimated tax impact before selling (weighted average cost, category-aware rate)
 - **Loss simulator** — Carryforward visual, multi-year history
 
 ### Tools
@@ -39,7 +40,11 @@
 - **Watchlist** — Monitor assets without owning them (price, change %, target price)
 - **PAC calculator** — Simulate a recurring investment plan
 - **Correlation matrix** — Pearson heatmap between portfolio assets
-- **Risk metrics** — Volatility, max drawdown, Sharpe, Sortino, Calmar ratio
+- **Risk metrics** — Volatility, max drawdown, Sharpe, Sortino, Calmar on flow-neutral trading-day returns, with plausibility warnings
+
+### AI
+- **Chatbot prompt** — One click generates a text with your portfolio (holdings, allocation, performance, risk, X-Ray, dividends) plus analysis instructions, ready to paste into ChatGPT, Claude, Gemini, …; amounts optional (percentages only)
+- **MCP server** — Read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` so AI assistants (Claude Desktop, Claude Code, ChatGPT, …) can query the portfolio; per-user access tokens, optional permission to read EUR amounts
 
 ### UX
 - **Zen Mode** — Masks all EUR amounts; percentages remain visible (for screenshots, screen sharing)
@@ -115,7 +120,7 @@ nextfolio/
 │       ├── services/
 │       │   ├── market_data/    # Price fetchers
 │       │   ├── portfolio/      # P&L, positions, X-Ray, rebalancing
-│       │   └── tax/            # Italian tax engine (FIFO, PMC, IVAFE)
+│       │   └── tax/            # Italian tax engine (PMC, 48.08% weighting, IVAFE)
 │       └── tasks/          # Celery price-fetch tasks
 │
 ├── docker-compose.yml          # Production compose

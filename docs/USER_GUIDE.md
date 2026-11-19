@@ -23,6 +23,7 @@
 15. [Import & Export](#15-import--export)
 16. [Settings](#16-settings)
 17. [Administration](#17-administration)
+18. [AI — chatbot prompt & MCP server](#18-ai--chatbot-prompt--mcp-server)
 
 ---
 
@@ -78,7 +79,7 @@ Go to **Settings → Investment Accounts** and click **New Account**.
 | Type | BROKERAGE, BANK, CRYPTO, PENSION, OTHER |
 | Broker / Institution | Free-text label, e.g. "Fineco" |
 | Account URL | Optional link to your broker's portal — a favicon appears next to the account name |
-| **Sostituto d'imposta** | Toggle ON if your broker automatically handles Italian taxes (administered regime — PMC cost basis). Toggle OFF for foreign brokers where you declare taxes yourself (declaratory regime — FIFO cost basis) |
+| **Sostituto d'imposta** | Toggle ON if your broker automatically handles Italian taxes (administered regime). Toggle OFF for foreign brokers where you declare taxes yourself (declaratory regime). Both use the weighted average cost (PMC) |
 | **Foreign account** | Toggle ON if the account is held at a non-Italian intermediary (e.g. DEGIRO, Interactive Brokers). This enables IVAFE (0.2% annual tax) calculation for that account |
 
 ### Fiscal Regime Badges
@@ -86,7 +87,7 @@ Go to **Settings → Investment Accounts** and click **New Account**.
 Each account row shows colour-coded badges:
 
 - **Green "Reg. amministrato"** — sostituto d'imposta ON — broker handles taxes, PMC method
-- **Orange "Reg. dichiarativo"** — sostituto d'imposta OFF — you declare in modello Redditi PF, FIFO method
+- **Orange "Reg. dichiarativo"** — sostituto d'imposta OFF — you declare in modello Redditi PF
 - **Blue "Estero"** — foreign account — subject to IVAFE calculation
 
 > **Italian tax note:** Most Italian brokers (Fineco, Directa Plus, Banca Mediolanum) are sostituto d'imposta. Foreign brokers (DEGIRO, Interactive Brokers, Coinbase) are not — you must report gains and dividends in your annual tax return (modello Redditi PF, quadri RT / RW / RL).
@@ -106,11 +107,21 @@ When creating a transaction, type the asset's **ISIN**, **ticker**, or **name** 
 | Type | Examples | Tax rate |
 |---|---|---|
 | STOCK | ENI.MI, AAPL | 26% |
-| ETF | IE00B4L5Y983 | 26% |
-| BOND (Italian gov.) | BTP, BOT, CCT — ISIN starts with IT | 12.5% |
-| BOND (other) | Corporate bonds | 26% |
-| CRYPTO | BTC, ETH | 26% |
+| ETF | IE00B4L5Y983 | 26% — gains are capital income (not offsettable with past losses); losses go into the loss pool |
+| BOND (government) | BTP, BOT, CCT, CTZ, Bund, OAT, Treasury, EIB/BEI, World Bank… — recognised from the name, or forced in *Modifica titolo → Trattamento fiscale* | 12.5% (gains/losses weighted at 48.08%) |
+| BOND (other) | Corporate bonds, including Italian ones with an `IT` ISIN | 26% |
+| CRYPTO | BTC, ETH | 26% until 2025, 33% from 2026 (separate loss pool) |
 | CASH | EUR deposits | — |
+
+### Editing an asset (Modifica titolo)
+
+From a holding's detail, open **Modifica titolo** to fix the asset's data. Besides name, ticker, ISIN, exchange and currency you can set:
+
+| Field | Applies to | Effect |
+|---|---|---|
+| **Asset class del sottostante** | all | Overrides the automatic class (Azioni / Obbligazioni / Monetario / Crypto / Altro) used by Allocations and X-Ray. *Automatica* deduces it from type, name and look-through (e.g. a bond ETF → Obbligazioni) |
+| **Trattamento fiscale** | BOND | Forces government-bond treatment (12.5%) or ordinary bond (26%). *Automatico* recognises it from the name |
+| **Quota titoli di Stato white list (%)** | ETF | Share of the fund invested in Italian / white-list government bonds, published every six months by the issuer. That part of the ETF's gains and losses is taxed at 12.5% |
 
 ---
 
@@ -189,26 +200,43 @@ The Performance page shows your portfolio's financial return over time.
 
 | Metric | Description |
 |---|---|
-| Total Return | (Market value − Invested) / Invested |
+| Total P&L | Unrealized + realized (closed positions included) + income received |
+| Income received | Coupons, dividends and interest, net of separate fees |
 | IRR / XIRR | Internal Rate of Return accounting for cash-flow timing |
 | Unrealized P&L | Open positions gain/loss |
-| Realized P&L | Closed positions gain/loss |
+| Realized P&L | Gain/loss on sales, including fully closed positions |
 | Benchmark | Comparison vs MSCI World or FTSE MIB |
+
+### Period summary
+
+Under the KPI cards a strip shows, for the selected period:
+
+- **Start value** — value of the positions held the day before the period starts
+- **Net flows** — purchases − sales in the period
+- **Income** — coupons, dividends and interest in the period
+- **Period P&L** — end value − start value − net flows + income
+- **TWRR** — time-weighted return, income included; annualised only for periods of at least one year
+
+If your history is shorter than the requested period (e.g. 3Y with 2 years of data), a notice shows the actual start date.
 
 ### Charts
 
-- **P&L chart** — portfolio value vs. invested capital over time
+- **P&L chart** — portfolio value vs. invested capital (start value + net flows) over time
 - **Benchmark chart** — portfolio vs. benchmark index (rebased to 100 at start)
 
 ### Risk Metrics
 
+All metrics use **flow-neutral daily returns**: deposits, purchases and sales are not counted as performance. Only trading days are used (days where at least half of the portfolio has a new price), so weekends and holidays don't appear as flat days.
+
 | Metric | Description |
 |---|---|
-| Annualised Volatility | Standard deviation of daily returns × √252 |
-| Maximum Drawdown | Largest peak-to-trough decline |
-| Sharpe Ratio | Return per unit of risk (risk-free rate = 0) |
-| Sortino Ratio | Return per unit of downside risk |
-| Calmar Ratio | Annualised return / Max drawdown |
+| Annualised Volatility | Sample standard deviation of daily returns × √252 |
+| Maximum Drawdown | Largest peak-to-trough decline of the TWRR index (a sale is not a drawdown) |
+| Sharpe Ratio | (Mean return − risk-free) / volatility, annualised. Risk-free from `RISK_FREE_RATE_PCT` (default 0) |
+| Sortino Ratio | Same, using downside deviation below the risk-free rate |
+| Calmar Ratio | Annualised return / max drawdown (only with at least one year of data) |
+
+Days when the portfolio was very small (below 1% of its peak or €50) are excluded. If a metric is implausible (a daily move above ±20%, volatility above 60%, Sharpe above 3, best/worst day beyond ±15%) the panel shows a **"dati sospetti"** warning instead of presenting it as reliable.
 
 ---
 
@@ -218,19 +246,23 @@ The Allocations page shows where your money is invested, with interactive donut 
 
 ### Breakdown dimensions
 
-| Tab | Groups by |
+| Chart | Groups by |
 |---|---|
-| Asset Type | STOCK, ETF, BOND, CRYPTO, CASH |
+| Asset class | **Underlying** exposure: Azioni, Obbligazioni, Monetario, Crypto, Altro. Bond ETFs count as bonds, balanced funds are split (e.g. "60% Equity") |
+| Currency exposure | Currency of the underlying assets (look-through by country). An MSCI World ETF listed in EUR is mostly USD; *EUR Hedged* ETFs count as EUR. "Non dettagliata" = countries not provided by the data source |
+| Instrument type | STOCK, ETF, BOND, CRYPTO… |
 | Platform | Each investment account |
-| Currency | EUR, USD, GBP, etc. |
-| Asset Class | Equities, Fixed Income, Alternatives |
-| Exchange | MIL, NASDAQ, NYSE, etc. |
-| Sector | Technology, Healthcare, etc. |
-| Geography | Country and continent (via ETF look-through) |
+| Exchange | MIL, XETRA, NASDAQ, etc. |
+| Sector | Technology, Healthcare, … — bond ETFs are shown as "Bonds" |
+| Equity geography | Continents of the **equity** part only (bond geography is computed separately) |
+
+The page also shows the **Italy exposure** on the whole portfolio (Italian stocks, BTPs and the Italian share of ETFs).
+
+If an asset is classified wrongly, change it in **Modifica titolo → Asset class del sottostante** (see [Assets](#3-assets)).
 
 ### ETF Look-Through
 
-For ETFs, Nextfolio applies **look-through**: it reads the ETF's underlying holdings (countries, sectors) and includes them in the geographic and sector breakdowns, giving you a true view of your real-world exposure.
+For ETFs, Nextfolio applies **look-through**: it reads the ETF's underlying holdings (countries, sectors) and includes them in the geographic, sector and currency breakdowns, giving you a true view of your real-world exposure.
 
 ### Stacked allocation bar
 
@@ -282,14 +314,15 @@ This collapsible section appears when you have declaratory-regime or foreign acc
 
 | Quadro | Rigo | What to enter |
 |---|---|---|
-| RT | RT21, RT22, RT26 | Capital gains/losses and tax at 26% (declaratory) |
-| RT | RT51, RT52, RT55 | Capital gains/losses and tax at 12.5% — BTP/BOT/CCT |
+| RT | 26% | Taxable gains, deductible losses and tax (government bonds already weighted at 48.08%) |
+| RT | crypto | Crypto-asset gains, losses and tax |
+| RM | 26% | Gains from ETFs/funds held at foreign brokers (capital income) |
 | RW | RW5, RW12 | Foreign asset value at Dec 31 and IVAFE due |
 | RL | RL1, RL2 | Declaratory dividends and their withholding tax |
 
 Click the **⎘** (copy) button next to any figure to copy it to the clipboard.
 
-> **Disclaimer:** Values are estimates computed with FIFO/PMC. Always cross-check with your broker's official tax report and consult a tax advisor for your final declaration.
+> **Disclaimer:** Values are estimates computed at weighted average cost; the exact form lines depend on the year's model. Always cross-check with your broker's official tax report and consult a tax advisor for your final declaration.
 
 ### Regime Breakdown Cards
 
@@ -299,9 +332,10 @@ Two side-by-side cards show:
 
 ### Bracket cards (Quadro RT detail)
 
-Two expandable brackets:
-- **Standard (26%):** equities, ETFs, corporate bonds, crypto
-- **Titoli di Stato (12.5%):** BTP, BOT, CCT — Italian government bonds
+Up to three cards:
+- **Redditi diversi 26%:** equities, corporate bonds, ETCs and government bonds (weighted at 48.08%), plus ETF losses — one shared loss pool
+- **ETF e fondi:** ETF/fund gains, taxed in full at 26% (capital income)
+- **Cripto-attività:** crypto gains/losses with their own loss pool (26% until 2025, 33% from 2026)
 
 Each bracket shows:
 - Gross gains and losses for the year
@@ -330,7 +364,7 @@ Shown as a blue card when you have accounts marked as **Foreign**. For each asse
 
 Enter an asset and a quantity. The simulator estimates:
 - Sale proceeds at the current price
-- Cost basis (FIFO or PMC depending on the account)
+- Cost basis (weighted average cost)
 - Estimated capital gains tax
 - Net proceeds after tax
 
@@ -349,7 +383,7 @@ A detailed collapsible table of all fiscal events in the year (SELL, DIVIDEND, C
 - Gain/loss
 - Tax bracket and rate
 - Regime badge (administered / declaratory)
-- Calculation method badge (PMC / FIFO) — for SELL events only
+- Calculation method badge (PMC) — for SELL events only
 
 ### Fiscal PDF export
 
@@ -360,14 +394,14 @@ Click **PDF fiscale** in the top right. The PDF contains:
 4. Quadro RW — IVAFE breakdown by asset
 5. Redditi da capitale — income by category with estimated withholding
 6. Zainetto fiscale — loss carryforward with expiry dates
-7. Full events table with PMC/FIFO method
+7. Full events table with cost method and rate
 8. Legal disclaimer
 
 ---
 
 ## 10. X-Ray
 
-X-Ray analyses your portfolio against 10 rules and gives an overall health score (0–100%).
+X-Ray analyses your portfolio against 11 rules and gives an overall health score (0–100%). Rules use the classification by **underlying** (bond ETFs are bonds, currencies are look-through).
 
 ### Score
 
@@ -377,7 +411,7 @@ The score is the percentage of rules that pass (status = OK). Rules are grouped 
 
 | Rule | Threshold | Description |
 |---|---|---|
-| Single asset | max 20% | No single holding should exceed 20% of the portfolio |
+| Single security | max 20% | No single stock or bond should exceed 20%. ETFs and funds are excluded because they are already diversified |
 | Single account | max 80% | No single broker should hold more than 80% |
 | Crypto exposure | max 10% | Cryptocurrency should not exceed 10% |
 
@@ -385,28 +419,29 @@ The score is the percentage of rules that pass (status = OK). Rules are grouped 
 
 | Rule | Target range | Description |
 |---|---|---|
-| Equities + ETF | 50–80% | Core equity exposure |
-| Bonds | 5–30% | Fixed income allocation |
-| EUR currency | min 30% | Minimum home-currency exposure |
+| Equity exposure | 50–80% | Stocks and equity ETFs (bond ETFs excluded) |
+| Bonds | 5–30% | Single bonds and bond ETFs |
+| EUR currency | min 30% | EUR share of the **underlying** currency exposure (hedged ETFs count as EUR) |
 
 ### Category: Fee
 
 | Rule | Threshold | Description |
 |---|---|---|
-| Fee ratio | max 1.5% | Total fees / total invested |
+| Fee ratio | max 1.5% | Total fees / total traded |
 
 ### Category: Geographic diversification
 
 | Rule | Threshold | Description |
 |---|---|---|
-| Continent concentration | max 70% | No single continent should dominate |
-| Home bias | max 50% | European/Italian overexposure check |
+| Continent concentration | max 70% | On the equity part only |
+| Home bias — Europe | max 50% | European share of the equity part |
+| Italy exposure | max 40% | Italy on the whole portfolio, BTPs included |
 
 ### Category: Liquidity
 
-| Rule | Description |
-|---|---|
-| Emergency fund | Checks for presence of short-duration bonds or cash |
+| Rule | Threshold | Description |
+|---|---|---|
+| Emergency fund | min 2% | Money-market funds and bonds maturing within 12 months (e.g. BOT). A long-dated BTP is not liquidity. Maturity comes from the bond's coupon data or its name (e.g. "Dc30" = Dec 2030). Account cash balances are not tracked yet |
 
 ### Status indicators
 
@@ -592,6 +627,42 @@ By default, only Superadmins can create new accounts. If you enable **public reg
 
 ---
 
+## 18. AI — chatbot prompt & MCP server
+
+The **AI** page (sidebar, ✨ icon) lets you analyse your portfolio with an AI assistant.
+
+### Chatbot prompt
+
+Generates a text ready to paste into ChatGPT, Claude, Gemini or any chatbot.
+
+| Option | Description |
+|---|---|
+| Mode | *Analisi* — data plus instructions (overview, risks, strengths, weaknesses, investor profile, ideas, conclusion); *Solo dati* — data only |
+| Language | Language of the answer (IT / EN / FR / DE) |
+| Account / Asset type | Optional filters |
+| Include EUR amounts | Off = only weights and percentages are shared (default off in Zen Mode) |
+
+The text contains: summary (P&L including income), holdings with ticker and asset class, allocation (asset class, currency exposure, sectors, geography), accounts with estimated IVAFE / stamp duty, per-period performance, risk metrics with plausibility warnings, XIRR, X-Ray, income by year and a tax section (gains by income type, loss carryforward schedule).
+
+> The text contains personal financial data: share it only with services you trust.
+
+### MCP server
+
+Nextfolio exposes a read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp`, so AI assistants can query your portfolio directly.
+
+1. In **Server MCP**, enter a name (e.g. "Claude Desktop") and choose whether the token **can read amounts** (otherwise only percentages are returned and the tax report shows rules only).
+2. Click **Crea token** and copy it — it is shown **only once**.
+3. Configure your client with the snippet shown on the page, e.g. for Claude Code:
+
+```bash
+claude mcp add --transport http nextfolio https://<your-host>/api/mcp \
+  --header "Authorization: Bearer nfmcp_..."
+```
+
+Available tools: `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-tax-report`. None of them can modify data. Revoke a token at any time with the 🗑 button; the list shows when each token was last used.
+
+---
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
@@ -609,10 +680,10 @@ By default, only Superadmins can create new accounts. If you enable **public reg
 A: Prices are fetched from Yahoo Finance, Borsa Italiana, and CoinGecko. There can be a few minutes of delay compared to real-time broker feeds. For bonds, the last available price in the database may be from the previous trading day.
 
 **Q: The tax calculation differs from my broker's statement. Why?**  
-A: Nextfolio uses FIFO (declaratory regime) or PMC/WAC (administered regime), but the exact calculation may differ due to fee treatment, rounding, or data differences. Always verify against your broker's official tax report and consult a tax advisor.
+A: Nextfolio uses the weighted average cost (PMC) in both regimes, but the exact calculation may differ due to fee treatment, rounding, or data differences. Always verify against your broker's official tax report and consult a tax advisor.
 
 **Q: I enabled "Sostituto d'imposta" on my account. What changes?**  
-A: The cost basis method switches from FIFO to PMC (Weighted Average Cost). Capital gains for this account are shown under "Gestito dal broker" and are not included in the figures you need to declare in your 730.
+A: The cost basis is tracked per account (each broker keeps its own average cost). Capital gains for this account are shown under "Gestito dal broker" and are not included in the figures you need to declare in your 730.
 
 **Q: I enabled "Conto estero" (Foreign account). What happens?**  
 A: The IVAFE section in the Fiscale page will show a 0.2% annual tax estimate based on the market value of assets in that account at December 31. You must declare this in quadro RW of your modello Redditi PF.

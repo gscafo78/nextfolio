@@ -148,7 +148,7 @@ function RiskMetricsSection() {
   });
 
   const fmtRatio = (v: number | null) => (v === null ? "—" : v.toFixed(2));
-  const fmtPct = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+  const fmtPct = (v: number | null) => (v === null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -180,6 +180,11 @@ function RiskMetricsSection() {
         </div>
       ) : (
         <div className="p-5 space-y-4">
+          {risk.warnings?.length > 0 && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 space-y-0.5">
+              {risk.warnings.map((w) => <p key={w}>⚠ {w}</p>)}
+            </div>
+          )}
           {/* Metriche principali */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <RiskCard
@@ -222,7 +227,7 @@ function RiskMetricsSection() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div className="bg-gray-50 rounded-lg px-3 py-2.5">
               <p className="text-xs text-gray-400 mb-0.5">{t("performance.annReturn")}</p>
-              <p className={`text-sm font-semibold ${risk.twrr_annualized_pct >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <p className={`text-sm font-semibold ${risk.twrr_annualized_pct === null ? "text-gray-400" : risk.twrr_annualized_pct >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {fmtPct(risk.twrr_annualized_pct)}
               </p>
             </div>
@@ -595,7 +600,7 @@ export function Performance() {
       <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* KPI sommario */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard
             label={t("dashboard.portfolioValue")}
             value={hasSummary ? zen(`€ ${fmt(summary.total_value_eur)}`) : "—"}
@@ -620,12 +625,34 @@ export function Performance() {
             positive={hasSummary ? summary.realized_pnl_eur >= 0 : undefined}
           />
           <KpiCard
+            label={t("performance.income")}
+            value={hasSummary ? zen(`€ ${fmtSign(summary.income_eur ?? 0)}`) : "—"}
+            sub={hasSummary ? t("performance.incomeNote") : undefined}
+            positive={hasSummary ? (summary.income_eur ?? 0) >= 0 : undefined}
+          />
+          <KpiCard
             label={t("performance.irrXirr")}
             value={xirrData?.xirr_pct != null ? `${fmtSign(xirrData.xirr_pct, 2)}%` : "—"}
             sub={t("performance.internalRate")}
             positive={xirrData?.xirr_pct != null ? xirrData.xirr_pct >= 0 : undefined}
           />
         </div>
+
+        {perf && perf.series.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 px-5 py-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
+            <span>{t("performance.periodFrom", { date: perf.start_date ?? "—" })}</span>
+            <span>{t("performance.periodStart")}: <strong className="text-gray-700">{zen(`€ ${fmt(perf.start_value_eur)}`)}</strong></span>
+            <span>{t("performance.periodFlows")}: <strong className="text-gray-700">{zen(`€ ${fmtSign(perf.net_flows_eur)}`)}</strong></span>
+            <span>{t("performance.income")}: <strong className="text-gray-700">{zen(`€ ${fmtSign(perf.income_eur)}`)}</strong></span>
+            <span>{t("performance.periodPnl")}: <strong className={perf.pnl_eur >= 0 ? "text-green-600" : "text-red-600"}>{zen(`€ ${fmtSign(perf.pnl_eur)}`)}</strong></span>
+            <span>TWRR: <strong className="text-gray-700">{fmtSign(perf.twrr_pct, 2)}%</strong>
+              {perf.twrr_annualized_pct != null && <> ({fmtSign(perf.twrr_annualized_pct, 2)}% {t("performance.perYear")})</>}
+            </span>
+            {perf.history_truncated && (
+              <span className="text-amber-600">{t("performance.historyTruncated", { date: perf.start_date ?? "—" })}</span>
+            )}
+          </div>
+        )}
 
         {positions.length === 0 && !loadingPos ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">

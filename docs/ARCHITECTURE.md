@@ -106,19 +106,24 @@ backend/app/
 │   │   └── updater.py       # Redis cache management
 │   ├── portfolio/
 │   │   ├── positions.py     # FIFO P&L engine (PositionCalc, Lot)
-│   │   ├── performance.py   # Time-series performance calculator
-│   │   ├── allocation.py    # Allocation + ETF look-through
-│   │   ├── xray.py          # Portfolio health rules (10 rules, 4 categories)
+│   │   ├── performance.py   # Flow-neutral TWRR, trading-day series, per-period stats
+│   │   ├── risk.py          # Risk metrics + plausibility warnings
+│   │   ├── classification.py # Asset class by underlying, look-through currency, bond maturity, ticker
+│   │   ├── allocation.py    # Allocation + ETF look-through (asset class, currency, geography by class)
+│   │   ├── xray.py          # Portfolio health rules (11 rules, 5 categories)
 │   │   └── rebalancing.py   # Trade suggestions for target allocation
 │   └── tax/
 │       ├── calculator.py    # Italian tax engine:
-│       │                    #   - FIFO (declaratory regime, lots_fifo per asset)
-│       │                    #   - PMC/WAC (administered regime, lots_wac per account+asset)
+│       │                    #   - PMC/WAC in both regimes (pool per account+asset if administered,
+│       │                    #     per asset across declaratory accounts)
+│       │                    #   - categories: standard / government_bond (48.08%) / fund / crypto
 │       │                    #   - TaxEvent: gain/loss + is_sostituto_imposta + calculation_method
 │       │                    #   - AnnualTaxReport: carryforward pools + regime breakdown
 │       └── ivafe.py         # IVAFE calculator:
 │                            #   - 0.2% on Dec-31 market value of foreign accounts
 │                            #   - Queries price_history for year-end price
+├── services/ai/context.py   # Portfolio context as Markdown (chatbot prompt + MCP tools)
+├── mcp/                     # Read-only MCP server (Streamable HTTP on /api/mcp, bearer tokens)
 └── tasks/
     ├── celery_app.py        # Celery instance configuration
     ├── prices.py            # Scheduled price fetch tasks (EOD + intraday)
@@ -223,6 +228,33 @@ Return PositionOut[] (quantity, PMC, invested_eur, unrealized_pnl, ...)
 
 ---
 
+## Data Flow — Performance & Risk
+
+```
+GET /portfolio/performance?period=1y   (cached in Redis: perf:v2:{user}:{period}:{account})
+      │
+      ▼
+Load price_history (already in EUR) from period start − 30 days
+      │
+      ▼
+compute_performance()  (pure function, services/portfolio/performance.py)
+  ├── Opening value: positions held the day before the period, last close
+  ├── Valuation dates: days where ≥ 50% of the value has a fresh close
+  ├── Flows since the previous valuation date (also on days without prices):
+  │     r_t = (V_t + Sells_t + Income_t) / (V_{t-1} + Buys_t) − 1
+  ├── TWRR = Π(1 + r_t)  (income included, identical with or without deposits)
+  └── Period stats: start/end value, net flows, income, P&L, invested
+      │
+      ▼
+compute_risk_metrics()  (services/portfolio/risk.py)
+  ├── Uses only reliable returns (base ≥ 1% of peak and ≥ €50)
+  ├── Volatility × √252, Sharpe/Sortino with compounded daily risk-free
+  ├── Max drawdown on the TWRR index
+  └── warnings[] for implausible values
+```
+
+---
+
 ## Data Flow — Tax Engine
 
 ```
@@ -234,16 +266,17 @@ Load all transactions (with account selectinload for is_sostituto_imposta, is_fo
       ▼
 compute_tax_events(transactions)  →  list[TaxEvent]
   ├── For each BUY/SELL:
-  │     is_sostituto_imposta=True  → PMC: lots_wac[(account_id, asset_id)]
-  │     is_sostituto_imposta=False → FIFO: lots_fifo[asset_id]
+  │     is_sostituto_imposta=True  → PMC pool ("A", account_id, asset_id)
+  │     is_sostituto_imposta=False → PMC pool ("D", asset_id)
   ├── For each DIVIDEND/COUPON/INTEREST:
   │     tag with is_sostituto_imposta; no lot tracking needed
-  └── Each TaxEvent carries: calculation_method ("PMC"|"FIFO"), is_sostituto_imposta
+  └── Each TaxEvent carries: category, calculation_method ("PMC"), is_sostituto_imposta
       │
       ▼
 build_annual_reports(events)  →  list[AnnualTaxReport]
-  ├── Per-year: capital gains/losses per bracket (26%, 12.5%)
-  ├── Carryforward pools: pool_standard, pool_govt  (4-year window)
+  ├── Per-year: gains/losses per category; government bonds weighted at 48.08%
+  ├── ETF/fund gains: capital income, taxed apart (no compensation)
+  ├── Carryforward pools: pool_standard (redditi diversi), pool_crypto  (4-year window)
   ├── Income: dividends_eur, coupons_govt_eur, coupons_standard_eur, interests_eur
   ├── income_tax_eur: estimated withholding per income type
   └── Regime breakdown: administered_* and declaratory_* fields (no separate carryforward)

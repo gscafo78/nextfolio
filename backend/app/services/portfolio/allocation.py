@@ -4,6 +4,16 @@ Calcolo dell'allocazione del portafoglio per tipo, valuta, conto, settore e cont
 from collections import defaultdict
 
 from app.schemas.portfolio import AllocationItem, AllocationOut
+from app.services.portfolio.classification import (
+    ASSET_CLASS_LABELS,
+    BOND,
+    CRYPTO,
+    EQUITY,
+    MONEY_MARKET,
+    asset_class_weights,
+    build_asset_info,  # noqa: F401  (riesportato per gli endpoint)
+    currency_exposure,
+)
 from app.services.portfolio.positions import PositionCalc
 
 # Pubblico: importato anche da xray.py per tradurre i tipi raw nei label usati in by_type
@@ -135,6 +145,11 @@ def calculate_allocation(
     by_currency_count: dict[str, int] = defaultdict(int)
     by_sector: dict[str, float] = defaultdict(float)
     by_continent: dict[str, float] = defaultdict(float)
+    by_class: dict[str, float] = defaultdict(float)
+    by_class_count: dict[str, int] = defaultdict(int)
+    by_fx: dict[str, float] = defaultdict(float)
+    by_continent_cls: dict[str, dict[str, float]] = {EQUITY: defaultdict(float), BOND: defaultdict(float)}
+    italy_value = 0.0
     total = 0.0
 
     for asset_id, pos in positions.items():
@@ -154,6 +169,17 @@ def calculate_allocation(
         by_currency[currency] += value
         by_currency_count[currency] += 1
 
+        # Asset class dal sottostante (ETF obbligazionari = Obbligazioni)
+        class_weights = asset_class_weights(info)
+        main_class = max(class_weights, key=class_weights.get)
+        for cls, w in class_weights.items():
+            by_class[ASSET_CLASS_LABELS[cls]] += value * w
+        by_class_count[ASSET_CLASS_LABELS[main_class]] += 1
+
+        # Esposizione valutaria look-through (hedged → EUR)
+        for ccy, w in currency_exposure(info).items():
+            by_fx[ccy] += value * w
+
         # Look-through settoriale (con supporto override)
         sectors = _effective(info, "sectors") or []
         if sectors:
@@ -161,6 +187,12 @@ def calculate_allocation(
                 name = s.get("name", "Other")
                 weight = float(s.get("weight", 0.0))
                 by_sector[name] += value * weight
+        elif main_class == BOND:
+            by_sector["Bonds"] += value
+        elif main_class == MONEY_MARKET:
+            by_sector["Monetario"] += value
+        elif main_class == CRYPTO:
+            by_sector["Crypto"] += value
         else:
             by_sector["Non classificato"] += value
 
@@ -173,6 +205,12 @@ def calculate_allocation(
                 weight = float(c.get("weight", 1.0))
                 continent = _COUNTRY_TO_CONTINENT.get(identifier, "Altro")
                 by_continent[continent] += value * weight
+                # Geografia separata per azioni e obbligazioni
+                for cls in (EQUITY, BOND):
+                    if class_weights.get(cls):
+                        by_continent_cls[cls][continent] += value * weight * class_weights[cls]
+                if identifier in ("IT", "Italy"):
+                    italy_value += value * weight
 
     def to_items(values: dict[str, float], counts: dict[str, int]) -> list[AllocationItem]:
         items = [
@@ -236,7 +274,20 @@ def calculate_allocation(
         reverse=True,
     )
 
+    def share_items(values: dict[str, float]) -> list[AllocationItem]:
+        tot = sum(values.values()) or 1.0
+        return sorted(
+            [AllocationItem(label=k, value_eur=round(v, 2), pct=round(v / tot * 100, 1), count=0)
+             for k, v in values.items() if v > 0],
+            key=lambda x: x.value_eur, reverse=True,
+        )
+
     return AllocationOut(
+        by_asset_class=to_items(by_class, by_class_count),
+        by_currency_exposure=share_items(by_fx),
+        by_continent_equity=share_items(by_continent_cls[EQUITY]),
+        by_continent_bond=share_items(by_continent_cls[BOND]),
+        italy_exposure_pct=round(italy_value / total * 100, 1) if total > 0 else None,
         by_type=to_items(by_type, by_type_count),
         by_currency=to_items(by_currency, by_currency_count),
         by_account=by_account,

@@ -1,16 +1,29 @@
-"""Motore X-Ray — valuta 10 regole di rischio sul portafoglio e restituisce XRayResponse.
+"""Motore X-Ray — valuta 11 regole di rischio sul portafoglio e restituisce XRayResponse.
 
 Categorie e regole:
   Concentrazione      → concentration_single_asset, concentration_single_account, concentration_crypto
   Asset Class         → asset_class_equity, asset_class_fixed_income, asset_class_currency_eur
   Fee                 → fee_ratio
-  Diversif. geografica → geo_diversification, geo_home_bias
+  Diversif. geografica → geo_diversification, geo_home_bias, geo_italy_exposure
   Liquidità           → liquidity_emergency_fund
+
+Le regole usano la classificazione per sottostante (``classification``):
+ETF obbligazionari = obbligazioni, valute look-through, geografia della sola
+parte azionaria. La concentrazione per titolo esclude ETF e fondi.
 """
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.schemas.portfolio import XRayResponse, XRayRule
+from app.services.portfolio.classification import (
+    MONEY_MARKET,
+    asset_class_weights,
+    is_diversified_fund,
+    maturity_from_name,
+    residual_months,
+)
 from app.services.portfolio.allocation import TYPE_LABELS as _TL
 
 
@@ -30,7 +43,8 @@ _DEF = {
     "fee_ratio":                    {"max": 0.015},
     "geo_diversification":          {"max": 0.70},
     "geo_home_bias":                {"max": 0.50},
-    "liquidity_emergency_fund":     {"min": 0.02},
+    "geo_italy_exposure":           {"max": 0.40},
+    "liquidity_emergency_fund":     {"min": 0.02, "max_maturity_months": 12},
 }
 
 
@@ -44,7 +58,13 @@ def compute_xray(
     allocation: object,        # AllocationOut
     transactions: list,        # list[Transaction] con .fee e .total_eur
     total_value: float,
+    asset_info: dict[int, dict] | None = None,      # build_asset_info per asset_id
+    maturities: dict[int, date] | None = None,      # scadenze obbligazioni (bond_details)
+    today: date | None = None,
 ) -> XRayResponse:
+    asset_info = asset_info or {}
+    maturities = maturities or {}
+    today = today or date.today()
     rules: list[XRayRule] = []
 
     # ── helpers allocation lookup ─────────────────────────────────────────────
@@ -62,21 +82,26 @@ def compute_xray(
 
     # ── CATEGORIA: Concentrazione ─────────────────────────────────────────────
 
-    # 1. Concentrazione singolo titolo
+    # 1. Concentrazione singolo titolo — solo azioni e obbligazioni singole (no ETF/fondi)
+    thr = _DEF["concentration_single_asset"]["max"]
+    singles = [
+        p for p in positions
+        if not is_diversified_fund(asset_info.get(p.asset_id, {"type": p.asset_type}))
+        and p.asset_type in ("STOCK", "REIT", "BOND")
+    ]
+    desc = (
+        "Nessuna singola azione od obbligazione dovrebbe superare il 20% del portafoglio: un peso eccessivo "
+        "espone al rischio del singolo emittente. ETF e fondi sono esclusi perché già diversificati."
+    )
     if total_value > 0 and positions:
-        max_weight = max(
-            (p.current_value_eur or 0) / total_value for p in positions
-        )
-        thr = _DEF["concentration_single_asset"]["max"]
+        top = max(singles, key=lambda p: p.current_value_eur or 0, default=None)
+        max_weight = (top.current_value_eur or 0) / total_value if top else 0.0
         status = "ok" if max_weight <= thr else ("warn" if max_weight <= thr * 1.5 else "error")
         rules.append(XRayRule(
             key="concentration_single_asset",
             name="Concentrazione singolo titolo",
             category="Concentrazione",
-            description=(
-                "Nessun singolo titolo dovrebbe superare il 20% del portafoglio. "
-                "Un peso eccessivo espone il portafoglio al rischio idiosincratico."
-            ),
+            description=desc + (f" Titolo più pesante: {top.name}." if top else " Nessun titolo singolo in portafoglio."),
             status=status,
             actual=_pct(max_weight),
             threshold_max=_pct(thr),
@@ -87,7 +112,7 @@ def compute_xray(
             key="concentration_single_asset",
             name="Concentrazione singolo titolo",
             category="Concentrazione",
-            description="Nessun singolo titolo dovrebbe superare il 20% del portafoglio.",
+            description=desc,
             status="info",
             unit="%",
         ))
@@ -155,11 +180,15 @@ def compute_xray(
     # ── CATEGORIA: Asset Class ────────────────────────────────────────────────
 
     # 4. Azioni + ETF (equity)
-    equity_pct = None
-    for label in (_lbl("STOCK"), _lbl("ETF")):
-        v = _alloc_pct(by_type, label)
-        if v is not None:
-            equity_pct = (equity_pct or 0) + v
+    by_class = getattr(allocation, "by_asset_class", []) or []
+    if by_class:
+        equity_pct = _alloc_pct(by_class, "Azioni") or 0.0
+    else:  # allocazione senza classi (compatibilità): azioni + ETF
+        equity_pct = None
+        for label in (_lbl("STOCK"), _lbl("ETF")):
+            v = _alloc_pct(by_type, label)
+            if v is not None:
+                equity_pct = (equity_pct or 0) + v
     cfg = _DEF["asset_class_equity"]
     if equity_pct is not None:
         ok = cfg["min"] <= equity_pct <= cfg["max"]
@@ -169,8 +198,8 @@ def compute_xray(
             name="Allocazione azioni + ETF azionari",
             category="Asset Class",
             description=(
-                "Un portafoglio bilanciato mantiene azioni e ETF azionari "
-                f"tra il {int(cfg['min']*100)}% e il {int(cfg['max']*100)}% del totale."
+                "Un portafoglio bilanciato mantiene l'esposizione azionaria (azioni ed ETF azionari, "
+                f"esclusi gli ETF obbligazionari) tra il {int(cfg['min']*100)}% e il {int(cfg['max']*100)}% del totale."
             ),
             status=status,
             actual=_pct(equity_pct),
@@ -191,7 +220,7 @@ def compute_xray(
         ))
 
     # 5. Obbligazioni (fixed income — inclusi BTP)
-    bond_pct = _alloc_pct(by_type, _lbl("BOND"))
+    bond_pct = (_alloc_pct(by_class, "Obbligazioni") or 0.0) if by_class else _alloc_pct(by_type, _lbl("BOND"))
     cfg = _DEF["asset_class_fixed_income"]
     if bond_pct is not None:
         ok = cfg["min"] <= bond_pct <= cfg["max"]
@@ -201,7 +230,7 @@ def compute_xray(
             name="Allocazione obbligazioni (inclusi BTP)",
             category="Asset Class",
             description=(
-                "Le obbligazioni ammortizzano la volatilità del portafoglio. "
+                "Le obbligazioni (titoli singoli ed ETF obbligazionari) ammortizzano la volatilità del portafoglio. "
                 f"Target: tra {int(cfg['min']*100)}% e {int(cfg['max']*100)}%. "
                 "I BTP beneficiano dell'aliquota agevolata al 12,5%."
             ),
@@ -224,8 +253,12 @@ def compute_xray(
         ))
 
     # 6. Valuta EUR
-    by_currency = getattr(allocation, "by_currency", [])
+    by_fx = getattr(allocation, "by_currency_exposure", []) or []
+    by_currency = by_fx or getattr(allocation, "by_currency", [])
     eur_pct = _alloc_pct(by_currency, "EUR")
+    if eur_pct is None and by_currency:
+        eur_pct = 0.0
+    unknown_fx = _alloc_pct(by_fx, "Non dettagliata") if by_fx else None
     thr = _DEF["asset_class_currency_eur"]["min"]
     if eur_pct is not None:
         status = "ok" if eur_pct >= thr else "warn"
@@ -234,8 +267,10 @@ def compute_xray(
             name="Copertura valuta EUR",
             category="Asset Class",
             description=(
-                "Per un investitore italiano, mantenere almeno il 30% in EUR riduce "
-                "il rischio di cambio. Asset in USD/GBP sono esposti a fluttuazioni valutarie."
+                "Per un investitore italiano, mantenere almeno il 30% in EUR riduce il rischio di cambio. "
+                "Calcolata sulla valuta del sottostante (un ETF MSCI World quotato in EUR è esposto al dollaro), "
+                "ETF con copertura valutaria contati in EUR."
+                + (f" Quota non dettagliata dal look-through: {unknown_fx*100:.1f}%." if unknown_fx else "")
             ),
             status=status,
             actual=_pct(eur_pct),
@@ -294,7 +329,8 @@ def compute_xray(
 
     # ── CATEGORIA: Diversificazione geografica ────────────────────────────────
 
-    by_continent = getattr(allocation, "by_continent", [])
+    # Geografia della sola parte azionaria (le obbligazioni in euro non sono "home bias")
+    by_continent = getattr(allocation, "by_continent_equity", []) or getattr(allocation, "by_continent", [])
 
     # 8. Concentrazione per continente
     thr = _DEF["geo_diversification"]["max"]
@@ -306,7 +342,7 @@ def compute_xray(
             name="Diversificazione geografica",
             category="Diversificazione geografica",
             description=(
-                "Nessun continente dovrebbe rappresentare più del 70% del portafoglio "
+                "Nessun continente dovrebbe rappresentare più del 70% della parte azionaria "
                 "(look-through ETF incluso). Alta concentrazione = rischio paese/regione."
             ),
             status=status,
@@ -335,7 +371,7 @@ def compute_xray(
             category="Diversificazione geografica",
             description=(
                 "Gli investitori tendono a sovrappesare il mercato domestico (home bias). "
-                f"Una quota europea > {int(thr*100)}% potrebbe ridurre la diversificazione globale."
+                f"Una quota europea > {int(thr*100)}% dell'azionario potrebbe ridurre la diversificazione globale."
             ),
             status=status,
             actual=_pct(europe_pct),
@@ -353,48 +389,73 @@ def compute_xray(
             unit="%",
         ))
 
+    # 10. Esposizione Italia (tutte le classi, BTP inclusi)
+    thr = _DEF["geo_italy_exposure"]["max"]
+    italy = getattr(allocation, "italy_exposure_pct", None)
+    if italy is not None:
+        italy_ratio = italy / 100
+        rules.append(XRayRule(
+            key="geo_italy_exposure",
+            name="Esposizione Italia (BTP inclusi)",
+            category="Diversificazione geografica",
+            description=(
+                "Peso dell'Italia sul totale del portafoglio: azioni, BTP e quota italiana degli ETF. "
+                f"Oltre il {int(thr*100)}% il patrimonio è legato al rischio Paese a cui si è già esposti con "
+                "reddito e immobili."
+            ),
+            status="ok" if italy_ratio <= thr else "warn",
+            actual=_pct(italy_ratio),
+            threshold_max=_pct(thr),
+            unit="%",
+        ))
+    else:
+        rules.append(XRayRule(
+            key="geo_italy_exposure",
+            name="Esposizione Italia (BTP inclusi)",
+            category="Diversificazione geografica",
+            description="Abilita l'enrichment degli asset per calcolare il peso dell'Italia.",
+            status="info",
+            threshold_max=_pct(thr),
+            unit="%",
+        ))
+
     # ── CATEGORIA: Liquidità ──────────────────────────────────────────────────
 
-    # 10. Fondo di emergenza (presenza di asset liquidi)
-    thr_min = _DEF["liquidity_emergency_fund"]["min"]
-    # Cerca asset BOND a breve termine o asset espliciti come "fondo monetario"
-    # Proxy semplificato: % di BOND sul totale (approssima liquidità difensiva)
-    bond_ratio = bond_pct if bond_pct is not None else 0.0
+    # 11. Riserva di liquidità: monetario + obbligazioni con vita residua < 12 mesi
+    cfg = _DEF["liquidity_emergency_fund"]
+    thr_min = cfg["min"]
+    liquid_value = 0.0
+    for p in positions:
+        info = asset_info.get(p.asset_id, {"type": p.asset_type, "name": p.name})
+        value = p.current_value_eur or 0.0
+        liquid_value += value * asset_class_weights(info).get(MONEY_MARKET, 0.0)
+        if p.asset_type == "BOND":
+            months = residual_months(maturities.get(p.asset_id) or maturity_from_name(p.name), today)
+            if months is not None and 0 <= months <= cfg["max_maturity_months"]:
+                liquid_value += value
+    liquid_ratio = liquid_value / total_value if total_value > 0 else 0.0
+    desc = (
+        f"Almeno il {thr_min*100:.0f}% in strumenti liquidi e a basso rischio: fondi monetari e obbligazioni con "
+        f"vita residua inferiore a {cfg['max_maturity_months']} mesi (es. BOT). Un BTP a lunga scadenza non è "
+        "liquidità. Il saldo di cassa dei conti non è ancora tracciato."
+    )
     if total_value > 0:
-        if bond_ratio >= thr_min:
-            rules.append(XRayRule(
-                key="liquidity_emergency_fund",
-                name="Riserva di liquidità / fondo emergenza",
-                category="Liquidità",
-                description=(
-                    "È consigliabile mantenere almeno il 2% del portafoglio in "
-                    "strumenti liquidi (BTP breve, fondi monetari) come cuscinetto di emergenza."
-                ),
-                status="ok",
-                actual=_pct(bond_ratio),
-                threshold_min=_pct(thr_min),
-                unit="%",
-            ))
-        else:
-            rules.append(XRayRule(
-                key="liquidity_emergency_fund",
-                name="Riserva di liquidità / fondo emergenza",
-                category="Liquidità",
-                description=(
-                    "Non è stata rilevata una riserva di liquidità (obbligazioni breve termine, "
-                    "fondi monetari). Considera di mantenere almeno il 2% in strumenti facilmente liquidabili."
-                ),
-                status="warn",
-                actual=_pct(bond_ratio),
-                threshold_min=_pct(thr_min),
-                unit="%",
-            ))
+        rules.append(XRayRule(
+            key="liquidity_emergency_fund",
+            name="Riserva di liquidità / fondo emergenza",
+            category="Liquidità",
+            description=desc,
+            status="ok" if liquid_ratio >= thr_min else "warn",
+            actual=_pct(liquid_ratio),
+            threshold_min=_pct(thr_min),
+            unit="%",
+        ))
     else:
         rules.append(XRayRule(
             key="liquidity_emergency_fund",
             name="Riserva di liquidità / fondo emergenza",
             category="Liquidità",
-            description="Almeno il 2% in strumenti liquidi come cuscinetto di emergenza.",
+            description=desc,
             status="info",
             unit="%",
         ))

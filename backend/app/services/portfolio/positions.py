@@ -79,3 +79,20 @@ def calculate_positions(
     if include_closed:
         return positions
     return {k: v for k, v in positions.items() if v.quantity > 1e-6}
+
+
+def realized_and_income(transactions: list[Transaction]) -> tuple[float, float]:
+    """(P&L realizzato su tutte le posizioni, anche chiuse; proventi netti).
+
+    Proventi = dividendi + cedole + interessi al netto delle relative commissioni,
+    meno i costi separati (transazioni FEE).
+    """
+    realized = sum(p.realized_pnl_eur for p in calculate_positions(transactions, include_closed=True).values())
+    income = 0.0
+    for tx in transactions:
+        amount = tx.quantity * tx.price * tx.exchange_rate
+        if tx.type in (TransactionType.DIVIDEND, TransactionType.COUPON, TransactionType.INTEREST):
+            income += amount - tx.fee
+        elif tx.type == TransactionType.FEE:
+            income -= amount + tx.fee
+    return realized, income

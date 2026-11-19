@@ -1,6 +1,7 @@
+from typing import Literal
 import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.asset import AssetType, Exchange
 
@@ -70,6 +71,9 @@ class AssetUpdate(BaseModel):
     sector: str | None = None
     sectors_override: list | None = None
     countries_override: list | None = None
+    govt_bond_override: bool | None = None
+    asset_class_override: Literal["EQUITY", "BOND", "MONEY_MARKET", "CRYPTO", "OTHER"] | None = None
+    govt_bond_share: float | None = Field(None, ge=0, le=1)
 
 
 class AssetOut(BaseModel):
@@ -88,6 +92,9 @@ class AssetOut(BaseModel):
     holdings: list | None = None
     sectors_override: list | None = None
     countries_override: list | None = None
+    govt_bond_override: bool | None = None
+    asset_class_override: Literal["EQUITY", "BOND", "MONEY_MARKET", "CRYPTO", "OTHER"] | None = None
+    govt_bond_share: float | None = Field(None, ge=0, le=1)
     enriched_at: datetime.datetime | None = None
 
     model_config = {"from_attributes": True}

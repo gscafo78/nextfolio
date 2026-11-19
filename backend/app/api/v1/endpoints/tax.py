@@ -20,11 +20,12 @@ from app.models.asset import Asset
 from app.models.user import User
 from app.schemas.tax import AnnualTaxReportOut, IVAFEReportOut, SimulateSellOut, TaxEventOut, CarryForwardEntryOut
 from app.services.market_data.updater import get_cached_price, refresh_asset_price
-from app.services.portfolio.positions import calculate_positions
 from app.services.tax.calculator import (
     AnnualTaxReport,
     build_annual_reports,
     compute_tax_events,
+    crypto_rate,
+    open_cost_pools,
     simulate_sell,
 )
 from app.services.tax.ivafe import compute_ivafe
@@ -44,34 +45,21 @@ _SKY        = colors.HexColor("#0369A1")
 _ALL = 10_000
 
 
+def _cf_out(entries) -> list[CarryForwardEntryOut]:
+    return [CarryForwardEntryOut(year=e.year, amount=e.amount, expires_year=e.expires_year) for e in entries]
+
+
 def _report_to_out(r: AnnualTaxReport, ivafe: IVAFEReportOut | None = None) -> AnnualTaxReportOut:
+    special = {"events", "ivafe", "prior_carryforward_standard", "prior_carryforward_crypto"}
+    data = {
+        name: getattr(r, name)
+        for name in AnnualTaxReportOut.model_fields
+        if name not in special and hasattr(r, name)
+    }
     return AnnualTaxReportOut(
-        year=r.year,
-        gains_standard=r.gains_standard,
-        losses_standard=r.losses_standard,
-        carryforward_applied_standard=r.carryforward_applied_standard,
-        net_taxable_standard=r.net_taxable_standard,
-        tax_standard=r.tax_standard,
-        gains_govt=r.gains_govt,
-        losses_govt=r.losses_govt,
-        carryforward_applied_govt=r.carryforward_applied_govt,
-        net_taxable_govt=r.net_taxable_govt,
-        tax_govt=r.tax_govt,
-        dividends_eur=r.dividends_eur,
-        coupons_govt_eur=r.coupons_govt_eur,
-        coupons_standard_eur=r.coupons_standard_eur,
-        interests_eur=r.interests_eur,
-        total_tax_due=r.total_tax_due,
-        new_carryforward_standard=r.new_carryforward_standard,
-        new_carryforward_govt=r.new_carryforward_govt,
-        prior_carryforward_standard=[
-            CarryForwardEntryOut(year=e.year, amount=e.amount, expires_year=e.expires_year)
-            for e in r.prior_carryforward_standard
-        ],
-        prior_carryforward_govt=[
-            CarryForwardEntryOut(year=e.year, amount=e.amount, expires_year=e.expires_year)
-            for e in r.prior_carryforward_govt
-        ],
+        **data,
+        prior_carryforward_standard=_cf_out(r.prior_carryforward_standard),
+        prior_carryforward_crypto=_cf_out(r.prior_carryforward_crypto),
         events=[
             TaxEventOut(
                 date=e.date,
@@ -90,26 +78,6 @@ def _report_to_out(r: AnnualTaxReport, ivafe: IVAFEReportOut | None = None) -> A
             )
             for e in r.events
         ],
-        administered_gains_standard=r.administered_gains_standard,
-        administered_losses_standard=r.administered_losses_standard,
-        administered_tax_standard=r.administered_tax_standard,
-        administered_gains_govt=r.administered_gains_govt,
-        administered_losses_govt=r.administered_losses_govt,
-        administered_tax_govt=r.administered_tax_govt,
-        administered_dividends_eur=r.administered_dividends_eur,
-        administered_income_tax=r.administered_income_tax,
-        administered_total_tax=r.administered_total_tax,
-        declaratory_gains_standard=r.declaratory_gains_standard,
-        declaratory_losses_standard=r.declaratory_losses_standard,
-        declaratory_tax_standard=r.declaratory_tax_standard,
-        declaratory_gains_govt=r.declaratory_gains_govt,
-        declaratory_losses_govt=r.declaratory_losses_govt,
-        declaratory_tax_govt=r.declaratory_tax_govt,
-        declaratory_dividends_eur=r.declaratory_dividends_eur,
-        declaratory_income_tax=r.declaratory_income_tax,
-        declaratory_total_tax=r.declaratory_total_tax,
-        has_declaratory_accounts=r.has_declaratory_accounts,
-        income_tax_eur=r.income_tax_eur,
         ivafe=ivafe or IVAFEReportOut(year=r.year),
     )
 
@@ -151,19 +119,9 @@ async def get_tax_report(
             return _report_to_out(r, ivafe_out)
 
     # Anno senza eventi fiscali — restituisce comunque IVAFE se presente
-    return AnnualTaxReportOut(
-        year=year,
-        gains_standard=0, losses_standard=0,
-        carryforward_applied_standard=0, net_taxable_standard=0, tax_standard=0,
-        gains_govt=0, losses_govt=0,
-        carryforward_applied_govt=0, net_taxable_govt=0, tax_govt=0,
-        dividends_eur=0, coupons_govt_eur=0, coupons_standard_eur=0, interests_eur=0,
-        total_tax_due=0,
-        new_carryforward_standard=0, new_carryforward_govt=0,
-        prior_carryforward_standard=[], prior_carryforward_govt=[],
-        events=[],
-        ivafe=ivafe_out,
-    )
+    empty = AnnualTaxReport(year=year)
+    empty.crypto_rate = crypto_rate(year)
+    return _report_to_out(empty, ivafe_out)
 
 
 @router.get("/years", response_model=list[int])
@@ -182,10 +140,15 @@ async def get_tax_years(
 async def simulate_sell_endpoint(
     asset_id: int = Query(...),
     quantity: float = Query(..., gt=0),
+    account_id: int | None = Query(None, description="Conto da cui vendere (default: tutti)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Stima l'impatto fiscale di una vendita ipotetica (usa i lotti FIFO aperti)."""
+    """Stima l'impatto fiscale di una vendita ipotetica al costo medio ponderato.
+
+    Con ``account_id`` usa il pool PMC di quel conto (amministrato) o il pool
+    dichiarativo; senza, la media ponderata di tutti i pool dell'asset.
+    """
     result = await db.get(Asset, asset_id)
     if not result:
         raise HTTPException(404, "Asset non trovato")
@@ -203,14 +166,22 @@ async def simulate_sell_endpoint(
 
     price_eur = cached.get("price", 0.0) * cached.get("exchange_rate", 1.0)
 
-    # Lotti FIFO dell'utente per questo asset
     transactions = await get_transactions(db, current_user.id, limit=_ALL)
-    positions = calculate_positions(transactions)
-    pos = positions.get(asset_id)
-    if pos is None or pos.quantity < quantity:
-        raise HTTPException(400, "Quantità disponibile insufficiente")
+    pools = open_cost_pools(transactions)
+    selected = [p for k, p in pools.items() if k[-1] == asset_id]
+    if account_id is not None:
+        acc_tx = next((t for t in transactions if t.account_id == account_id), None)
+        if acc_tx is None:
+            raise HTTPException(404, "Conto non trovato")
+        key = ("A", account_id, asset_id) if acc_tx.account.is_sostituto_imposta else ("D", asset_id)
+        selected = [pools[key]] if key in pools else []
 
-    result_data = simulate_sell(asset, quantity, price_eur, pos.lots)
+    available = sum(p.quantity for p in selected)
+    if available < quantity - 1e-9:
+        raise HTTPException(400, "Quantità disponibile insufficiente")
+    avg_cost = sum(p.quantity * p.avg_cost_per_unit for p in selected) / available
+
+    result_data = simulate_sell(asset, quantity, price_eur, avg_cost)
     return SimulateSellOut(**result_data)
 
 
@@ -297,15 +268,21 @@ async def export_tax_pdf(
         r = report
 
         # ── Riepilogo regime ──────────────────────────────────────────────────
+        def _sum(prefix: str, kind: str) -> float:
+            return sum(getattr(r, f"{prefix}_{kind}_{c}") for c in ("standard", "govt", "funds", "crypto"))
+
+        def _cg_tax(prefix: str) -> float:
+            return sum(getattr(r, f"{prefix}_tax_{c}") for c in ("standard", "funds", "crypto"))
+
         elems.append(Paragraph("Riepilogo per regime fiscale", sec_st))
         regime_rows = [
             ["Voce", "Regime amministrato (broker)", "Regime dichiarativo (730)"],
-            ["Plusvalenze (€)", _money(r.administered_gains_standard + r.administered_gains_govt) if r else "—",
-                                _money(r.declaratory_gains_standard + r.declaratory_gains_govt) if r else "—"],
-            ["Minusvalenze (€)", _money(r.administered_losses_standard + r.administered_losses_govt) if r else "—",
-                                 _money(r.declaratory_losses_standard + r.declaratory_losses_govt) if r else "—"],
-            ["Imposta capital gain (€)", _money(r.administered_tax_standard + r.administered_tax_govt) if r else "—",
-                                         _money(r.declaratory_tax_standard + r.declaratory_tax_govt) if r else "—"],
+            ["Plusvalenze (€)", _money(_sum("administered", "gains")) if r else "—",
+                                _money(_sum("declaratory", "gains")) if r else "—"],
+            ["Minusvalenze (€)", _money(_sum("administered", "losses")) if r else "—",
+                                 _money(_sum("declaratory", "losses")) if r else "—"],
+            ["Imposta capital gain (€)", _money(_cg_tax("administered")) if r else "—",
+                                         _money(_cg_tax("declaratory")) if r else "—"],
             ["Redditi cedole/dividendi (€)", _money(r.administered_dividends_eur) if r else "—",
                                              _money(r.declaratory_dividends_eur) if r else "—"],
             ["Ritenuta su redditi (€)", _money(r.administered_income_tax) if r else "—",
@@ -313,21 +290,26 @@ async def export_tax_pdf(
         ]
         elems.append(_tbl(regime_rows, [60*mm, 55*mm, 55*mm]))
 
-        # ── Quadro RT ─────────────────────────────────────────────────────────
+        # ── Quadri RT / RM ────────────────────────────────────────────────────
         if r and (r.has_declaratory_accounts):
-            elems.append(Paragraph("Quadro RT — Capital gain dichiarativi (da inserire nel modello Redditi PF)", sec_st))
+            elems.append(Paragraph("Quadri RT / RM — Redditi finanziari dichiarativi (modello Redditi PF)", sec_st))
             rt_rows = [
-                ["Rigo", "Descrizione", "Importo (EUR)"],
-                ["RT21", "Plusvalenze aliquota 26%",      f"{r.declaratory_gains_standard:>12,.2f}"],
-                ["RT22", "Minusvalenze aliquota 26%",     f"{r.declaratory_losses_standard:>12,.2f}"],
-                ["RT26", "Imposta 26%",                   f"{r.declaratory_tax_standard:>12,.2f}"],
-                ["RT51", "Plusvalenze titoli di Stato 12,5%",  f"{r.declaratory_gains_govt:>12,.2f}"],
-                ["RT52", "Minusvalenze titoli di Stato 12,5%", f"{r.declaratory_losses_govt:>12,.2f}"],
-                ["RT55", "Imposta 12,5%",                 f"{r.declaratory_tax_govt:>12,.2f}"],
+                ["Quadro", "Descrizione", "Importo (EUR)"],
+                ["RT", "Plusvalenze imponibili 26% (titoli di Stato al 48,08%)", f"{r.declaratory_taxable_gains:>12,.2f}"],
+                ["RT", "Minusvalenze compensabili (titoli di Stato al 48,08%, incl. ETF)", f"{r.declaratory_taxable_losses:>12,.2f}"],
+                ["RT", "Imposta sostitutiva 26%", f"{r.declaratory_tax_standard:>12,.2f}"],
+                ["RT", "Plusvalenze cripto-attività", f"{r.declaratory_gains_crypto:>12,.2f}"],
+                ["RT", "Minusvalenze cripto-attività", f"{r.declaratory_losses_crypto:>12,.2f}"],
+                ["RT", f"Imposta cripto-attività {r.crypto_rate*100:.0f}%", f"{r.declaratory_tax_crypto:>12,.2f}"],
+                ["RM", "Proventi da ETF/OICR esteri (redditi di capitale)", f"{r.declaratory_gains_funds:>12,.2f}"],
+                ["RM", "Imposta 26% su proventi ETF/OICR", f"{r.declaratory_tax_funds:>12,.2f}"],
             ]
             t = _tbl(rt_rows, [20*mm, 120*mm, 35*mm])
             t.setStyle(TableStyle([("ALIGN", (2, 1), (2, -1), "RIGHT")]))
             elems.append(t)
+            elems.append(Paragraph(
+                "I righi esatti dipendono dal modello dell'anno: verifica le istruzioni ufficiali.", small_st,
+            ))
 
         # ── Quadro RW / IVAFE ─────────────────────────────────────────────────
         if ivafe.positions:
@@ -376,14 +358,14 @@ async def export_tax_pdf(
             elems.append(_tbl(rl_rows, [65*mm, 20*mm, 45*mm, 45*mm]))
 
         # ── Storico minusvalenze ──────────────────────────────────────────────
-        if r and (r.prior_carryforward_standard or r.prior_carryforward_govt):
+        if r and (r.prior_carryforward_standard or r.prior_carryforward_crypto):
             elems.append(Paragraph("Zainetto fiscale — minusvalenze disponibili", sec_st))
-            cf_rows = [["Anno perdita", "Bracket", "Disponibile (EUR)", "Scade entro"]]
+            cf_rows = [["Anno perdita", "Zainetto", "Disponibile (EUR)", "Scade entro"]]
             for e in r.prior_carryforward_standard:
-                cf_rows.append([str(e.year), "Standard 26%",
+                cf_rows.append([str(e.year), "Redditi diversi 26%",
                                  f"{e.amount:>12,.2f}", str(e.expires_year)])
-            for e in r.prior_carryforward_govt:
-                cf_rows.append([str(e.year), "Titoli di Stato 12,5%",
+            for e in r.prior_carryforward_crypto:
+                cf_rows.append([str(e.year), "Cripto-attività",
                                  f"{e.amount:>12,.2f}", str(e.expires_year)])
             elems.append(_tbl(cf_rows, [30*mm, 55*mm, 50*mm, 40*mm]))
 
@@ -393,7 +375,7 @@ async def export_tax_pdf(
             ev_hdr = ["Data", "Asset", "Tipo", "Quantità", "Ricavo EUR", "Costo EUR", "Gain/Loss EUR", "Aliquota", "Metodo"]
             ev_rows = [ev_hdr]
             for ev in sorted(r.events, key=lambda e: e.date):
-                rate_str = "12,5%" if ev.is_government_bond else "26%"
+                rate_str = f"{ev.tax_rate*100:.1f}%".replace(".0%", "%").replace(".", ",")
                 ev_rows.append([
                     ev.date.strftime("%d/%m/%Y"),
                     (ev.asset_name[:22] + "…") if len(ev.asset_name) > 22 else ev.asset_name,
@@ -413,7 +395,8 @@ async def export_tax_pdf(
     elems.append(Spacer(1, 8*mm))
     elems.append(HRFlowable(width="100%", color=_GRAY, thickness=0.5, spaceAfter=3*mm))
     elems.append(Paragraph(
-        "I valori sono calcolati con metodo FIFO (conti dichiarativi) e PMC (conti amministrati) a scopo informativo. "
+        "I valori sono calcolati al costo medio ponderato (art. 68 c.6 TUIR) a scopo informativo; "
+        "plus/minus su titoli di Stato ponderate al 48,08%, plusvalenze da ETF/OICR tassate come redditi di capitale. "
         "Potrebbero differire da quanto calcolato dal tuo intermediario. "
         "Per la compilazione definitiva della dichiarazione fiscale si raccomanda di verificare con i prospetti ufficiali "
         "del broker e di consultare un commercialista.",
