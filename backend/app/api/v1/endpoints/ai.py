@@ -1,7 +1,7 @@
 """
 Funzioni AI:
 - GET  /ai/prompt            → testo da incollare in un chatbot (dati + istruzioni di analisi)
-- GET  /ai/mcp-tokens        → token di accesso al server MCP dell'utente
+- GET  /ai/mcp-tokens        → token di accesso al server MCP dell'utente (lettura / scrittura / cancellazione)
 - POST /ai/mcp-tokens        → crea un token (restituito in chiaro una sola volta)
 - DELETE /ai/mcp-tokens/{id} → revoca un token
 """
@@ -67,6 +67,8 @@ async def get_prompt(
 class McpTokenCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     can_read_values: bool = False
+    can_write: bool = False
+    can_delete: bool = False      # richiede can_write
 
 
 class McpTokenOut(BaseModel):
@@ -74,6 +76,8 @@ class McpTokenOut(BaseModel):
     name: str
     token_prefix: str
     can_read_values: bool
+    can_write: bool = False
+    can_delete: bool = False
     created_at: datetime
     last_used_at: datetime | None
 
@@ -119,6 +123,8 @@ async def create_mcp_token(
     )
     if len(res.all()) >= MAX_TOKENS_PER_USER:
         raise HTTPException(status_code=400, detail=f"Massimo {MAX_TOKENS_PER_USER} token attivi")
+    if body.can_delete and not body.can_write:
+        raise HTTPException(status_code=400, detail="Il permesso di cancellazione richiede quello di scrittura")
 
     token = generate_token()
     row = McpAccessToken(
@@ -127,13 +133,16 @@ async def create_mcp_token(
         token_hash=hash_token(token),
         token_prefix=token[:12],
         can_read_values=body.can_read_values,
+        can_write=body.can_write,
+        can_delete=body.can_delete,
         created_at=datetime.now(timezone.utc),
     )
     db.add(row)
     await db.flush()
     await log_action(
         db, user_id=current_user.id, action=CREATE_MCP_TOKEN, entity_type="mcp_token", entity_id=row.id,
-        detail={"name": row.name, "can_read_values": row.can_read_values},
+        detail={"name": row.name, "can_read_values": row.can_read_values,
+                "can_write": row.can_write, "can_delete": row.can_delete},
     )
     await db.commit()
     await db.refresh(row)

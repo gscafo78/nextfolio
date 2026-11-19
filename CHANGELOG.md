@@ -5,6 +5,21 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.11.0] — 2026-11-19
+### Added
+- **Server MCP in scrittura**: permessi per token `can_write` e `can_delete` (migration `0025`), scelti alla creazione nella pagina AI e mostrati nella lista token
+- Tool di scrittura: `create-asset` (idempotente per ISIN), `update-asset` (asset class, trattamento fiscale, quota titoli di Stato ETF, look-through), `create-transactions` (fino a 100, tutto-o-niente, doppioni saltati), `update-transaction`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert`
+- Tool di cancellazione (`destructiveHint`): `delete-transaction`, `remove-from-watchlist`, `delete-alert`
+- Tool di lettura `search-assets` e `get-alerts`; colonna ID in `get-transactions` e `get-watchlist`
+- Ogni scrittura MCP nel log di audit (`MCP_*`, `via: mcp`, id del token), con etichette nella pagina Amministrazione
+
+### Fixed
+- **Alert di prezzo**: `alert_type` letto dal DB come stringa faceva fallire lista e creazione degli alert (`.value` su `str`) e bloccava l'invio delle email
+- La cache della performance ora si invalida dopo creazione, modifica, cancellazione e import CSV di transazioni (prima restava vecchia fino a 5 minuti)
+- Test: login con JSON (i test autenticati di `test_api.py` venivano sempre saltati), `NullPool` nei test per evitare connessioni legate a event loop chiusi
+
+---
+
 ## [1.10.0] — 2026-11-19
 ### Added
 - **Pagina AI** (`/ai`, icona `Sparkles` in Sidebar; i18n IT/EN/FR/DE), ispirata alle funzioni AI/MCP di Ghostfolio

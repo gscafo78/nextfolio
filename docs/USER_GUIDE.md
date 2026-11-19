@@ -648,9 +648,12 @@ The text contains: summary (P&L including income), holdings with ticker and asse
 
 ### MCP server
 
-Nextfolio exposes a read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp`, so AI assistants can query your portfolio directly.
+Nextfolio exposes a [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp`, so AI assistants can query — and, if you allow it, update — your portfolio directly.
 
-1. In **Server MCP**, enter a name (e.g. "Claude Desktop") and choose whether the token **can read amounts** (otherwise only percentages are returned and the tax report shows rules only).
+1. In **Server MCP**, enter a name (e.g. "Claude Desktop") and choose the token's permissions:
+   - **Può leggere gli importi** — otherwise only percentages are returned and the tax report shows rules only
+   - **Può scrivere** — the assistant can record and edit transactions, create assets, change asset classification, manage watchlist and alerts
+   - **Può cancellare** (requires write) — the assistant can also delete transactions, watchlist items and alerts
 2. Click **Crea token** and copy it — it is shown **only once**.
 3. Configure your client with the snippet shown on the page, e.g. for Claude Code:
 
@@ -659,7 +662,23 @@ claude mcp add --transport http nextfolio https://<your-host>/api/mcp \
   --header "Authorization: Bearer nfmcp_..."
 ```
 
-Available tools: `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-tax-report`. None of them can modify data. Revoke a token at any time with the 🗑 button; the list shows when each token was last used.
+Available tools:
+
+| Permission | Tools |
+|---|---|
+| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
+| Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
+| Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
+
+How writes work:
+
+- `create-transactions` records up to 100 transactions at once and is **all or nothing**: if one row is invalid (unknown account or asset, future date, negative quantity…) nothing is written and the error names the row. A row identical to an existing transaction is skipped, so a repeated call doesn't create duplicates.
+- IDs for editing come from `get-transactions`, `get-watchlist`, `get-alerts` and `search-assets`.
+- `update-asset` changes data shared by all users of the instance (asset class, government-bond treatment, ETF government-bond share, sector/country look-through).
+- Delete tools are marked as destructive, so MCP clients ask you for confirmation.
+- Every write and delete is recorded in the **audit log** (Administration) with the token that made it.
+
+Revoke a token at any time with the 🗑 button; the list shows each token's permissions and when it was last used.
 
 ---
 

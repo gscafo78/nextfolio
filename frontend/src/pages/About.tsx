@@ -19,6 +19,27 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.11.0",
+    date: "2026-11-19",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Server MCP in scrittura: permessi separati per token (lettura, scrittura, cancellazione)",
+          "Tool MCP per registrare e modificare transazioni (fino a 100 per volta, senza doppioni), creare e classificare asset, gestire watchlist e alert",
+          "Ogni modifica fatta via MCP è registrata nel log di audit con il token che l'ha eseguita",
+        ],
+      },
+      {
+        type: "fixed",
+        items: [
+          "Alert di prezzo: lista e creazione non andavano in errore e le email di notifica non partivano",
+          "Performance aggiornata subito dopo creazione, modifica, cancellazione o import di transazioni",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.10.0",
     date: "2026-11-19",
     sections: [

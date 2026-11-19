@@ -42,8 +42,8 @@ async def auth_tokens(client):
     # 201 = registered, 403 = closed (first user already exists)
     assert reg.status_code in (201, 400, 403), f"Unexpected register status: {reg.status_code}"
 
-    login = await client.post("/api/v1/auth/login", data={
-        "username": TEST_EMAIL,
+    login = await client.post("/api/v1/auth/login", json={
+        "email": TEST_EMAIL,
         "password": TEST_PASS,
     })
     # If register was blocked, the user doesn't exist → skip auth-dependent tests
@@ -73,11 +73,11 @@ async def test_health(client):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client):
-    r = await client.post("/api/v1/auth/login", data={
-        "username": "nonexistent@example.com",
+    r = await client.post("/api/v1/auth/login", json={
+        "email": "nonexistent@example.com",
         "password": "WrongPass",
     })
-    assert r.status_code in (400, 401, 422)
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio

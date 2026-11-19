@@ -12,6 +12,7 @@ from app.services.account import get_account
 from app.services.asset import get_or_create_asset
 from app.services.audit import DELETE_TRANSACTION, log_action
 from app.services.csv_import import BrokerFormat, parse_csv
+from app.services.market_data.updater import invalidate_perf_cache
 from app.services.transaction import (
     create_transaction,
     delete_transaction,
@@ -49,7 +50,9 @@ async def create(
     account = await get_account(db, body.account_id, current_user.id)
     if not account:
         raise HTTPException(404, "Conto non trovato")
-    return await create_transaction(db, body)
+    tx = await create_transaction(db, body)
+    await invalidate_perf_cache(current_user.id)
+    return tx
 
 
 @router.put("/{tx_id}", response_model=TransactionOut)
@@ -62,7 +65,9 @@ async def update(
     tx = await get_transaction(db, tx_id, current_user.id)
     if not tx:
         raise HTTPException(404, "Transazione non trovata")
-    return await update_transaction(db, tx, body)
+    tx = await update_transaction(db, tx, body)
+    await invalidate_perf_cache(current_user.id)
+    return tx
 
 
 @router.delete("/{tx_id}", status_code=204)
@@ -88,6 +93,7 @@ async def delete(
         },
     )
     await delete_transaction(db, tx)
+    await invalidate_perf_cache(current_user.id)
 
 
 @router.post("/import-csv", response_model=list[TransactionOut], status_code=201)
@@ -136,4 +142,5 @@ async def import_csv(
         tx = await create_transaction(db, tx_data)
         created.append(tx)
 
+    await invalidate_perf_cache(current_user.id)
     return created

@@ -308,12 +308,12 @@ def accounts_table(s: Snapshot, with_values: bool) -> str:
 
 
 def transactions_table(txs: list[Transaction], with_values: bool) -> str:
-    headers = ["Data", "Tipo", "Conto", "Asset", "Ticker", "ISIN"]
+    headers = ["ID", "Data", "Tipo", "Conto", "Asset", "Ticker", "ISIN"]
     if with_values:
         headers += ["Quantità", "Prezzo", "Valuta prezzo", "Cambio EUR", "Commissioni", "Controvalore (EUR)"]
     rows = []
     for t in txs:
-        r = [t.date.isoformat(), _enum(t.type), t.account.name, t.asset.name,
+        r = [t.id, t.date.isoformat(), _enum(t.type), t.account.name, t.asset.name,
              display_ticker(build_asset_info(t.asset)) or "—", t.asset.isin]
         if with_values:
             r += [
@@ -441,11 +441,12 @@ async def watchlist_table(db: AsyncSession, user: User) -> str:
 
     items = await list_watchlist(db=db, current_user=user)
     rows = [
-        [i.name, i.symbol, TYPE_LABELS.get(i.asset_type, i.asset_type), i.currency,
+        [i.id, i.asset_id, i.name, i.symbol, TYPE_LABELS.get(i.asset_type, i.asset_type), i.currency,
          i.current_price, _pct(i.change_pct), i.target_price, i.note]
         for i in sorted(items, key=lambda i: i.name.lower())
     ]
-    return table(["Nome", "Simbolo", "Tipo", "Valuta", "Prezzo", "Var. giorno %", "Prezzo obiettivo", "Nota"], rows)
+    return table(["ID voce", "ID asset", "Nome", "Simbolo", "Tipo", "Valuta", "Prezzo", "Var. giorno %",
+                  "Prezzo obiettivo", "Nota"], rows)
 
 
 _TAX_RULES = (

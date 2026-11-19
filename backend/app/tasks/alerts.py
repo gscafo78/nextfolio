@@ -94,7 +94,7 @@ def check_price_alerts(self):
                                 to=alert.user.email,
                                 asset_name=alert.asset.name,
                                 asset_symbol=alert.asset.symbol,
-                                alert_type=alert.alert_type.value,
+                                alert_type=getattr(alert.alert_type, "value", alert.alert_type),
                                 threshold=float(alert.threshold),
                                 current_value=current_val,
                                 is_pct=is_pct,

@@ -279,6 +279,13 @@ function AuditLogSection() {
     BULK_ENRICH_ASSETS: { label: t("admin.enrichTitle"), color: "text-blue-600 bg-blue-50 border-blue-200" },
     CREATE_MCP_TOKEN:   { label: "MCP " + t("ai.createToken").toLowerCase(), color: "text-purple-700 bg-purple-50 border-purple-200" },
     REVOKE_MCP_TOKEN:   { label: "MCP " + t("ai.revoke").toLowerCase(), color: "text-red-600 bg-red-50 border-red-200" },
+    MCP_CREATE_TRANSACTIONS: { label: "MCP: nuove transazioni", color: "text-purple-700 bg-purple-50 border-purple-200" },
+    MCP_UPDATE_TRANSACTION:  { label: "MCP: modifica transazione", color: "text-purple-700 bg-purple-50 border-purple-200" },
+    MCP_DELETE_TRANSACTION:  { label: "MCP: cancella transazione", color: "text-red-600 bg-red-50 border-red-200" },
+    MCP_CREATE_ASSET:        { label: "MCP: nuovo asset", color: "text-purple-700 bg-purple-50 border-purple-200" },
+    MCP_UPDATE_ASSET:        { label: "MCP: modifica asset", color: "text-purple-700 bg-purple-50 border-purple-200" },
+    MCP_WATCHLIST:           { label: "MCP: watchlist", color: "text-purple-700 bg-purple-50 border-purple-200" },
+    MCP_ALERT:               { label: "MCP: alert", color: "text-purple-700 bg-purple-50 border-purple-200" },
   };
 
   const { data: logs = [], isLoading } = useQuery({

@@ -123,7 +123,10 @@ backend/app/
 │                            #   - 0.2% on Dec-31 market value of foreign accounts
 │                            #   - Queries price_history for year-end price
 ├── services/ai/context.py   # Portfolio context as Markdown (chatbot prompt + MCP tools)
-├── mcp/                     # Read-only MCP server (Streamable HTTP on /api/mcp, bearer tokens)
+├── mcp/                     # MCP server (Streamable HTTP on /api/mcp, bearer tokens)
+│   ├── server.py            #   auth middleware, read tools, permission checks (read / write / delete)
+│   ├── write_tools.py       #   write and delete tools (transactions, assets, watchlist, alerts)
+│   └── tokens.py            #   token generation (SHA-256 at rest) and resolution
 └── tasks/
     ├── celery_app.py        # Celery instance configuration
     ├── prices.py            # Scheduled price fetch tasks (EOD + intraday)

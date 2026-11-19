@@ -867,6 +867,13 @@
     "noTokens": "Nessun token attivo.",
     "setupTitle": "Configurazione del client",
     "jsonConfig": "Claude Desktop / altri client (JSON)",
-    "setupHint": "Sostituisci <TOKEN> con il token creato. Il server espone solo strumenti in lettura: portafoglio, allocazione, conti, transazioni, performance, rischio, X-Ray, dividendi, watchlist e report fiscale."
+    "setupHint": "Sostituisci <TOKEN> con il token creato. Strumenti di lettura: portafoglio, allocazione, conti, transazioni, performance, rischio, X-Ray, dividendi, watchlist, alert, report fiscale e ricerca asset. Con i permessi relativi anche scrittura (transazioni, asset, watchlist, alert) e cancellazione.",
+    "canWrite": "Può scrivere (transazioni, asset, watchlist, alert)",
+    "canDelete": "Può cancellare",
+    "permRead": "lettura",
+    "permWrite": "scrittura",
+    "permDelete": "cancellazione",
+    "writeWarning": "Con il permesso di scrittura l'assistente AI può registrare e modificare transazioni, watchlist, alert e la classificazione degli asset. Ogni modifica finisce nel log di audit.",
+    "writeDeleteWarning": "Con questi permessi l'assistente AI può anche cancellare transazioni, voci di watchlist e alert. Le cancellazioni sono definitive: usa questo token solo con client che chiedono conferma."
   }
 }

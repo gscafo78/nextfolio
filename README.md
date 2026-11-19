@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.10.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.11.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -44,7 +44,7 @@
 
 ### AI
 - **Chatbot prompt** — One click generates a text with your portfolio (holdings, allocation, performance, risk, X-Ray, dividends) plus analysis instructions, ready to paste into ChatGPT, Claude, Gemini, …; amounts optional (percentages only)
-- **MCP server** — Read-only [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` so AI assistants (Claude Desktop, Claude Code, ChatGPT, …) can query the portfolio; per-user access tokens, optional permission to read EUR amounts
+- **MCP server** — [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` so AI assistants (Claude Desktop, Claude Code, ChatGPT, …) can query and update the portfolio; per-user tokens with separate permissions to read amounts, write (transactions, assets, watchlist, alerts) and delete; every write in the audit log
 
 ### UX
 - **Zen Mode** — Masks all EUR amounts; percentages remain visible (for screenshots, screen sharing)

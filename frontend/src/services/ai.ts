@@ -16,6 +16,8 @@ export interface McpToken {
   name: string;
   token_prefix: string;
   can_read_values: boolean;
+  can_write: boolean;
+  can_delete: boolean;
   created_at: string;
   last_used_at: string | null;
 }
@@ -41,7 +43,7 @@ export const aiService = {
     return data;
   },
 
-  async createMcpToken(body: { name: string; can_read_values: boolean }): Promise<McpTokenCreated> {
+  async createMcpToken(body: { name: string; can_read_values: boolean; can_write: boolean; can_delete: boolean }): Promise<McpTokenCreated> {
     const { data } = await api.post<McpTokenCreated>("/ai/mcp-tokens", body);
     return data;
   },

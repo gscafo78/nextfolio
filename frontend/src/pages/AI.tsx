@@ -173,17 +173,27 @@ function McpSection() {
   const { copied, copy } = useCopy();
   const [name, setName] = useState("");
   const [canReadValues, setCanReadValues] = useState(false);
+  const [canWrite, setCanWrite] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [created, setCreated] = useState<McpTokenCreated | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["mcp-tokens"], queryFn: aiService.getMcpInfo });
 
   const create = useMutation({
-    mutationFn: () => aiService.createMcpToken({ name: name.trim(), can_read_values: canReadValues }),
+    mutationFn: () =>
+      aiService.createMcpToken({
+        name: name.trim(),
+        can_read_values: canReadValues,
+        can_write: canWrite,
+        can_delete: canWrite && canDelete,
+      }),
     onSuccess: (tok) => {
       setCreated(tok);
       setName("");
       setCanReadValues(false);
+      setCanWrite(false);
+      setCanDelete(false);
       qc.invalidateQueries({ queryKey: ["mcp-tokens"] });
     },
   });
@@ -251,21 +261,51 @@ function McpSection() {
             className={selectCls}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer select-none sm:pb-2">
-          <input
-            type="checkbox"
-            className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-            checked={canReadValues}
-            onChange={(e) => setCanReadValues(e.target.checked)}
-          />
-          {t("ai.canReadValues")}
-        </label>
+        <div className="flex flex-col gap-1.5 sm:pb-1">
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              checked={canReadValues}
+              onChange={(e) => setCanReadValues(e.target.checked)}
+            />
+            {t("ai.canReadValues")}
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              checked={canWrite}
+              onChange={(e) => {
+                setCanWrite(e.target.checked);
+                if (!e.target.checked) setCanDelete(false);
+              }}
+            />
+            {t("ai.canWrite")}
+          </label>
+          <label className={`flex items-center gap-2 text-sm cursor-pointer select-none ${canWrite ? "text-gray-700 dark:text-slate-300" : "text-gray-300 dark:text-slate-600"}`}>
+            <input
+              type="checkbox"
+              className="rounded border-gray-300 text-red-500 focus:ring-red-500"
+              checked={canDelete}
+              disabled={!canWrite}
+              onChange={(e) => setCanDelete(e.target.checked)}
+            />
+            {t("ai.canDelete")}
+          </label>
+        </div>
         <Button type="submit" disabled={!name.trim()} loading={create.isPending}>
           <Plus className="w-4 h-4 mr-1.5" />
           {t("ai.createToken")}
         </Button>
       </form>
       {create.isError && <p className="text-sm text-red-600 mb-3">{t("ai.createError")}</p>}
+      {canWrite && (
+        <p className="text-xs text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300 rounded-lg px-3 py-2 mb-4 flex items-start gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          {t(canDelete ? "ai.writeDeleteWarning" : "ai.writeWarning")}
+        </p>
+      )}
 
       {/* Token appena creato: mostrato una sola volta */}
       {created && (
@@ -309,7 +349,12 @@ function McpSection() {
                   <td className="py-2 pr-3 text-gray-900 dark:text-slate-100">{tok.name}</td>
                   <td className="py-2 pr-3"><code className="text-xs text-gray-500">{tok.token_prefix}…</code></td>
                   <td className="py-2 pr-3 text-xs text-gray-600 dark:text-slate-300">
-                    {tok.can_read_values ? t("ai.permValues") : t("ai.permPercent")}
+                    <div>{tok.can_read_values ? t("ai.permValues") : t("ai.permPercent")}</div>
+                    <div className="flex gap-1 mt-0.5">
+                      <span className="rounded bg-gray-100 dark:bg-slate-800 px-1.5">{t("ai.permRead")}</span>
+                      {tok.can_write && <span className="rounded bg-amber-100 text-amber-800 px-1.5">{t("ai.permWrite")}</span>}
+                      {tok.can_delete && <span className="rounded bg-red-100 text-red-700 px-1.5">{t("ai.permDelete")}</span>}
+                    </div>
                   </td>
                   <td className="py-2 pr-3 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(tok.last_used_at)}</td>
                   <td className="py-2 text-right whitespace-nowrap">

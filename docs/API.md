@@ -355,7 +355,7 @@ Response: `{ "prompt": "..." }` (Markdown tables).
 ### MCP access tokens
 ```
 GET    /ai/mcp-tokens            # { enabled, path, tokens: [...] } — active tokens, never the secret
-POST   /ai/mcp-tokens            # { name, can_read_values } → token returned in clear ONCE
+POST   /ai/mcp-tokens            # { name, can_read_values, can_write, can_delete } → token returned in clear ONCE
 DELETE /ai/mcp-tokens/{id}       # revoke
 ```
 
@@ -363,9 +363,13 @@ DELETE /ai/mcp-tokens/{id}       # revoke
 `POST /api/mcp` — Streamable HTTP transport (stateless, JSON responses), header `Authorization: Bearer nfmcp_…`.
 Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp"`.
 
-Read-only tools: `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`,
-`get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-tax-report`.
-Tokens without `can_read_values` get percentages only (`get-tax-report` is refused).
+| Permission | Tools |
+|---|---|
+| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
+| `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
+| `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
+
+Tokens without `can_read_values` get percentages only (`get-tax-report` returns the rules only). A tool called without the needed permission returns `isError: true` with an explanation. Writes are logged in the audit log (`MCP_*` actions, `detail.via = "mcp"`, `detail.token_id`) and invalidate the performance cache.
 
 ```bash
 claude mcp add --transport http nextfolio https://nextfolio.example.com/api/mcp \

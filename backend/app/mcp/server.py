@@ -1,9 +1,16 @@
 """
-Server MCP (Model Context Protocol) di Nextfolio — sola lettura.
+Server MCP (Model Context Protocol) di Nextfolio — lettura e scrittura.
 
 Ispirato a Ghostfolio (apps/api/src/app/endpoints/mcp): ogni tool restituisce
 testo (tabelle Markdown) e omette gli importi in EUR se il token non ha il
 permesso ``can_read_values``.
+
+Permessi per token:
+  - lettura (sempre)                → tool ``get-*`` e ``search-assets``
+  - ``can_write``                   → crea/modifica transazioni, asset, watchlist, alert
+                                       (tool in ``app/mcp/write_tools.py``)
+  - ``can_delete`` (con can_write)  → cancella transazioni, voci di watchlist, alert
+Ogni scrittura è registrata nel log di audit con ``via: mcp``.
 
 Trasporto: Streamable HTTP, stateless, risposte JSON, esposto su ``/api/mcp``.
 Autenticazione: ``Authorization: Bearer nfmcp_…`` (token creati dalla pagina AI).
@@ -20,7 +27,9 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Annotated, Literal
 
+from fastapi import HTTPException
 from mcp.server.mcpserver import Context, MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import ToolAnnotations
 from pydantic import Field
@@ -45,10 +54,12 @@ mcp = MCPServer(
     title="Nextfolio",
     version=APP_VERSION,
     instructions=(
-        "Server in sola lettura del portafoglio Nextfolio di un investitore italiano. "
-        "Tutti gli importi sono in EUR. Usa get-portfolio per una panoramica, poi gli altri "
-        "tool per approfondire. Se il token non può leggere gli importi, i tool restituiscono "
-        "solo pesi e percentuali."
+        "Server del portafoglio Nextfolio di un investitore italiano. Tutti gli importi sono in EUR. "
+        "Usa get-portfolio per una panoramica, poi gli altri tool per approfondire. Se il token non può "
+        "leggere gli importi, i tool restituiscono solo pesi e percentuali. I tool di scrittura e "
+        "cancellazione funzionano solo se il token ha i relativi permessi: prima di modificare dati "
+        "riepiloga all'utente cosa farai e chiedi conferma; usa search-assets e get-accounts per "
+        "ottenere gli identificativi."
     ),
 )
 
@@ -77,11 +88,22 @@ def _access(ctx: Context) -> dict:
 
 
 class _Session:
-    """Sessione DB + utente dell'accesso corrente."""
+    """Sessione DB + utente dell'accesso corrente.
 
-    def __init__(self, ctx: Context):
+    ``require="write"|"delete"`` verifica il permesso del token prima di aprire
+    la sessione. Le HTTPException degli endpoint riusati diventano ToolError
+    (messaggio leggibile dal modello) e la transazione DB viene annullata.
+    """
+
+    def __init__(self, ctx: Context, require: str | None = None):
         self.access = _access(ctx)
         self.with_values: bool = self.access["can_read_values"]
+        if require == "write" and not self.access.get("can_write"):
+            raise ToolError("Questo token MCP è in sola lettura: crea un token con il permesso di scrittura "
+                            "dalla pagina AI di Nextfolio.")
+        if require == "delete" and not (self.access.get("can_write") and self.access.get("can_delete")):
+            raise ToolError("Questo token MCP non ha il permesso di cancellazione: crea un token con i permessi "
+                            "di scrittura e cancellazione dalla pagina AI di Nextfolio.")
 
     async def __aenter__(self):
         self.db = AsyncSessionLocal()
@@ -91,8 +113,17 @@ class _Session:
             raise PermissionError("Utente non trovato o disabilitato")
         return self
 
-    async def __aexit__(self, *exc):
-        await self.db.close()
+    async def __aexit__(self, exc_type, exc, tb):
+        try:
+            if exc is not None:
+                await self.db.rollback()
+        finally:
+            await self.db.close()
+        if isinstance(exc, HTTPException):
+            raise ToolError(str(exc.detail)) from exc
+        if isinstance(exc, ValueError) and not isinstance(exc, ToolError):
+            raise ToolError(str(exc)) from exc
+        return False
 
 
 # ── Tool ─────────────────────────────────────────────────────────────────────
@@ -378,7 +409,13 @@ class McpMiddleware:
             "user_id": user.id,
             "token_id": access.id,
             "can_read_values": access.can_read_values,
+            "can_write": access.can_write,
+            "can_delete": access.can_write and access.can_delete,
         }}
         scope["path"] = _INNER_PATH
         scope["raw_path"] = _INNER_PATH.encode()
         await _mcp_app(scope, receive, send)
+
+
+# Registra i tool di scrittura e cancellazione sullo stesso server
+from app.mcp import write_tools  # noqa: E402,F401

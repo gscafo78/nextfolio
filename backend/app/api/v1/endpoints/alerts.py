@@ -20,7 +20,8 @@ def _to_out(a: PriceAlert) -> AlertOut:
         asset_id=a.asset_id,
         asset_name=a.asset.name,
         asset_symbol=a.asset.symbol,
-        alert_type=a.alert_type.value,
+        # colonna String: dal DB arriva come str, da un oggetto appena creato come AlertType
+        alert_type=a.alert_type.value if hasattr(a.alert_type, "value") else str(a.alert_type),
         threshold=a.threshold,
         is_active=a.is_active,
         last_triggered_at=a.last_triggered_at,

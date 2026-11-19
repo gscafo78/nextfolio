@@ -867,6 +867,13 @@
     "noTokens": "No active tokens.",
     "setupTitle": "Client setup",
     "jsonConfig": "Claude Desktop / other clients (JSON)",
-    "setupHint": "Replace <TOKEN> with the token you created. The server only exposes read-only tools: portfolio, allocation, accounts, transactions, performance, risk, X-Ray, dividends, watchlist and tax report."
+    "setupHint": "Replace <TOKEN> with the token you created. Read tools: portfolio, allocation, accounts, transactions, performance, risk, X-Ray, dividends, watchlist, alerts, tax report and asset search. With the matching permissions also write (transactions, assets, watchlist, alerts) and delete.",
+    "canWrite": "Can write (transactions, assets, watchlist, alerts)",
+    "canDelete": "Can delete",
+    "permRead": "read",
+    "permWrite": "write",
+    "permDelete": "delete",
+    "writeWarning": "With write permission the AI assistant can record and edit transactions, watchlist, alerts and asset classification. Every change is written to the audit log.",
+    "writeDeleteWarning": "With these permissions the AI assistant can also delete transactions, watchlist items and alerts. Deletions are permanent: use this token only with clients that ask for confirmation."
   }
 }

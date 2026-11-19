@@ -867,6 +867,13 @@
     "noTokens": "Keine aktiven Tokens.",
     "setupTitle": "Client-Einrichtung",
     "jsonConfig": "Claude Desktop / andere Clients (JSON)",
-    "setupHint": "Ersetze <TOKEN> durch den erstellten Token. Der Server bietet nur Lesewerkzeuge: Portfolio, Allokation, Konten, Transaktionen, Performance, Risiko, X-Ray, Dividenden, Watchlist und Steuerbericht."
+    "setupHint": "Ersetze <TOKEN> durch den erstellten Token. Lesewerkzeuge: Portfolio, Allokation, Konten, Transaktionen, Performance, Risiko, X-Ray, Dividenden, Watchlist, Alerts, Steuerbericht und Asset-Suche. Mit den passenden Rechten auch Schreiben (Transaktionen, Assets, Watchlist, Alerts) und Löschen.",
+    "canWrite": "Darf schreiben (Transaktionen, Assets, Watchlist, Alerts)",
+    "canDelete": "Darf löschen",
+    "permRead": "Lesen",
+    "permWrite": "Schreiben",
+    "permDelete": "Löschen",
+    "writeWarning": "Mit Schreibrecht kann der KI-Assistent Transaktionen, Watchlist, Alerts und die Asset-Klassifizierung erfassen und ändern. Jede Änderung wird im Audit-Log protokolliert.",
+    "writeDeleteWarning": "Mit diesen Rechten kann der KI-Assistent auch Transaktionen, Watchlist-Einträge und Alerts löschen. Löschungen sind endgültig: nutze diesen Token nur mit Clients, die nach Bestätigung fragen."
   }
 }

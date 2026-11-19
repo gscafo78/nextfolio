@@ -93,7 +93,7 @@ def test_holdings_without_values_hides_amounts():
 
 
 def test_transactions_table_hides_amounts():
-    tx = SimpleNamespace(date=date(2024, 3, 1), type="BUY", account=SimpleNamespace(name="Fineco"),
+    tx = SimpleNamespace(id=1, date=date(2024, 3, 1), type="BUY", account=SimpleNamespace(name="Fineco"),
                          asset=_asset(), quantity=10, price=100.0, price_currency="EUR",
                          exchange_rate=1.0, fee=2.95)
     assert "2.95" in ai.transactions_table([tx], with_values=True)
@@ -165,7 +165,8 @@ def fake_access(monkeypatch):
     async def _resolve(db, token):
         if token != "nfmcp_ok":
             return None
-        return user, SimpleNamespace(id=1, can_read_values=state["can_read_values"])
+        return user, SimpleNamespace(id=1, can_read_values=state["can_read_values"], can_write=False,
+                                     can_delete=False)
 
     async def _user(db, uid):
         return user if uid == 42 else None
@@ -203,7 +204,7 @@ async def test_mcp_disabled(monkeypatch):
         assert r.status_code == 404
 
 
-async def test_mcp_lists_read_only_tools(fake_access):
+async def test_mcp_lists_tools_with_annotations(fake_access):
     async with mcp_client() as mcp_client_:
         h = {**MCP_HEADERS, "Authorization": "Bearer nfmcp_ok"}
         r = await mcp_client_.post("/api/mcp/", headers=h, json=_rpc("initialize", {
@@ -217,7 +218,16 @@ async def test_mcp_lists_read_only_tools(fake_access):
         tools = {t["name"]: t for t in r.json()["result"]["tools"]}
         assert {"get-portfolio", "get-accounts", "get-transactions", "get-performance", "get-allocation",
                 "get-risk-metrics", "get-xray", "get-dividends", "get-watchlist", "get-tax-report"} <= set(tools)
-        assert all(t["annotations"]["readOnlyHint"] for t in tools.values())
+        read = {"get-portfolio", "get-accounts", "get-transactions", "get-performance", "get-allocation",
+            "get-risk-metrics", "get-xray", "get-dividends", "get-watchlist", "get-tax-report",
+            "search-assets", "get-alerts"}
+    assert all(tools[n]["annotations"]["readOnlyHint"] for n in read)
+    deletes = {"delete-transaction", "remove-from-watchlist", "delete-alert"}
+    assert all(tools[n]["annotations"]["destructiveHint"] for n in deletes)
+    writes = set(tools) - read
+    assert {"create-transactions", "update-transaction", "create-asset", "update-asset", "add-to-watchlist",
+            "create-alert"} <= writes
+    assert not any(tools[n]["annotations"]["readOnlyHint"] for n in writes)
 
 
 @pytest.mark.parametrize("can_read_values", [False, True])
@@ -254,7 +264,7 @@ _PASS = "TestPass123!"
 async def _login(c) -> dict:
     try:
         await c.post("/api/v1/auth/register", json={"email": _EMAIL, "password": _PASS, "name": "Pytest AI"})
-        login = await c.post("/api/v1/auth/login", data={"username": _EMAIL, "password": _PASS})
+        login = await c.post("/api/v1/auth/login", json={"email": _EMAIL, "password": _PASS})
     except Exception as e:  # DB non raggiungibile
         pytest.skip(f"Database non disponibile: {e}")
     if login.status_code != 200:
