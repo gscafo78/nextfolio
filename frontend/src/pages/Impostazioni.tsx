@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Building2, Coins, Landmark, Briefcase, HelpCircle, ShieldCheck, ShieldOff, Copy, Check, CheckCircle2, XCircle, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Coins, Landmark, Briefcase, HelpCircle, ShieldCheck, ShieldOff, Copy, Check, CheckCircle2, XCircle, Send, Wallet } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,7 +14,7 @@ import { accountService, type Account, type AccountType } from "@/services/trans
 import { authService } from "@/services/auth";
 import { adminService } from "@/services/admin";
 import { useAuth } from "@/hooks/useAuth";
-import { applyTheme, type ThemeMode } from "@/context/ThemeContext";
+import { applyTheme, useZenMode, type ThemeMode } from "@/context/ThemeContext";
 import i18n from "@/i18n";
 
 // ── Tipi conto ───────────────────────────────────────────────────────────────
@@ -235,6 +235,132 @@ function AccountRow({ account, onEdit, onDelete }: { account: Account; onEdit: (
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Saldo di cassa del conto ─────────────────────────────────────────────────
+
+function CashBalanceRow({ account }: { account: Account }) {
+  const { t, i18n } = useTranslation();
+  const zenMode = useZenMode();
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(today);
+  const [error, setError] = useState<string | null>(null);
+
+  const fmt = (v: number) =>
+    v.toLocaleString(i18n.language, { style: "currency", currency: account.currency, maximumFractionDigits: 2 });
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString(i18n.language);
+
+  const history = useQuery({
+    queryKey: ["account-balances", account.id],
+    queryFn: () => accountService.balances(account.id),
+    enabled: showHistory,
+  });
+
+  const refresh = () => {
+    for (const key of ["accounts", "account-balances", "portfolio-dashboard", "xray", "portfolio-summary", "allocation"]) {
+      qc.invalidateQueries({ queryKey: [key] });
+    }
+  };
+
+  const save = useMutation({
+    mutationFn: () => accountService.setBalance(account.id, { balance: Number(amount.replace(",", ".")), date }),
+    onSuccess: () => { refresh(); setEditing(false); setError(null); },
+    onError: (e: unknown) => {
+      setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("settings.cash.saveError"));
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (balanceId: number) => accountService.deleteBalance(account.id, balanceId),
+    onSuccess: refresh,
+  });
+
+  const valid = amount.trim() !== "" && !Number.isNaN(Number(amount.replace(",", "."))) && date <= today;
+
+  return (
+    <div className="px-5 pb-3 -mt-2 text-xs">
+      {!editing ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-500">
+          <Wallet className="w-3.5 h-3.5 text-gray-400" />
+          {account.cash_balance != null ? (
+            <span>
+              {t("settings.cash.label")}: <strong className="text-gray-800">{zenMode ? "•••••" : fmt(account.cash_balance)}</strong>
+              {" "}{t("settings.cash.asOf", { date: fmtDate(account.cash_balance_date!) })}
+            </span>
+          ) : (
+            <span className="text-gray-400">{t("settings.cash.none")}</span>
+          )}
+          <button
+            className="text-brand-600 hover:underline"
+            onClick={() => { setAmount(account.cash_balance != null ? String(account.cash_balance) : ""); setDate(today); setEditing(true); }}
+          >
+            {t("settings.cash.update")}
+          </button>
+          {account.cash_balance != null && (
+            <button className="text-gray-400 hover:text-gray-600 hover:underline" onClick={() => setShowHistory((v) => !v)}>
+              {showHistory ? t("settings.cash.hideHistory") : t("settings.cash.history")}
+            </button>
+          )}
+        </div>
+      ) : (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => { e.preventDefault(); if (valid) save.mutate(); }}
+        >
+          <label className="flex flex-col gap-0.5 text-gray-500">
+            {t("settings.cash.amount", { currency: account.currency })}
+            <input
+              autoFocus
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-36 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="0,00"
+            />
+          </label>
+          <label className="flex flex-col gap-0.5 text-gray-500">
+            {t("settings.cash.date")}
+            <input
+              type="date"
+              value={date}
+              max={today}
+              onChange={(e) => setDate(e.target.value)}
+              className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </label>
+          <Button type="submit" size="sm" disabled={!valid} loading={save.isPending}>{t("common.save")}</Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => { setEditing(false); setError(null); }}>
+            {t("common.cancel")}
+          </Button>
+          {error && <span className="text-red-600 w-full">{error}</span>}
+          <span className="text-gray-400 w-full">{t("settings.cash.hint")}</span>
+        </form>
+      )}
+
+      {showHistory && !editing && (
+        <div className="mt-2 ml-5 space-y-0.5">
+          {history.isLoading && <p className="text-gray-400">{t("common.loading")}</p>}
+          {(history.data ?? []).map((b) => (
+            <div key={b.id} className="flex items-center gap-3 text-gray-500">
+              <span className="w-24">{fmtDate(b.date)}</span>
+              <span className="w-32 text-right font-medium text-gray-700">{zenMode ? "•••••" : fmt(b.balance)}</span>
+              <button
+                className="text-gray-300 hover:text-red-500"
+                title={t("common.delete")}
+                onClick={() => remove.mutate(b.id)}
+                disabled={remove.isPending}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -683,7 +809,10 @@ export function Impostazioni() {
                         />
                       </div>
                     ) : (
-                      <AccountRow account={acc} onEdit={setEditing} onDelete={handleDelete} />
+                      <>
+                        <AccountRow account={acc} onEdit={setEditing} onDelete={handleDelete} />
+                        <CashBalanceRow account={acc} />
+                      </>
                     )}
                   </div>
                 ))}

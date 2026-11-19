@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+import datetime
+
+from pydantic import BaseModel, Field
 
 from app.models.account import AccountType
 
@@ -35,5 +37,19 @@ class AccountOut(BaseModel):
     is_sostituto_imposta: bool
     is_foreign: bool
     coupon_auto_register: bool
+
+    model_config = {"from_attributes": True}
+
+
+class AccountBalanceIn(BaseModel):
+    balance: float = Field(description="Saldo di cassa nella valuta del conto")
+    date: datetime.date | None = Field(None, description="Data del saldo (default: oggi)")
+
+
+class AccountBalanceOut(BaseModel):
+    id: int
+    account_id: int
+    date: datetime.date
+    balance: float
 
     model_config = {"from_attributes": True}

@@ -157,7 +157,9 @@
       "YTD": "ADJ",
       "1Y": "1 an",
       "MAX": "Max"
-    }
+    },
+    "cash": "Liquidités",
+    "netWorth": "Patrimoine"
   },
   "transactions": {
     "title": "Transactions",
@@ -607,6 +609,18 @@
       "CRYPTO": "Crypto",
       "PENSION": "Retraite",
       "OTHER": "Autre"
+    },
+    "cash": {
+      "label": "Liquidités",
+      "asOf": "au {{date}}",
+      "none": "Aucun solde de trésorerie saisi",
+      "update": "Mettre à jour le solde",
+      "history": "Historique",
+      "hideHistory": "Masquer l'historique",
+      "amount": "Solde ({{currency}})",
+      "date": "Date",
+      "hint": "Le solde le plus récent est le solde actuel ; un nouveau solde à la même date remplace le précédent. Les liquidités comptent dans le patrimoine, l'allocation et la réserve de liquidités X-Ray, pas dans le rendement.",
+      "saveError": "Impossible d'enregistrer le solde."
     }
   },
   "tools": {

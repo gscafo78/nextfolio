@@ -31,6 +31,8 @@ export interface PortfolioSummaryOut {
   daily_change_eur: number;
   positions_count: number;
   income_eur: number;
+  cash_eur: number;
+  net_worth_eur: number;
 }
 
 export interface PerformancePoint {

@@ -96,6 +96,7 @@ from app.services.portfolio.allocation import calculate_allocation
 from app.services.portfolio.performance import get_portfolio_performance
 from app.services.portfolio.risk import compute_risk_metrics
 from app.services.portfolio.classification import build_asset_info
+from app.services.cash import latest_balances, total_cash_eur
 from app.services.portfolio.positions import calculate_positions, realized_and_income
 from app.services.portfolio.xirr import xirr as compute_xirr
 from app.services.transaction import get_transactions
@@ -237,13 +238,16 @@ async def get_dashboard(
     Il param ``period`` arricchisce ogni posizione con period_pnl_eur/period_pnl_pct."""
     transactions = await _load_all_transactions(db, current_user.id)
     positions = calculate_positions(transactions)
+    cash = await latest_balances(db, current_user.id)
+    cash_eur = total_cash_eur(cash)
 
     if not positions:
-        empty_alloc = AllocationOut(by_type=[], by_currency=[], by_account=[], total_value_eur=0.0)
+        empty_alloc = calculate_allocation({}, {}, {}, {}, cash=cash)
         empty_summary = PortfolioSummaryOut(
             total_value_eur=0.0, total_invested_eur=0.0, total_pnl_eur=0.0,
             total_pnl_pct=0.0, realized_pnl_eur=0.0, unrealized_pnl_eur=0.0,
             daily_change_eur=0.0, positions_count=0,
+            cash_eur=round(cash_eur, 2), net_worth_eur=round(cash_eur, 2),
         )
         return DashboardOut(summary=empty_summary, positions=[], allocation=empty_alloc)
 
@@ -291,6 +295,8 @@ async def get_dashboard(
         daily_change_eur=round(daily_change, 2),
         positions_count=len(positions),
         income_eur=round(income, 2),
+        cash_eur=round(cash_eur, 2),
+        net_worth_eur=round(total_value + cash_eur, 2),
     )
 
     # ── Prezzi a inizio periodo (per period_pnl) ──────────────────────────────
@@ -374,7 +380,7 @@ async def get_dashboard(
         if acc_value > 0:
             account_values[acc.name] = acc_value
 
-    allocation = calculate_allocation(positions, asset_info, price_eur, account_values)
+    allocation = calculate_allocation(positions, asset_info, price_eur, account_values, cash=cash)
 
     return DashboardOut(summary=summary, positions=positions_out, allocation=allocation)
 
@@ -428,6 +434,7 @@ async def get_summary(
     realized_pnl, income = realized_and_income(transactions)
     total_pnl = unrealized_pnl + realized_pnl + income
     total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0.0
+    cash_eur = total_cash_eur(await latest_balances(db, current_user.id))
 
     return PortfolioSummaryOut(
         total_value_eur=round(total_value, 2),
@@ -439,6 +446,8 @@ async def get_summary(
         daily_change_eur=round(daily_change, 2),
         positions_count=len(positions),
         income_eur=round(income, 2),
+        cash_eur=round(cash_eur, 2),
+        net_worth_eur=round(total_value + cash_eur, 2),
     )
 
 
@@ -724,7 +733,8 @@ async def get_allocation(
         if acc_value > 0:
             account_values[acc.name] = acc_value
 
-    return calculate_allocation(positions, asset_info, price_eur, account_values)
+    cash = await latest_balances(db, current_user.id)
+    return calculate_allocation(positions, asset_info, price_eur, account_values, cash=cash)
 
 
 # ── Dividendi e cedole ───────────────────────────────────────────────────────
@@ -1300,7 +1310,9 @@ async def get_xray(
         v = sum(pos.quantity * price_eur[aid] for aid, pos in acc_pos.items() if aid in price_eur)
         if v > 0:
             account_values[acc.name] = v
-    allocation = calculate_allocation(positions_map, asset_info, price_eur, account_values)
+    cash = await latest_balances(db, current_user.id)
+    cash_eur = sum(b.value_eur for b in cash if b.value_eur > 0)
+    allocation = calculate_allocation(positions_map, asset_info, price_eur, account_values, cash=cash)
 
     from app.models.bond_detail import BondDetail
     bd = await db.execute(
@@ -1312,9 +1324,10 @@ async def get_xray(
         positions=positions_out,
         allocation=allocation,
         transactions=transactions,
-        total_value=total_value,
+        total_value=total_value + cash_eur,
         asset_info=asset_info,
         maturities=maturities,
+        cash_eur=cash_eur,
     )
 
 

@@ -7,7 +7,7 @@ permesso ``can_read_values``.
 
 Permessi per token:
   - lettura (sempre)                → tool ``get-*`` e ``search-assets``
-  - ``can_write``                   → crea/modifica transazioni, asset, watchlist, alert
+  - ``can_write``                   → crea/modifica transazioni, asset, watchlist, alert, saldo di cassa
                                        (tool in ``app/mcp/write_tools.py``)
   - ``can_delete`` (con can_write)  → cancella transazioni, voci di watchlist, alert
 Ogni scrittura è registrata nel log di audit con ``via: mcp``.
@@ -173,8 +173,8 @@ async def get_allocation(ctx: Context, account_id: AccountIdParam = None, asset_
     structured_output=False,
     description=(
         "Conti dell'utente: ID, nome, tipo, broker, valuta, regime amministrato (il broker fa da sostituto "
-        "d'imposta) o dichiarativo, conto estero soggetto a IVAFE, peso % sul valore delle posizioni. "
-        "Se l'accesso legge gli importi anche il valore delle posizioni in EUR."
+        "d'imposta) o dichiarativo, conto estero soggetto a IVAFE, data dell'ultimo saldo di cassa, peso % su "
+        "posizioni e liquidità. Se l'accesso legge gli importi anche il valore delle posizioni e il saldo di cassa."
     ),
 )
 async def get_accounts(ctx: Context) -> str:

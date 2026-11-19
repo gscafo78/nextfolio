@@ -157,7 +157,9 @@
       "YTD": "YTD",
       "1Y": "1 Jahr",
       "MAX": "Max"
-    }
+    },
+    "cash": "Liquidität",
+    "netWorth": "Vermögen"
   },
   "transactions": {
     "title": "Transaktionen",
@@ -607,6 +609,18 @@
       "CRYPTO": "Krypto",
       "PENSION": "Altersvorsorge",
       "OTHER": "Sonstiges"
+    },
+    "cash": {
+      "label": "Liquidität",
+      "asOf": "am {{date}}",
+      "none": "Kein Kontostand erfasst",
+      "update": "Kontostand aktualisieren",
+      "history": "Verlauf",
+      "hideHistory": "Verlauf ausblenden",
+      "amount": "Kontostand ({{currency}})",
+      "date": "Datum",
+      "hint": "Der Kontostand mit dem neuesten Datum ist der aktuelle; ein neuer Stand am selben Datum ersetzt den vorherigen. Liquidität zählt zu Vermögen, Allokation und X-Ray-Liquiditätsreserve, nicht zur Rendite.",
+      "saveError": "Kontostand konnte nicht gespeichert werden."
     }
   },
   "tools": {

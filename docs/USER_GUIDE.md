@@ -90,6 +90,23 @@ Each account row shows colour-coded badges:
 - **Orange "Reg. dichiarativo"** — sostituto d'imposta OFF — you declare in modello Redditi PF
 - **Blue "Estero"** — foreign account — subject to IVAFE calculation
 
+### Cash balance (Liquidità)
+
+Under each account in **Settings → Investment Accounts** a line shows the account's current cash balance.
+
+1. Click **Aggiorna saldo**, enter the balance in the account's currency and the date (default: today; future dates are not allowed).
+2. A new balance on the same date replaces the previous one; the balance with the latest date is the current one.
+3. **Storico** lists all saved balances; the 🗑 button removes one (the previous balance becomes current again).
+
+Cash is included in:
+
+- the Dashboard (*Liquidità* and *Patrimonio* under the portfolio value) and the summary
+- Allocations: asset class **Monetario**, the account's currency, the platform weights
+- X-Ray: the **liquidity reserve** rule and the weights of the other rules
+- the chatbot prompt and the MCP tools (`get-accounts`, `update-account-balance`)
+
+Cash is **not** included in TWRR, P&L or risk metrics: Nextfolio does not record deposits and withdrawals on the account, so cash movements would be wrongly counted as returns.
+
 > **Italian tax note:** Most Italian brokers (Fineco, Directa Plus, Banca Mediolanum) are sostituto d'imposta. Foreign brokers (DEGIRO, Interactive Brokers, Coinbase) are not — you must report gains and dividends in your annual tax return (modello Redditi PF, quadri RT / RW / RL).
 
 ---
@@ -441,7 +458,7 @@ The score is the percentage of rules that pass (status = OK). Rules are grouped 
 
 | Rule | Threshold | Description |
 |---|---|---|
-| Emergency fund | min 2% | Money-market funds and bonds maturing within 12 months (e.g. BOT). A long-dated BTP is not liquidity. Maturity comes from the bond's coupon data or its name (e.g. "Dc30" = Dec 2030). Account cash balances are not tracked yet |
+| Emergency fund | min 2% | Account cash balances, money-market funds and bonds maturing within 12 months (e.g. BOT). A long-dated BTP is not liquidity. Maturity comes from the bond's coupon data or its name (e.g. "Dc30" = Dec 2030). Enter cash balances in Settings → Accounts |
 
 ### Status indicators
 
@@ -667,7 +684,7 @@ Available tools:
 | Permission | Tools |
 |---|---|
 | Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
-| Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
+| Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
 
 How writes work:

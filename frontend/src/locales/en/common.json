@@ -157,7 +157,9 @@
       "YTD": "YTD",
       "1Y": "1 year",
       "MAX": "Max"
-    }
+    },
+    "cash": "Cash",
+    "netWorth": "Net worth"
   },
   "transactions": {
     "title": "Transactions",
@@ -607,6 +609,18 @@
       "CRYPTO": "Crypto",
       "PENSION": "Pension",
       "OTHER": "Other"
+    },
+    "cash": {
+      "label": "Cash",
+      "asOf": "as of {{date}}",
+      "none": "No cash balance entered",
+      "update": "Update balance",
+      "history": "History",
+      "hideHistory": "Hide history",
+      "amount": "Balance ({{currency}})",
+      "date": "Date",
+      "hint": "The balance with the latest date is the current one; a new balance on the same date replaces the previous one. Cash counts in net worth, allocation and the X-Ray liquidity reserve, not in returns.",
+      "saveError": "Could not save the balance."
     }
   },
   "tools": {

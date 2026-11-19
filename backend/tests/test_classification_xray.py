@@ -199,3 +199,36 @@ def test_single_stock_concentration_error():
     info = {**info, 1: {**WORLD, "type": "STOCK"}}
     x = compute_xray(positions=pos, allocation=alloc, transactions=[], total_value=10000, asset_info=info)
     assert _rule(x, "concentration_single_asset").status == "error"
+
+
+# ── Liquidità dei conti ───────────────────────────────────────────────────────
+
+def _cash(value, currency="EUR", account="Trade Republic", account_id=2):
+    from app.services.cash import CashBalance
+    return CashBalance(account_id, account, currency, value, datetime.date(2026, 11, 19), value)
+
+
+def test_allocation_includes_cash_as_money_market():
+    positions = {aid: SimpleNamespace(quantity=v / 10.0) for aid, (_, v) in WEIGHTS.items()}
+    info = {aid: i for aid, (i, _) in WEIGHTS.items()}
+    alloc = calculate_allocation(positions, info, {aid: 10.0 for aid in WEIGHTS},
+                                 {"Trade Republic": 3000, "Scalable": 7000}, cash=[_cash(1000)])
+    assert alloc.total_value_eur == pytest.approx(11000)
+    classes = {i.label: i.pct for i in alloc.by_asset_class}
+    assert classes["Monetario"] == pytest.approx(9.1, abs=0.1)
+    assert {i.label: i.value_eur for i in alloc.by_account}["Trade Republic"] == pytest.approx(4000)
+    assert {i.label for i in alloc.by_type} >= {"Liquidità"}
+
+
+def test_negative_cash_is_ignored():
+    alloc = calculate_allocation({}, {}, {}, {}, cash=[_cash(-500)])
+    assert alloc.total_value_eur == 0
+
+
+def test_xray_liquidity_counts_cash():
+    alloc, pos, info = _portfolio()
+    x = compute_xray(positions=pos, allocation=alloc, transactions=[], total_value=10500, asset_info=info,
+                     cash_eur=500, today=datetime.date(2026, 11, 19))
+    rule = _rule(x, "liquidity_emergency_fund")
+    assert rule.actual == pytest.approx(4.8, abs=0.1)
+    assert rule.status == "ok"

@@ -30,6 +30,16 @@ export interface Account {
   is_foreign: boolean;
   coupon_auto_register: boolean;
   transaction_count: number;
+  cash_balance: number | null;
+  cash_balance_date: string | null;
+  cash_balance_eur: number | null;
+}
+
+export interface AccountBalance {
+  id: number;
+  account_id: number;
+  date: string;
+  balance: number;
 }
 
 export interface Transaction {
@@ -136,6 +146,20 @@ export const accountService = {
 
   async delete(id: number): Promise<void> {
     await api.delete(`/accounts/${id}`);
+  },
+
+  async balances(id: number): Promise<AccountBalance[]> {
+    const { data } = await api.get<AccountBalance[]>(`/accounts/${id}/balances`);
+    return data;
+  },
+
+  async setBalance(id: number, body: { balance: number; date?: string }): Promise<AccountBalance> {
+    const { data } = await api.post<AccountBalance>(`/accounts/${id}/balances`, body);
+    return data;
+  },
+
+  async deleteBalance(id: number, balanceId: number): Promise<void> {
+    await api.delete(`/accounts/${id}/balances/${balanceId}`);
   },
 };
 

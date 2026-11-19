@@ -5,6 +5,18 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.12.0] — 2026-11-19
+### Added
+- **Saldo di cassa per conto** (migration `0026`, tabella `account_balances`): storico per data, il più recente è quello corrente, un nuovo saldo nella stessa data sostituisce il precedente; date future rifiutate; conversione in EUR per conti in altra valuta
+- Impostazioni → Conti: saldo corrente sotto ogni conto, "Aggiorna saldo" e storico con cancellazione
+- API `GET/POST /accounts/{id}/balances`, `DELETE /accounts/{id}/balances/{balance_id}`; `GET /accounts` restituisce l'ultimo saldo
+- Dashboard e riepilogo: `cash_eur` e `net_worth_eur` (investimenti + liquidità)
+- Allocazione: liquidità in "Monetario", nella valuta del conto e nel peso del conto
+- X-Ray: la riserva di liquidità conta il saldo di cassa
+- Report e MCP: liquidità e patrimonio totale nel riepilogo, saldo e data nella tabella conti; tool `update-account-balance` (permesso di scrittura)
+
+---
+
 ## [1.11.0] — 2026-11-19
 ### Added
 - **Server MCP in scrittura**: permessi per token `can_write` e `can_delete` (migration `0025`), scelti alla creazione nella pagina AI e mostrati nella lista token

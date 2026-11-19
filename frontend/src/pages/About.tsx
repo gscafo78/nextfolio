@@ -19,6 +19,20 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.12.0",
+    date: "2026-11-19",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Saldo di cassa per conto con storico per data (Impostazioni → Conti → Aggiorna saldo)",
+          "Liquidità e patrimonio totale in dashboard; liquidità nell'allocazione (Monetario) e nella riserva di liquidità X-Ray",
+          "Saldo di cassa nel report per chatbot e nuovo tool MCP update-account-balance",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.11.0",
     date: "2026-11-19",
     sections: [

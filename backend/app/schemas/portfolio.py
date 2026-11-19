@@ -34,6 +34,8 @@ class PortfolioSummaryOut(BaseModel):
     daily_change_eur: float
     positions_count: int
     income_eur: float = 0.0            # dividendi + cedole + interessi − costi FEE
+    cash_eur: float = 0.0              # liquidità dei conti (ultimo saldo, in EUR)
+    net_worth_eur: float = 0.0         # valore investimenti + liquidità
 
 
 class PerformancePoint(BaseModel):

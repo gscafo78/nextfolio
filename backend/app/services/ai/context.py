@@ -33,6 +33,7 @@ from app.services.portfolio.classification import (
     display_ticker,
     infer_broker,
 )
+from app.services.cash import latest_balances
 from app.services.portfolio.positions import calculate_positions, realized_and_income
 from app.services.transaction import get_transactions
 
@@ -101,6 +102,7 @@ class Snapshot:
     total_invested_eur: float
     income_eur: float = 0.0          # proventi netti (cedole, dividendi, interessi − costi)
     net_contributed_eur: float = 0.0  # acquisti − vendite (capitale netto versato)
+    cash: list = field(default_factory=list)   # list[CashBalance]
     filters: dict = field(default_factory=dict)
 
 
@@ -175,9 +177,12 @@ async def load_snapshot(
             account_values[acc.name] = v
 
     asset_info = {a.id: build_asset_info(a) for a in asset_map.values()}
-    allocation = calculate_allocation(positions, asset_info, price_eur, account_values)
+    # Liquidità: solo senza filtro per tipo di asset (non è uno strumento)
+    cash = [] if asset_type else await latest_balances(db, user.id, account_id=account_id)
+    allocation = calculate_allocation(positions, asset_info, price_eur, account_values, cash=cash)
 
     return Snapshot(
+        cash=cash,
         transactions=txs,
         holdings=holdings,
         accounts=accounts,
@@ -201,15 +206,21 @@ def summary_section(s: Snapshot, with_values: bool) -> str:
     unreal_pct = unreal / cost * 100 if cost > 0 else None
     total_pnl = unreal + s.realized_pnl_eur + s.income_eur
     total_pct = total_pnl / cost * 100 if cost > 0 else None
+    cash_eur = sum(b.value_eur for b in s.cash)
+    net_worth = s.total_value_eur + cash_eur
     rows = [
         ["Posizioni aperte", len(s.holdings)],
+        ["Liquidità sul patrimonio totale %", _pct(cash_eur / net_worth * 100 if net_worth > 0 else None)
+         if s.cash else "saldo di cassa non inserito"],
         ["P&L non realizzato % (sul costo delle posizioni aperte)", _pct(unreal_pct)],
         ["P&L totale % (non realizzato + realizzato + proventi, sul costo delle posizioni aperte)", _pct(total_pct)],
     ]
     if not with_values:
         return table(["Voce", "Valore"], rows)
     rows = [
-        ["Valore di mercato (EUR)", round(s.total_value_eur, 2)],
+        ["Valore di mercato degli investimenti (EUR)", round(s.total_value_eur, 2)],
+        ["Liquidità dei conti (EUR)", round(cash_eur, 2) if s.cash else "non inserita"],
+        ["Patrimonio totale: investimenti + liquidità (EUR)", round(net_worth, 2)],
         ["Costo di carico delle posizioni aperte (EUR)", round(cost, 2)],
         ["P&L non realizzato (EUR)", round(unreal, 2)],
         ["P&L realizzato, incluse posizioni chiuse (EUR)", round(s.realized_pnl_eur, 2)],
@@ -220,7 +231,8 @@ def summary_section(s: Snapshot, with_values: bool) -> str:
     note = (
         f"\n\nNota: capitale netto versato ({s.net_contributed_eur:.2f}) = costo delle posizioni aperte "
         f"({cost:.2f}) − P&L realizzato ({s.realized_pnl_eur:.2f}); la differenza "
-        f"({s.net_contributed_eur - cost:.2f}) è il risultato delle vendite già effettuate."
+        f"({s.net_contributed_eur - cost:.2f}) è il risultato delle vendite già effettuate. "
+        "La liquidità non entra nel P&L né nel TWRR."
     )
     return table(["Voce", "Valore"], rows) + note
 
@@ -281,13 +293,18 @@ WEALTH_TAX_RATE = 0.002  # IVAFE (conti esteri) e imposta di bollo (intermediari
 
 
 def accounts_table(s: Snapshot, with_values: bool) -> str:
-    total = sum(s.account_values.values())
-    headers = ["ID", "Nome", "Tipo", "Broker", "Valuta", "Regime", "Estero", "Imposta patrimoniale", "Peso %"]
+    cash = {b.account_id: b for b in s.cash}
+    values = {acc.id: s.account_values.get(acc.name, 0.0) + max(cash[acc.id].value_eur, 0.0) if acc.id in cash
+              else s.account_values.get(acc.name, 0.0) for acc in s.accounts}
+    total = sum(values.values())
+    headers = ["ID", "Nome", "Tipo", "Broker", "Valuta", "Regime", "Estero", "Imposta patrimoniale",
+               "Saldo cassa aggiornato al", "Peso % (posizioni + cassa)"]
     if with_values:
-        headers += ["Valore posizioni (EUR)", "Imposta patrimoniale stimata (EUR/anno)"]
+        headers += ["Valore posizioni (EUR)", "Saldo cassa (valuta conto)", "Imposta patrimoniale stimata su posizioni (EUR/anno)"]
     rows = []
     for acc in s.accounts:
-        v = s.account_values.get(acc.name, 0.0)
+        pos_value = s.account_values.get(acc.name, 0.0)
+        b = cash.get(acc.id)
         broker = acc.broker or (f"{infer_broker(acc.name, acc.url)} (dedotto)" if infer_broker(acc.name, acc.url) else None)
         wealth_tax = "IVAFE 0,2% (quadro RW)" if acc.is_foreign else "Imposta di bollo 0,2% (trattenuta dal broker)"
         r = [
@@ -295,14 +312,16 @@ def accounts_table(s: Snapshot, with_values: bool) -> str:
             "amministrato" if acc.is_sostituto_imposta else "dichiarativo",
             "sì" if acc.is_foreign else "no",
             wealth_tax,
-            _pct(v / total * 100 if total > 0 else None),
+            b.date.isoformat() if b else "non inserito",
+            _pct(values[acc.id] / total * 100 if total > 0 else None),
         ]
         if with_values:
-            r += [round(v, 2), round(v * WEALTH_TAX_RATE, 2)]
+            r += [round(pos_value, 2), round(b.balance, 2) if b else None, round(pos_value * WEALTH_TAX_RATE, 2)]
         rows.append(r)
     note = (
-        "\n\nImposta patrimoniale stimata sul valore corrente (il calcolo ufficiale usa il valore al 31/12 o "
-        "di fine periodo di rendicontazione; i conti deposito e la liquidità hanno regole proprie)."
+        "\n\nImposta patrimoniale stimata sul valore corrente delle posizioni (il calcolo ufficiale usa il valore al "
+        "31/12 o di fine periodo di rendicontazione). Sulla liquidità in conto corrente si applica invece un importo "
+        "fisso di 34,20 € l'anno (bollo in Italia, IVAFE all'estero) se la giacenza media supera 5.000 €."
     )
     return table(headers, rows) + note
 

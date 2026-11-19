@@ -138,6 +138,7 @@ def calculate_allocation(
     asset_info: dict[int, dict],        # {asset_id: {type, currency, sectors, countries, ...}}
     price_eur: dict[int, float],        # {asset_id: prezzo in EUR}
     account_values: dict[str, float],   # {account_name: valore EUR}
+    cash: list | None = None,           # list[CashBalance] — saldi di cassa dei conti
 ) -> AllocationOut:
     by_type: dict[str, float] = defaultdict(float)
     by_type_count: dict[str, int] = defaultdict(int)
@@ -211,6 +212,24 @@ def calculate_allocation(
                         by_continent_cls[cls][continent] += value * weight * class_weights[cls]
                 if identifier in ("IT", "Italy"):
                     italy_value += value * weight
+
+    # Liquidità dei conti: classe Monetario, valuta del conto, nessun look-through geografico
+    account_values = dict(account_values)
+    for b in cash or []:
+        v = b.value_eur
+        if v <= 0:
+            continue  # saldi negativi (scoperto) non sono un'attività
+        total += v
+        by_type["Liquidità"] += v
+        by_type_count["Liquidità"] += 1
+        label = ASSET_CLASS_LABELS[MONEY_MARKET]
+        by_class[label] += v
+        by_class_count[label] += 1
+        by_currency[b.currency] += v
+        by_currency_count[b.currency] += 1
+        by_fx[b.currency] += v
+        by_sector["Liquidità"] += v
+        account_values[b.account_name] = account_values.get(b.account_name, 0.0) + v
 
     def to_items(values: dict[str, float], counts: dict[str, int]) -> list[AllocationItem]:
         items = [

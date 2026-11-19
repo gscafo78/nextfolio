@@ -70,7 +70,13 @@ GET    /accounts              # list user's accounts
 POST   /accounts              # create account
 PATCH  /accounts/{id}         # update account
 DELETE /accounts/{id}         # delete account (only if no transactions)
+
+GET    /accounts/{id}/balances               # cash balance history, latest first
+POST   /accounts/{id}/balances               # { balance, date? } — upsert by date (default today, no future dates)
+DELETE /accounts/{id}/balances/{balance_id}  # remove one balance
 ```
+
+`GET /accounts` also returns `cash_balance` (account currency), `cash_balance_date` and `cash_balance_eur` for the latest balance.
 
 **Account fields:**
 ```json
@@ -110,7 +116,7 @@ Single endpoint returning positions + performance + allocation in one call (used
 ```
 GET /portfolio/summary
 ```
-`total_pnl_eur` = unrealized + realized (closed positions included) + `income_eur` (coupons, dividends, interest net of separate fees). `total_invested_eur` is the cost basis of open positions.
+`total_pnl_eur` = unrealized + realized (closed positions included) + `income_eur` (coupons, dividends, interest net of separate fees). `total_invested_eur` is the cost basis of open positions. `total_value_eur` is the value of investments; `cash_eur` is the sum of the accounts' latest cash balances and `net_worth_eur` = investments + cash. Cash is part of the allocation (`Monetario`) but not of P&L or TWRR.
 
 ### Performance History
 ```
@@ -366,7 +372,7 @@ Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp
 | Permission | Tools |
 |---|---|
 | read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
-| `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
+| `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
 
 Tokens without `can_read_values` get percentages only (`get-tax-report` returns the rules only). A tool called without the needed permission returns `isError: true` with an explanation. Writes are logged in the audit log (`MCP_*` actions, `detail.via = "mcp"`, `detail.token_id`) and invalidate the performance cache.

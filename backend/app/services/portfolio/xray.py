@@ -61,6 +61,7 @@ def compute_xray(
     asset_info: dict[int, dict] | None = None,      # build_asset_info per asset_id
     maturities: dict[int, date] | None = None,      # scadenze obbligazioni (bond_details)
     today: date | None = None,
+    cash_eur: float = 0.0,                          # liquidità dei conti (inclusa in total_value)
 ) -> XRayResponse:
     asset_info = asset_info or {}
     maturities = maturities or {}
@@ -424,7 +425,7 @@ def compute_xray(
     # 11. Riserva di liquidità: monetario + obbligazioni con vita residua < 12 mesi
     cfg = _DEF["liquidity_emergency_fund"]
     thr_min = cfg["min"]
-    liquid_value = 0.0
+    liquid_value = max(cash_eur, 0.0)
     for p in positions:
         info = asset_info.get(p.asset_id, {"type": p.asset_type, "name": p.name})
         value = p.current_value_eur or 0.0
@@ -435,9 +436,9 @@ def compute_xray(
                 liquid_value += value
     liquid_ratio = liquid_value / total_value if total_value > 0 else 0.0
     desc = (
-        f"Almeno il {thr_min*100:.0f}% in strumenti liquidi e a basso rischio: fondi monetari e obbligazioni con "
-        f"vita residua inferiore a {cfg['max_maturity_months']} mesi (es. BOT). Un BTP a lunga scadenza non è "
-        "liquidità. Il saldo di cassa dei conti non è ancora tracciato."
+        f"Almeno il {thr_min*100:.0f}% in strumenti liquidi e a basso rischio: saldo di cassa dei conti, fondi "
+        f"monetari e obbligazioni con vita residua inferiore a {cfg['max_maturity_months']} mesi (es. BOT). Un BTP a "
+        "lunga scadenza non è liquidità. Inserisci il saldo di cassa nelle impostazioni del conto."
     )
     if total_value > 0:
         rules.append(XRayRule(

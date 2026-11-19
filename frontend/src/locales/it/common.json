@@ -157,7 +157,9 @@
       "YTD": "YTD",
       "1Y": "1 anno",
       "MAX": "Max"
-    }
+    },
+    "cash": "Liquidità",
+    "netWorth": "Patrimonio"
   },
   "transactions": {
     "title": "Transazioni",
@@ -607,6 +609,18 @@
       "CRYPTO": "Crypto",
       "PENSION": "Previdenza",
       "OTHER": "Altro"
+    },
+    "cash": {
+      "label": "Liquidità",
+      "asOf": "al {{date}}",
+      "none": "Saldo di cassa non inserito",
+      "update": "Aggiorna saldo",
+      "history": "Storico",
+      "hideHistory": "Nascondi storico",
+      "amount": "Saldo ({{currency}})",
+      "date": "Data",
+      "hint": "Il saldo con la data più recente è quello corrente; un nuovo saldo nella stessa data sostituisce il precedente. La liquidità entra nel patrimonio, nell'allocazione e nella riserva di liquidità X-Ray, non nel rendimento.",
+      "saveError": "Impossibile salvare il saldo."
     }
   },
   "tools": {

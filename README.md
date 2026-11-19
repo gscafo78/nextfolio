@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.11.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.12.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -14,7 +14,7 @@
 - **FIFO P&L engine** — Realized and unrealized P&L with FIFO lot matching
 - **Real-time prices** — Yahoo Finance, CoinGecko, Borsa Italiana API, ECB FX rates via WebSocket
 - **Multi-currency** — Transactions in any currency; all amounts converted to EUR at transaction rate
-- **Multi-account** — Separate investment accounts per broker, with per-account fiscal regime
+- **Multi-account** — Separate investment accounts per broker, with per-account fiscal regime and cash balance history
 
 ### Tax engine (Italian market)
 - **Capital gains** — 26% (equities, corporate bonds, ETCs); government bonds (BTP/BOT/CCT, white-list sovereigns, supranationals) weighted at 48.08% → effective 12.5%; crypto-assets 26% until 2025, 33% from 2026

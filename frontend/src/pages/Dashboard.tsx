@@ -395,6 +395,13 @@ export function Dashboard() {
                 <p className="text-xs text-gray-400 dark:text-slate-500">
                   {hasPrices ? zen(`${t("dashboard.invested")} € ${totalInvested.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : "—"}
                 </p>
+                {(dashboard?.summary.cash_eur ?? 0) > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    {zen(`${t("dashboard.cash")} € ${dashboard!.summary.cash_eur.toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
+                    {" · "}
+                    {zen(`${t("dashboard.netWorth")} € ${(totalValue + dashboard!.summary.cash_eur).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
+                  </p>
+                )}
               </div>
 
               {/* 3. Performance periodo */}

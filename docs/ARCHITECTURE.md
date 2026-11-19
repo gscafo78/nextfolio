@@ -122,6 +122,7 @@ backend/app/
 │       └── ivafe.py         # IVAFE calculator:
 │                            #   - 0.2% on Dec-31 market value of foreign accounts
 │                            #   - Queries price_history for year-end price
+├── services/cash.py         # Account cash balances (history by date, latest = current, EUR conversion)
 ├── services/ai/context.py   # Portfolio context as Markdown (chatbot prompt + MCP tools)
 ├── mcp/                     # MCP server (Streamable HTTP on /api/mcp, bearer tokens)
 │   ├── server.py            #   auth middleware, read tools, permission checks (read / write / delete)

@@ -54,6 +54,7 @@ MCP_UPDATE_TRANSACTION = "MCP_UPDATE_TRANSACTION"
 MCP_DELETE_TRANSACTION = "MCP_DELETE_TRANSACTION"
 MCP_WATCHLIST = "MCP_WATCHLIST"
 MCP_ALERT = "MCP_ALERT"
+MCP_ACCOUNT_BALANCE = "MCP_ACCOUNT_BALANCE"
 
 
 async def _audit(s: _Session, action: str, entity_type: str, entity_id: int | None, detail: dict) -> None:
@@ -212,6 +213,39 @@ async def update_asset_tool(
         await update_asset(s.db, asset, AssetUpdate(**changes))
         await _audit(s, MCP_UPDATE_ASSET, "asset", asset.id, {"changes": changes})
         return f"Asset {asset.id} ({asset.name}) aggiornato: " + ", ".join(f"{k}={v}" for k, v in changes.items())
+
+
+# ── Saldo di cassa ────────────────────────────────────────────────────────────
+
+
+@mcp.tool(
+    name="update-account-balance",
+    title="Update account balance",
+    annotations=ToolAnnotations(title="Update account balance", **_UPDATE),
+    structured_output=False,
+    description=(
+        "Imposta il saldo di cassa (liquidità) di un conto a una data, nella valuta del conto (richiede il "
+        "permesso di scrittura). Un saldo già presente alla stessa data viene sostituito; il saldo con la data più "
+        "recente è quello corrente. La liquidità entra nel patrimonio totale, nell'allocazione e nella regola "
+        "X-Ray sulla riserva di liquidità. Date future rifiutate."
+    ),
+)
+async def update_account_balance(
+    ctx: Context,
+    account_id: Annotated[int, Field(description="ID conto (vedi get-accounts)")],
+    balance: Annotated[float, Field(description="Saldo di cassa nella valuta del conto")],
+    date: Annotated[datetime.date | None, Field(description="Data del saldo, ISO 8601 (default: oggi)")] = None,
+) -> str:
+    from app.services.cash import set_balance
+
+    async with _Session(ctx, require="write") as s:
+        account = await get_account(s.db, account_id, s.user.id)
+        if not account:
+            raise ToolError(f"Conto {account_id} non trovato: usa get-accounts per l'identificativo.")
+        d = date or datetime.date.today()
+        row = await set_balance(s.db, account, d, balance)
+        await _audit(s, MCP_ACCOUNT_BALANCE, "account", account.id, {"date": d.isoformat(), "balance": balance})
+        return f"Saldo di cassa del conto {account.name} al {row.date}: {row.balance:.2f} {account.currency}."
 
 
 # ── Transazioni ───────────────────────────────────────────────────────────────
