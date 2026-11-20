@@ -344,6 +344,18 @@ GET    /planning/scenarios/compare?ids=1,2,3     # up to 4, side by side
 POST   /planning/scenarios/{id}/execute          # { account_id, date, items: [{item_id, quantity, price, price_currency?, exchange_rate?, fee}] }
 ```
 
+```
+GET    /planning/targets                         # target allocation { weights (% per class), tolerance_pct, preferred }
+PUT    /planning/targets                         # weights must sum to 100
+GET    /planning/drift                           # { configured, tolerance_pct, classes[current/target/delta/out_of_band], out_of_band }
+POST   /planning/contribution                    # { amount_eur?, from_cash, whole_units, min_order_eur, fee_per_order_eur } → buy-only orders
+POST   /planning/projection                      # { target_amount, target_date, monthly_contribution, initial_amount?, inflation_pct, returns_pct?, volatility_pct?, weights_pct? }
+POST   /planning/fire                            # { annual_expenses, withdrawal_rate_pct, monthly_contribution, current_amount?, inflation_pct, horizon_years }
+GET    /planning/goals                           # saved goals (POST, PUT /{id}, DELETE /{id})
+```
+
+Asset class keys: `EQUITY`, `BOND`, `MONEY_MARKET`, `CRYPTO`, `OTHER`. Projections use 5,000 Monte Carlo paths with a fixed seed (same inputs → same result); values are in today's euros.
+
 `/planning/simulate` returns `allocation_before/after` (same shape as `/portfolio/allocation`), `xray_before/after`, `rule_changes[]` (`before_status`, `after_status`, `changed`), `weights[]` (`before_pct`, `after_pct`, `delta_pct`, `new`), totals (net worth, cash, invested, fees) and `warnings[]`. Yahoo data is cached in Redis (search 24 h, price 15 min, history 12 h, profile 7 days).
 
 ---
@@ -391,7 +403,7 @@ Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp
 
 | Permission | Tools |
 |---|---|
-| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios` |
+| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal` |
 | `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
 

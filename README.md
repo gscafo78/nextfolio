@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.13.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.14.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -46,6 +46,8 @@
 - **Security search** — Name, ticker or ISIN with suggestions after 3 characters, from Nextfolio and Yahoo Finance (also securities never bought), type filters, security card with chart, metrics and look-through
 - **Purchase simulator** — What-if purchases (new money or account cash): asset class, currency exposure, weights and every X-Ray rule before → after
 - **Scenarios** — Save, compare (up to 4) and execute scenarios as real transactions
+- **Smart contribution** — Target allocation by asset class with tolerance band and drift alert; buy-only suggestions for a new contribution or the available cash
+- **Goals & FIRE** — Monte Carlo projection (probability, percentiles, contribution needed), FIRE calculator, simple PAC projection
 
 ### AI
 - **Chatbot prompt** — One click generates a text with your portfolio (holdings, allocation, performance, risk, X-Ray, dividends) plus analysis instructions, ready to paste into ChatGPT, Claude, Gemini, …; amounts optional (percentages only)

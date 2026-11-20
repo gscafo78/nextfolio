@@ -9,16 +9,25 @@ from app.core.deps import get_current_user
 from app.models.asset import Asset
 from app.models.user import User
 from app.services.portfolio.allocation import TYPE_LABELS
+from app.services.portfolio.classification import (
+    BOND,
+    CRYPTO,
+    EQUITY,
+    MONEY_MARKET,
+    OTHER,
+    asset_class,
+    build_asset_info,
+)
 from app.services.portfolio.positions import calculate_positions
 
 router = APIRouter(prefix="/portfolio", tags=["rebalance"])
 
-# Mappa label allocazione → tipi asset appartenenti a quel gruppo
+# Gruppi del ribilanciamento, per asset class del sottostante (un ETF obbligazionario è "Obbligazioni")
 _GROUP_TYPES: dict[str, list[str]] = {
-    "Azioni":       ["STOCK", "ETF", "REIT"],
-    "Obbligazioni": ["BOND"],
-    "Crypto":       ["CRYPTO"],
-    "Altro":        ["COMMODITY"],
+    "Azioni":       [EQUITY],
+    "Obbligazioni": [BOND],
+    "Crypto":       [CRYPTO],
+    "Altro":        [MONEY_MARKET, OTHER],
 }
 
 
@@ -88,8 +97,8 @@ async def rebalance(
         asset = asset_map.get(aid)
         if not asset or aid not in price_eur:
             continue
-        raw_type = asset.type if isinstance(asset.type, str) else asset.type.value
-        group = next((g for g, types in _GROUP_TYPES.items() if raw_type in types), "Altro")
+        cls = asset_class(build_asset_info(asset))
+        group = next((g for g, classes in _GROUP_TYPES.items() if cls in classes), "Altro")
         asset_to_group[aid] = group
         group_value_current[group] = group_value_current.get(group, 0) + positions[aid].quantity * price_eur[aid]
 

@@ -12,6 +12,12 @@ Pagina Pianifica — ricerca titoli, scheda titolo, simulazione d'acquisto, scen
   DELETE /planning/scenarios/{id}
   GET    /planning/scenarios/compare?ids=1,2 simulazioni affiancate
   POST   /planning/scenarios/{id}/execute    registra gli acquisti come transazioni reali
+  GET    /planning/targets                   allocazione obiettivo (PUT per salvarla)
+  GET    /planning/drift                     scostamento dall'allocazione obiettivo
+  POST   /planning/contribution              versamento intelligente (solo acquisti)
+  POST   /planning/projection                proiezione Monte Carlo verso un obiettivo
+  POST   /planning/fire                      calcolatore FIRE
+  GET    /planning/goals                     obiettivi salvati (POST/PUT/DELETE)
 """
 from __future__ import annotations
 
@@ -109,7 +115,9 @@ async def search(
     # i titoli in portafoglio prima
     out.sort(key=lambda r: (not r.in_portfolio, not r.in_watchlist, r.name.lower()))
 
-    if external_search:
+    # Un ISIN già presente in Nextfolio identifica il titolo: niente altre quotazioni da Yahoo
+    exact_isin = any((r.isin or "").upper() == q.upper() for r in out)
+    if external_search and not exact_isin:
         known = {(r.symbol or "").upper() for r in out} | {(r.isin or "").upper() for r in out}
         for y in await external.search_yahoo(q, limit=10):
             if type and y["type"] != type:
@@ -591,3 +599,249 @@ async def execute_scenario(scenario_id: int, body: ExecuteIn, db: AsyncSession =
     await db.commit()
     await invalidate_perf_cache(current_user.id)
     return {"created": [t.id for t in created], "skipped_rows": skipped}
+
+
+# ── Allocazione obiettivo e versamento intelligente ──────────────────────────
+
+from app.models.planning import PlanningGoal, PlanningTarget  # noqa: E402
+from app.services.planning import contribution as contrib  # noqa: E402
+from app.services.planning import projection as proj  # noqa: E402
+from app.services.portfolio.classification import ASSET_CLASSES  # noqa: E402
+
+ClassLit = Literal["EQUITY", "BOND", "MONEY_MARKET", "CRYPTO", "OTHER"]
+
+
+class PreferredInstrument(BaseModel):
+    asset_id: int | None = None
+    symbol: str | None = Field(None, max_length=50)
+    name: str = Field(max_length=200)
+    type: AssetTypeLit = "ETF"
+    weight: float = Field(1.0, gt=0)
+
+
+class TargetsIO(BaseModel):
+    weights: dict[ClassLit, float] = Field(description="Pesi per asset class in % (somma 100)")
+    tolerance_pct: float = Field(5.0, ge=0, le=50)
+    preferred: dict[ClassLit, list[PreferredInstrument]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _sum(self):
+        tot = sum(self.weights.values())
+        if any(v < 0 for v in self.weights.values()) or abs(tot - 100) > 0.5:
+            raise ValueError(f"I pesi devono essere positivi e sommare a 100 (ora {tot:.1f})")
+        return self
+
+
+async def _targets(db: AsyncSession, user: User) -> PlanningTarget | None:
+    return (await db.execute(select(PlanningTarget).where(PlanningTarget.user_id == user.id))).scalar_one_or_none()
+
+
+@router.get("/targets", response_model=TargetsIO | None)
+async def get_targets(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    t = await _targets(db, current_user)
+    if not t:
+        return None
+    return TargetsIO(weights={k: round(v * 100, 2) for k, v in t.weights.items()}, tolerance_pct=t.tolerance_pct,
+                     preferred=t.preferred or {})
+
+
+@router.put("/targets", response_model=TargetsIO)
+async def put_targets(body: TargetsIO, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    t = await _targets(db, current_user) or PlanningTarget(user_id=current_user.id)
+    t.weights = {k: v / 100 for k, v in body.weights.items() if v > 0}
+    t.tolerance_pct = body.tolerance_pct
+    t.preferred = {k: [p.model_dump() for p in v] for k, v in body.preferred.items() if v}
+    t.updated_at = datetime.datetime.now(datetime.timezone.utc)
+    db.add(t)
+    await db.commit()
+    return body
+
+
+@router.get("/drift")
+async def get_drift(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Scostamento attuale dall'allocazione obiettivo (``configured=false`` se non impostata)."""
+    t = await _targets(db, current_user)
+    if not t or not t.weights:
+        return {"configured": False, "tolerance_pct": None, "classes": [], "out_of_band": False}
+    snap = await load_snapshot(db, current_user)
+    rows = contrib.drift(contrib.class_values(snap), t.weights, t.tolerance_pct)
+    return {"configured": True, "tolerance_pct": t.tolerance_pct, "classes": rows,
+            "out_of_band": any(r["out_of_band"] for r in rows)}
+
+
+class ContributionIn(BaseModel):
+    amount_eur: float | None = Field(None, gt=0, description="Default: liquidità disponibile se from_cash")
+    from_cash: bool = False
+    whole_units: bool = True
+    min_order_eur: float = Field(0.0, ge=0)
+    fee_per_order_eur: float = Field(0.0, ge=0)
+
+
+async def _instrument_price(db: AsyncSession, snap, p: dict) -> float | None:
+    if p.get("asset_id"):
+        if p["asset_id"] in snap.price_eur:
+            return snap.price_eur[p["asset_id"]]
+        asset = await get_asset_by_id(db, p["asset_id"])
+        return ((await _local_price(db, asset)) or {}).get("price_eur") if asset else None
+    if p.get("symbol"):
+        return ((await external.quote_eur(p["symbol"])) or {}).get("price_eur")
+    return None
+
+
+async def run_contribution(db: AsyncSession, user: User, body: ContributionIn) -> dict:
+    t = await _targets(db, user)
+    if not t or not t.weights:
+        raise HTTPException(400, "Imposta prima l'allocazione obiettivo")
+    snap = await load_snapshot(db, user)
+    values = contrib.class_values(snap)
+    amount = body.amount_eur
+    if amount is None:
+        if not body.from_cash:
+            raise HTTPException(400, "Indica l'importo da investire")
+        amount = values.get("MONEY_MARKET", 0.0)
+        if amount <= 0:
+            raise HTTPException(400, "Nessuna liquidità registrata: inserisci il saldo dei conti o un importo")
+
+    instruments: dict[str, list[contrib.Instrument]] = {}
+    for cls in ASSET_CLASSES:
+        prefs = (t.preferred or {}).get(cls) or []
+        if prefs:
+            items = []
+            for p in prefs:
+                price = await _instrument_price(db, snap, p)
+                items.append(contrib.Instrument(name=p["name"], price_eur=price or 0.0, weight=p.get("weight", 1.0),
+                                                asset_id=p.get("asset_id"), symbol=p.get("symbol"),
+                                                type=p.get("type", "ETF")))
+            instruments[cls] = items
+        else:  # posizioni già detenute nella classe, in proporzione al valore
+            held = [(aid, pos.quantity * snap.price_eur[aid]) for aid, pos in snap.positions.items()
+                    if aid in snap.price_eur and asset_class(snap.asset_info.get(aid, {})) == cls]
+            instruments[cls] = [contrib.Instrument(name=snap.asset_info[aid].get("name", str(aid)),
+                                                   price_eur=snap.price_eur[aid], weight=v, asset_id=aid,
+                                                   type=snap.asset_info[aid].get("type", "ETF")) for aid, v in held if v > 0]
+    plan = contrib.plan_contribution(values, t.weights, amount, instruments, from_cash=body.from_cash,
+                                     whole_units=body.whole_units, min_order_eur=body.min_order_eur,
+                                     fee_per_order_eur=body.fee_per_order_eur)
+    return {"amount_eur": round(plan.amount_eur, 2), "from_cash": body.from_cash, "per_class": plan.per_class,
+            "orders": [o.__dict__ for o in plan.orders], "uninvested_eur": plan.uninvested_eur,
+            "warnings": plan.warnings}
+
+
+@router.post("/contribution")
+async def contribution(body: ContributionIn, db: AsyncSession = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
+    return await run_contribution(db, current_user, body)
+
+
+# ── Obiettivi, proiezione, FIRE ──────────────────────────────────────────────
+
+
+class AssumptionsIn(BaseModel):
+    """Ipotesi di rendimento e volatilità annui in % per asset class (default di lungo periodo)."""
+    returns_pct: dict[ClassLit, float] = Field(default_factory=dict)
+    volatility_pct: dict[ClassLit, float] = Field(default_factory=dict)
+    weights_pct: dict[ClassLit, float] | None = Field(None, description="Default: allocazione attuale")
+
+
+async def _mu_sigma(db: AsyncSession, user: User, a: AssumptionsIn) -> tuple[float, float, dict, float]:
+    snap = await load_snapshot(db, user)
+    values = contrib.class_values(snap)
+    weights = {k: v / 100 for k, v in a.weights_pct.items()} if a.weights_pct else values
+    over = {c: ((a.returns_pct.get(c, proj.DEFAULT_ASSUMPTIONS[c][0] * 100)) / 100,
+                (a.volatility_pct.get(c, proj.DEFAULT_ASSUMPTIONS[c][1] * 100)) / 100) for c in ASSET_CLASSES}
+    mu, sigma = proj.portfolio_assumptions(weights, over)
+    tot = sum(weights.values()) or 1.0
+    return mu, sigma, {k: round(v / tot * 100, 2) for k, v in weights.items() if v > 0}, sum(values.values())
+
+
+class ProjectionIn(AssumptionsIn):
+    target_amount: float = Field(gt=0)
+    target_date: datetime.date
+    monthly_contribution: float = Field(0.0, ge=0)
+    initial_amount: float | None = Field(None, ge=0, description="Default: patrimonio attuale")
+    inflation_pct: float = Field(2.0, ge=-5, le=20)
+
+
+@router.post("/projection")
+async def projection(body: ProjectionIn, db: AsyncSession = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
+    months = (body.target_date.year - datetime.date.today().year) * 12 + body.target_date.month - datetime.date.today().month
+    if months < 1:
+        raise HTTPException(400, "La data dell'obiettivo deve essere futura")
+    mu, sigma, weights, net_worth = await _mu_sigma(db, current_user, body)
+    initial = body.initial_amount if body.initial_amount is not None else net_worth
+    g = proj.project_goal(initial, body.monthly_contribution, months, body.target_amount, mu, sigma,
+                          body.inflation_pct / 100)
+    return {**g.__dict__, "initial_amount": round(initial, 2), "weights_pct": weights,
+            "expected_return_pct": round(mu * 100, 2), "volatility_pct": round(sigma * 100, 2)}
+
+
+class FireIn(AssumptionsIn):
+    annual_expenses: float = Field(gt=0)
+    withdrawal_rate_pct: float = Field(3.5, gt=0, le=10)
+    monthly_contribution: float = Field(0.0, ge=0)
+    current_amount: float | None = Field(None, ge=0)
+    inflation_pct: float = Field(2.0, ge=-5, le=20)
+    horizon_years: int = Field(40, ge=5, le=70)
+
+
+@router.post("/fire")
+async def fire_calc(body: FireIn, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    mu, sigma, weights, net_worth = await _mu_sigma(db, current_user, body)
+    current = body.current_amount if body.current_amount is not None else net_worth
+    f = proj.fire(current, body.monthly_contribution, body.annual_expenses, body.withdrawal_rate_pct / 100, mu, sigma,
+                  body.inflation_pct / 100, body.horizon_years)
+    return {**f.__dict__, "current_amount": round(current, 2), "weights_pct": weights,
+            "expected_return_pct": round(mu * 100, 2), "volatility_pct": round(sigma * 100, 2)}
+
+
+class GoalIO(BaseModel):
+    id: int | None = None
+    name: str = Field(min_length=1, max_length=100)
+    target_amount: float = Field(gt=0)
+    target_date: datetime.date
+    monthly_contribution: float = Field(0.0, ge=0)
+    initial_amount: float | None = Field(None, ge=0)
+    inflation_pct: float = Field(2.0, ge=-5, le=20)
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/goals", response_model=list[GoalIO])
+async def list_goals(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = (await db.execute(select(PlanningGoal).where(PlanningGoal.user_id == current_user.id)
+                             .order_by(PlanningGoal.target_date))).scalars()
+    return [GoalIO.model_validate(g) for g in rows]
+
+
+@router.post("/goals", response_model=GoalIO, status_code=201)
+async def create_goal(body: GoalIO, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    g = PlanningGoal(user_id=current_user.id, **body.model_dump(exclude={"id"}))
+    db.add(g)
+    await db.commit()
+    await db.refresh(g)
+    return GoalIO.model_validate(g)
+
+
+async def _goal(db: AsyncSession, user: User, goal_id: int) -> PlanningGoal:
+    g = await db.get(PlanningGoal, goal_id)
+    if not g or g.user_id != user.id:
+        raise HTTPException(404, "Obiettivo non trovato")
+    return g
+
+
+@router.put("/goals/{goal_id}", response_model=GoalIO)
+async def update_goal(goal_id: int, body: GoalIO, db: AsyncSession = Depends(get_db),
+                      current_user: User = Depends(get_current_user)):
+    g = await _goal(db, current_user, goal_id)
+    for k, v in body.model_dump(exclude={"id"}).items():
+        setattr(g, k, v)
+    await db.commit()
+    await db.refresh(g)
+    return GoalIO.model_validate(g)
+
+
+@router.delete("/goals/{goal_id}", status_code=204)
+async def delete_goal(goal_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    await db.delete(await _goal(db, current_user, goal_id))
+    await db.commit()

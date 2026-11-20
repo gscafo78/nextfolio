@@ -201,9 +201,11 @@ function ExecuteDialog({ scenario, sim, onClose }: { scenario: Scenario; sim: Si
 }
 
 /** Carrello di acquisti ipotetici + risultati della simulazione + salvataggio/esecuzione dello scenario. */
-export function PurchaseSimulator({ scenario, onScenarioSaved }: {
+export function PurchaseSimulator({ scenario, onScenarioSaved, preset }: {
   scenario: Scenario | null;
   onScenarioSaved: (s: Scenario | null) => void;
+  /** Acquisti precompilati (es. dal versamento intelligente); ``nonce`` cambia a ogni invio. */
+  preset?: { items: PlanItem[]; useCash: boolean; nonce: number } | null;
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -218,6 +220,12 @@ export function PurchaseSimulator({ scenario, onScenarioSaved }: {
     setUseCash(scenario?.use_cash ?? false);
     setName(scenario?.name ?? "");
   }, [scenario]);
+
+  useEffect(() => {
+    if (!preset) return;
+    setItems(preset.items);
+    setUseCash(preset.useCash);
+  }, [preset?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const key = useMemo(() => JSON.stringify({ items, useCash }), [items, useCash]);
   const sim = useQuery({

@@ -117,6 +117,80 @@ export interface ExecuteItem {
   account_id?: number | null;
 }
 
+
+export type AssetClassKey = "EQUITY" | "BOND" | "MONEY_MARKET" | "CRYPTO" | "OTHER";
+export const ASSET_CLASS_KEYS: AssetClassKey[] = ["EQUITY", "BOND", "MONEY_MARKET", "CRYPTO", "OTHER"];
+
+export interface PreferredInstrument {
+  asset_id: number | null;
+  symbol: string | null;
+  name: string;
+  type: PlanAssetType;
+  weight: number;
+}
+
+export interface Targets {
+  weights: Partial<Record<AssetClassKey, number>>;   // percentuali, somma 100
+  tolerance_pct: number;
+  preferred: Partial<Record<AssetClassKey, PreferredInstrument[]>>;
+}
+
+export interface DriftRow {
+  class: AssetClassKey; label: string; current_pct: number; target_pct: number; delta_pct: number; out_of_band: boolean;
+}
+
+export interface ContributionPlan {
+  amount_eur: number;
+  from_cash: boolean;
+  per_class: { class: AssetClassKey; label: string; target_pct: number; before_pct: number; after_pct: number; allocated_eur: number }[];
+  orders: { name: string; asset_class: string; amount_eur: number; quantity: number; price_eur: number; fee_eur: number;
+    asset_id: number | null; symbol: string | null; type: PlanAssetType }[];
+  uninvested_eur: number;
+  warnings: string[];
+}
+
+export interface Assumptions {
+  returns_pct?: Partial<Record<AssetClassKey, number>>;
+  volatility_pct?: Partial<Record<AssetClassKey, number>>;
+  weights_pct?: Partial<Record<AssetClassKey, number>> | null;
+}
+
+export interface Projection {
+  months: number;
+  probability: number;
+  median_final: number;
+  p10_final: number;
+  p90_final: number;
+  total_contributed: number;
+  required_monthly_80: number | null;
+  yearly: { year: number; p10: number; p25: number; p50: number; p75: number; p90: number; contributed: number }[];
+  initial_amount: number;
+  weights_pct: Partial<Record<AssetClassKey, number>>;
+  expected_return_pct: number;
+  volatility_pct: number;
+}
+
+export interface FireResult {
+  target_capital: number;
+  years_to_fire_median: number | null;
+  years_to_fire_p10: number | null;
+  success_probability: number;
+  sustainable_withdrawal_90: number;
+  current_amount: number;
+  expected_return_pct: number;
+  volatility_pct: number;
+}
+
+export interface Goal {
+  id?: number;
+  name: string;
+  target_amount: number;
+  target_date: string;
+  monthly_contribution: number;
+  initial_amount: number | null;
+  inflation_pct: number;
+}
+
 const toBody = (items: PlanItem[]) =>
   items.map((i) => ({
     asset_id: i.asset_id,
@@ -183,5 +257,49 @@ export const planningService = {
   async execute(id: number, body: { account_id: number; date: string; items: ExecuteItem[] }) {
     const { data } = await api.post<{ created: number[]; skipped_rows: number[] }>(`/planning/scenarios/${id}/execute`, body);
     return data;
+  },
+
+  async targets(): Promise<Targets | null> {
+    const { data } = await api.get<Targets | null>("/planning/targets");
+    return data;
+  },
+
+  async saveTargets(t: Targets): Promise<Targets> {
+    const { data } = await api.put<Targets>("/planning/targets", t);
+    return data;
+  },
+
+  async drift(): Promise<{ configured: boolean; tolerance_pct: number | null; classes: DriftRow[]; out_of_band: boolean }> {
+    const { data } = await api.get("/planning/drift");
+    return data;
+  },
+
+  async contribution(body: { amount_eur?: number | null; from_cash: boolean; whole_units: boolean; min_order_eur: number; fee_per_order_eur: number }): Promise<ContributionPlan> {
+    const { data } = await api.post<ContributionPlan>("/planning/contribution", body);
+    return data;
+  },
+
+  async projection(body: Assumptions & { target_amount: number; target_date: string; monthly_contribution: number; initial_amount?: number | null; inflation_pct: number }): Promise<Projection> {
+    const { data } = await api.post<Projection>("/planning/projection", body);
+    return data;
+  },
+
+  async fire(body: Assumptions & { annual_expenses: number; withdrawal_rate_pct: number; monthly_contribution: number; current_amount?: number | null; inflation_pct: number; horizon_years: number }): Promise<FireResult> {
+    const { data } = await api.post<FireResult>("/planning/fire", body);
+    return data;
+  },
+
+  async goals(): Promise<Goal[]> {
+    const { data } = await api.get<Goal[]>("/planning/goals");
+    return data;
+  },
+
+  async saveGoal(g: Goal): Promise<Goal> {
+    const { data } = g.id ? await api.put<Goal>(`/planning/goals/${g.id}`, g) : await api.post<Goal>("/planning/goals", g);
+    return data;
+  },
+
+  async deleteGoal(id: number): Promise<void> {
+    await api.delete(`/planning/goals/${id}`);
   },
 };

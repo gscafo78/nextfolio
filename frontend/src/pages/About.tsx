@@ -19,6 +19,24 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.14.0",
+    date: "2026-11-20",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Versamento intelligente: allocazione obiettivo, scostamento e suggerimenti di acquisto senza vendere",
+          "Obiettivi: proiezione Monte Carlo con probabilità di successo e versamento necessario",
+          "Calcolatore FIRE per l'indipendenza finanziaria",
+        ],
+      },
+      {
+        type: "changed",
+        items: ["Il calcolatore PAC si trova ora in Pianifica → Obiettivi", "Ribilanciamento X-Ray per asset class del sottostante"],
+      },
+    ],
+  },
+  {
     version: "1.13.0",
     date: "2026-11-19",
     sections: [

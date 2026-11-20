@@ -170,3 +170,47 @@ async def test_execute_rejects_other_users_account(fake_yahoo):
         r = await c.post(f"/api/v1/planning/scenarios/{sc['id']}/execute", headers=h, json={
             "account_id": other_id, "items": [{"item_id": sc["items"][0]["id"], "quantity": 1, "price": 100}]})
         assert r.status_code == 400 and "conto" in r.json()["detail"]
+
+
+# ── 1.14: allocazione obiettivo, versamento, obiettivi, proiezione, FIRE ─────
+
+async def test_targets_drift_and_contribution(fake_yahoo):
+    async with _env() as (c, auth, ids):
+        h = auth(ids["user"])
+        assert (await c.get("/api/v1/planning/targets", headers=h)).json() is None
+        assert (await c.get("/api/v1/planning/drift", headers=h)).json()["configured"] is False
+        bad = await c.put("/api/v1/planning/targets", headers=h, json={"weights": {"EQUITY": 70, "BOND": 20}})
+        assert bad.status_code == 422                               # non somma 100
+        body = {"weights": {"EQUITY": 70, "BOND": 30}, "tolerance_pct": 5,
+                "preferred": {"BOND": [{"symbol": "X13G.DE", "name": "Govt 1-3", "type": "ETF", "weight": 1}]}}
+        assert (await c.put("/api/v1/planning/targets", headers=h, json=body)).status_code == 200
+        assert (await c.get("/api/v1/planning/targets", headers=h)).json()["weights"] == {"EQUITY": 70.0, "BOND": 30.0}
+        d = (await c.get("/api/v1/planning/drift", headers=h)).json()
+        eq = next(r for r in d["classes"] if r["class"] == "EQUITY")
+        assert eq["current_pct"] == pytest.approx(100) and d["out_of_band"] is True
+
+        plan = (await c.post("/api/v1/planning/contribution", headers=h, json={"amount_eur": 1400})).json()
+        assert [o["name"] for o in plan["orders"]] == ["Govt 1-3"] and plan["orders"][0]["quantity"] == 10
+        none = await c.post("/api/v1/planning/contribution", headers=h, json={"from_cash": True})
+        assert none.status_code == 400                              # nessuna liquidità registrata
+
+
+async def test_goals_projection_fire(fake_yahoo):
+    async with _env() as (c, auth, ids):
+        h = auth(ids["user"])
+        target_date = (TODAY.replace(year=TODAY.year + 10)).isoformat()
+        g = (await c.post("/api/v1/planning/goals", headers=h, json={
+            "name": "Casa", "target_amount": 50_000, "target_date": target_date, "monthly_contribution": 200})).json()
+        assert g["id"] and (await c.get("/api/v1/planning/goals", headers=h)).json()[0]["name"] == "Casa"
+        assert (await c.get("/api/v1/planning/goals", headers=auth(ids["other"]))).json() == []
+        p = (await c.post("/api/v1/planning/projection", headers=h, json={
+            "target_amount": 50_000, "target_date": target_date, "monthly_contribution": 200})).json()
+        assert p["initial_amount"] == pytest.approx(10_000) and 0 <= p["probability"] <= 1
+        assert p["weights_pct"] == {"EQUITY": 100.0} and p["expected_return_pct"] == pytest.approx(7.0)
+        past = await c.post("/api/v1/planning/projection", headers=h, json={"target_amount": 1, "target_date": "2020-01-01"})
+        assert past.status_code == 400
+        f = (await c.post("/api/v1/planning/fire", headers=h, json={"annual_expenses": 24_000})).json()
+        assert f["target_capital"] == pytest.approx(24_000 / 0.035, rel=1e-3)
+        assert (await c.put(f"/api/v1/planning/goals/{g['id']}", headers=h, json={**g, "target_amount": 60_000})).json()["target_amount"] == 60_000
+        assert (await c.delete(f"/api/v1/planning/goals/{g['id']}", headers=auth(ids["other"]))).status_code == 404
+        assert (await c.delete(f"/api/v1/planning/goals/{g['id']}", headers=h)).status_code == 204

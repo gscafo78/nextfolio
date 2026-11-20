@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FolderOpen, ShoppingCart } from "lucide-react";
+import { FolderOpen, PiggyBank, ShoppingCart, Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
+import { ContributionPlanner } from "@/components/planning/ContributionPlanner";
+import { GoalsProjection } from "@/components/planning/GoalsProjection";
 import { PurchaseSimulator } from "@/components/planning/PurchaseSimulator";
 import { ScenarioList } from "@/components/planning/ScenarioList";
-import type { Scenario } from "@/services/planning";
+import type { PlanItem, Scenario } from "@/services/planning";
 
 const TABS = [
   { key: "simula", icon: ShoppingCart },
   { key: "scenari", icon: FolderOpen },
+  { key: "versamento", icon: PiggyBank },
+  { key: "obiettivi", icon: Target },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -18,6 +22,7 @@ export function Pianifica() {
   const [params, setParams] = useSearchParams();
   const tab = (TABS.find((x) => x.key === params.get("tab"))?.key ?? "simula") as Tab;
   const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [preset, setPreset] = useState<{ items: PlanItem[]; useCash: boolean; nonce: number } | null>(null);
   const go = (k: Tab) => setParams({ tab: k }, { replace: true });
 
   return (
@@ -36,8 +41,16 @@ export function Pianifica() {
           ))}
         </div>
 
-        {tab === "simula" && <PurchaseSimulator scenario={scenario} onScenarioSaved={setScenario} />}
+        {tab === "simula" && <PurchaseSimulator scenario={scenario} onScenarioSaved={setScenario} preset={preset} />}
         {tab === "scenari" && <ScenarioList onOpen={(s) => { setScenario(s); go("simula"); }} />}
+        {tab === "versamento" && (
+          <ContributionPlanner onSimulate={(items, useCash) => {
+            setScenario(null);
+            setPreset({ items, useCash, nonce: Date.now() });
+            go("simula");
+          }} />
+        )}
+        {tab === "obiettivi" && <GoalsProjection />}
       </main>
     </>
   );

@@ -684,7 +684,7 @@ Available tools:
 
 | Permission | Tools |
 |---|---|
-| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios` |
+| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal` |
 | Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
 
@@ -723,6 +723,20 @@ Selecting a result opens its card: current price in EUR, 3-year chart, 1Y return
 - **Salva scenario** keeps the simulation; the **Scenari** tab lists saved scenarios (draft / executed).
 - Tick 2–4 scenarios and click **Confronta** to see them side by side: amount invested, remaining cash, X-Ray score and asset class after each one.
 - **Esegui** on a saved draft opens a dialog with the simulated quantities and prices: adjust them to the actual execution, choose account and date and confirm. The purchases are recorded as real BUY transactions (all or nothing, duplicates skipped); securities found on Yahoo are added to Nextfolio automatically. An executed scenario can no longer be edited.
+
+### Contribution (Versamento)
+
+1. **Allocazione obiettivo**: set the target weight of each underlying asset class (total 100%) and a tolerance band (default ±5%). For each class you can choose the instruments to buy (with weights); without a choice, the instruments you already hold in that class are used. Save.
+2. The **drift** bars show current vs target weight; classes outside the band are highlighted, and the Dashboard shows a notice linking here.
+3. **Versamento intelligente**: enter an amount (or tick *Usa la liquidità dei conti* — empty amount = all cash), optionally minimum order, fee per order and whole units only. Nextfolio suggests what to buy **without selling**: the money goes first to the classes below target. Money that cannot be invested (below minimum order or less than one unit) stays in cash.
+4. **Apri nel simulatore** sends the orders to the purchase simulator, where you can check the effect, save them as a scenario and execute them.
+
+### Goals (Obiettivi)
+
+- **Obiettivo di capitale**: target amount (in today's euros), date, monthly contribution, starting capital (default: current net worth) and inflation. The Monte Carlo projection (5,000 scenarios) shows the probability of reaching the goal, the median and the 10th–90th percentile range, and the monthly contribution needed for an 80% probability. Goals can be saved.
+- Expected return and volatility come from your current allocation and long-term assumptions per asset class (equities 7%/16%, bonds 3%/6%, money market 2%/0.5%, crypto 15%/60%, other 4%/15%), which you can change. They are assumptions, not forecasts.
+- **FIRE**: annual expenses and withdrawal rate give the capital needed; the page estimates the years to get there (median and unfavourable scenario), the probability that the capital lasts for the chosen number of years with inflation-indexed withdrawals, and the sustainable withdrawal with 90% success. Taxes on withdrawals and pensions are not included.
+- **Proiezione semplice**: the deterministic PAC calculator (formerly in Tools). `/strumenti` now opens this tab.
 
 ---
 

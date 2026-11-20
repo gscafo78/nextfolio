@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePeriod } from "@/context/PeriodContext";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DriftNotice } from "@/components/planning/DriftNotice";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useLongPress } from "@/hooks/useLongPress";
 import { ArrowRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
@@ -441,6 +442,8 @@ export function Dashboard() {
               </div>
 
             </div>
+
+            <DriftNotice />
 
             {/* Per-account breakdown */}
             {accountBreakdown.length > 1 && (

@@ -1,7 +1,8 @@
-"""Pagina Pianifica: scenari di acquisto salvati."""
-from datetime import datetime, timezone
+"""Pagina Pianifica: scenari di acquisto, allocazione obiettivo, obiettivi di capitale."""
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -50,3 +51,36 @@ class PlanningScenarioItem(Base):
     account_id:  Mapped[int | None]   = mapped_column(Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
 
     scenario: Mapped[PlanningScenario] = relationship(back_populates="items")
+
+
+class PlanningTarget(Base):
+    """Allocazione obiettivo per asset class (una per utente) e strumenti preferiti per i versamenti.
+
+    ``weights``: {"EQUITY": 0.7, "BOND": 0.25, "MONEY_MARKET": 0.05, ...} (somma 1)
+    ``preferred``: {"EQUITY": [{"asset_id": 1, "symbol": null, "name": "...", "type": "ETF", "weight": 1.0}], ...}
+    """
+
+    __tablename__ = "planning_targets"
+
+    id:            Mapped[int]      = mapped_column(Integer, primary_key=True)
+    user_id:       Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    weights:       Mapped[dict]     = mapped_column(JSONB, nullable=False, default=dict)
+    tolerance_pct: Mapped[float]    = mapped_column(Float, default=5.0)
+    preferred:     Mapped[dict]     = mapped_column(JSONB, nullable=False, default=dict)
+    updated_at:    Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class PlanningGoal(Base):
+    """Obiettivo di capitale (es. 100.000 € nel 2040)."""
+
+    __tablename__ = "planning_goals"
+
+    id:                   Mapped[int]          = mapped_column(Integer, primary_key=True)
+    user_id:              Mapped[int]          = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name:                 Mapped[str]          = mapped_column(String(100), nullable=False)
+    target_amount:        Mapped[float]        = mapped_column(Float, nullable=False)
+    target_date:          Mapped[date]         = mapped_column(Date, nullable=False)
+    monthly_contribution: Mapped[float]        = mapped_column(Float, default=0.0)
+    initial_amount:       Mapped[float | None] = mapped_column(Float, nullable=True)  # None = patrimonio attuale
+    inflation_pct:        Mapped[float]        = mapped_column(Float, default=2.0)
+    created_at:           Mapped[datetime]     = mapped_column(DateTime(timezone=True), default=_now)

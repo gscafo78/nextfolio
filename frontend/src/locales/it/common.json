@@ -895,7 +895,9 @@
     "intro": "Cerca titoli, simula acquisti e confronta scenari prima di investire. Nulla viene registrato finché non esegui uno scenario.",
     "tabs": {
       "simula": "Simula acquisto",
-      "scenari": "Scenari"
+      "scenari": "Scenari",
+      "versamento": "Versamento",
+      "obiettivi": "Obiettivi"
     },
     "search": {
       "placeholder": "Cerca per nome, ticker o ISIN (es. MSCI World, SWDA, IE00B4L5Y983)",
@@ -969,6 +971,97 @@
       "priceEur": "Prezzo (EUR)",
       "confirm": "Registra transazioni",
       "done": "{{n}} transazioni registrate ({{skipped}} già presenti)."
+    },
+    "classes": {
+      "EQUITY": "Azioni",
+      "BOND": "Obbligazioni",
+      "MONEY_MARKET": "Monetario / liquidità",
+      "CRYPTO": "Crypto",
+      "OTHER": "Altro"
+    },
+    "contrib": {
+      "targetsTitle": "Allocazione obiettivo",
+      "targetsDesc": "Pesi per asset class del sottostante. Per ogni classe puoi scegliere gli strumenti in cui investire i versamenti.",
+      "instrumentWeight": "Peso nella classe",
+      "addInstrument": "Aggiungi strumento",
+      "chooseInstrument": "Scegli lo strumento",
+      "defaultInstruments": "Senza strumenti scelti si usano quelli già in portafoglio per questa classe.",
+      "total": "Totale {{total}}%",
+      "tolerance": "Tolleranza ±",
+      "saveTargets": "Salva allocazione",
+      "driftTitle": "Scostamento dall'obiettivo (tolleranza ±{{tol}}%)",
+      "title": "Versamento intelligente",
+      "desc": "Suggerisce cosa comprare per avvicinarti all'allocazione obiettivo senza vendere (niente costi né imposte di vendita).",
+      "saveTargetsFirst": "Salva prima l'allocazione obiettivo.",
+      "amount": "Importo €",
+      "allCash": "tutta la liquidità",
+      "minOrder": "Ordine minimo €",
+      "feePerOrder": "Commissione per ordine €",
+      "fromCash": "Usa la liquidità dei conti",
+      "wholeUnits": "Solo quote intere",
+      "calculate": "Calcola",
+      "class": "Classe",
+      "orderAmount": "Importo",
+      "uninvested": "Non investiti (restano in liquidità): {{amount}}",
+      "target": "obiettivo",
+      "openInSimulator": "Apri nel simulatore"
+    },
+    "goals": {
+      "title": "Obiettivo di capitale",
+      "desc": "Proiezione Monte Carlo (5.000 scenari) del patrimonio con i versamenti mensili, in euro di oggi.",
+      "new": "Nuovo",
+      "name": "Nome",
+      "namePlaceholder": "es. Casa, Pensione",
+      "targetAmount": "Obiettivo (€ di oggi)",
+      "targetDate": "Entro il",
+      "monthly": "Versamento mensile €",
+      "initial": "Capitale iniziale €",
+      "currentNetWorth": "patrimonio attuale",
+      "inflation": "Inflazione %",
+      "editAssumptions": "Modifica le ipotesi di rendimento",
+      "hideAssumptions": "Nascondi le ipotesi",
+      "returnPct": "Rendimento %",
+      "volPct": "Volatilità %",
+      "assumptionsNote": "Ipotesi di lungo periodo per asset class, pesate sull'allocazione attuale. Non sono previsioni.",
+      "project": "Calcola proiezione",
+      "save": "Salva obiettivo",
+      "update": "Aggiorna obiettivo",
+      "untitled": "Obiettivo",
+      "probability": "Probabilità di raggiungerlo",
+      "median": "Valore mediano (P10 – P90)",
+      "contributed": "Totale versato",
+      "required80": "Versamento per l'80%",
+      "monthShort": "mese",
+      "chartNote": "Fascia chiara: 10°–90° percentile; scura: 25°–75°; linea: mediana; tratteggio grigio: versato; verde: obiettivo. Rendimento atteso {{ret}}%, volatilità {{vol}}%.",
+      "yearShort": "a",
+      "year": "Anno",
+      "yearsLong": "anni",
+      "yearShortLong": "anno",
+      "series": {
+        "band": "P10–P90",
+        "mid": "P25–P75",
+        "p50": "Mediana",
+        "contributed": "Versato"
+      }
+    },
+    "fire": {
+      "title": "Indipendenza finanziaria (FIRE)",
+      "desc": "Quanto capitale serve per vivere di rendita e quando potresti arrivarci.",
+      "expenses": "Spese annue €",
+      "rate": "Tasso di prelievo %",
+      "horizon": "Anni di prelievo",
+      "calculate": "Calcola",
+      "target": "Capitale necessario",
+      "years": "Anni per arrivarci (mediana)",
+      "pessimistic": "scenario sfavorevole",
+      "over50": "oltre 50 anni",
+      "success": "Capitale sufficiente per {{years}} anni",
+      "sustainable": "Prelievo sostenibile (90%)",
+      "note": "Prelievi indicizzati all'inflazione. Non sono considerate le imposte del 26% sulle plusvalenze realizzate con i prelievi né la pensione."
+    },
+    "drift": {
+      "notice": "Allocazione fuori dalla tolleranza di ±{{tol}}%:",
+      "action": "pianifica un versamento"
     }
   }
 }

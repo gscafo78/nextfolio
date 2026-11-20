@@ -5,6 +5,20 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.14.0] — 2026-11-20
+### Added
+- **Versamento intelligente** (scheda Versamento): allocazione obiettivo per asset class con tolleranza e strumenti preferiti (migration `0028`, `GET/PUT /planning/targets`), barre di scostamento (`GET /planning/drift`) e avviso in dashboard, suggerimento "solo acquisti" per un importo o per la liquidità (`POST /planning/contribution`) con quote intere, ordine minimo e commissioni, apertura nel simulatore
+- **Obiettivi** (scheda Obiettivi): proiezione Monte Carlo a 5.000 scenari (`POST /planning/projection`) con probabilità, percentili in euro di oggi e versamento necessario per l'80%; ipotesi per asset class modificabili; obiettivi salvati (`/planning/goals`)
+- **FIRE** (`POST /planning/fire`): capitale necessario, anni stimati, probabilità che il capitale duri, prelievo sostenibile al 90%
+- Tool MCP di lettura `suggest-contribution`, `project-goal`
+
+### Changed
+- Il calcolatore PAC è nella scheda Obiettivi (proiezione semplice); `/strumenti` reindirizza lì e la voce Strumenti esce dal menu
+- Ribilanciamento di X-Ray raggruppato per asset class del sottostante (un ETF obbligazionario conta come obbligazioni)
+- Ricerca: con un ISIN già presente in Nextfolio non si aggiungono altre quotazioni da Yahoo; cache di yfinance in `/tmp`
+
+---
+
 ## [1.13.0] — 2026-11-19
 ### Added
 - **Pagina Pianifica** (`/pianifica`, icona `Compass`; i18n IT/EN/FR/DE)

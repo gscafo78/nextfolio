@@ -20,6 +20,12 @@ from app.models.asset import AssetType, Exchange
 
 logger = logging.getLogger(__name__)
 
+try:  # nel container la home non è scrivibile: cache di yfinance in /tmp
+    import yfinance as _yf
+    _yf.set_tz_cache_location("/tmp/py-yfinance")
+except Exception:  # pragma: no cover
+    pass
+
 _TTL_SEARCH = 24 * 3600
 _TTL_QUOTE = 15 * 60
 _TTL_HISTORY = 12 * 3600

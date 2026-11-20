@@ -895,7 +895,9 @@
     "intro": "Wertpapiere suchen, Käufe simulieren und Szenarien vergleichen, bevor du investierst. Nichts wird erfasst, bis du ein Szenario ausführst.",
     "tabs": {
       "simula": "Kauf simulieren",
-      "scenari": "Szenarien"
+      "scenari": "Szenarien",
+      "versamento": "Einzahlung",
+      "obiettivi": "Ziele"
     },
     "search": {
       "placeholder": "Suche nach Name, Ticker oder ISIN (z. B. MSCI World, SWDA, IE00B4L5Y983)",
@@ -969,6 +971,97 @@
       "priceEur": "Kurs (EUR)",
       "confirm": "Transaktionen erfassen",
       "done": "{{n}} Transaktionen erfasst ({{skipped}} bereits vorhanden)."
+    },
+    "classes": {
+      "EQUITY": "Aktien",
+      "BOND": "Anleihen",
+      "MONEY_MARKET": "Geldmarkt / Liquidität",
+      "CRYPTO": "Krypto",
+      "OTHER": "Sonstige"
+    },
+    "contrib": {
+      "targetsTitle": "Zielallokation",
+      "targetsDesc": "Gewichte pro Anlageklasse des Basiswerts. Für jede Klasse kannst du die Instrumente für Einzahlungen wählen.",
+      "instrumentWeight": "Gewicht in der Klasse",
+      "addInstrument": "Instrument hinzufügen",
+      "chooseInstrument": "Instrument wählen",
+      "defaultInstruments": "Ohne gewählte Instrumente werden die in dieser Klasse gehaltenen verwendet.",
+      "total": "Summe {{total}} %",
+      "tolerance": "Toleranz ±",
+      "saveTargets": "Allokation speichern",
+      "driftTitle": "Abweichung vom Ziel (Toleranz ±{{tol}} %)",
+      "title": "Intelligente Einzahlung",
+      "desc": "Schlägt vor, was du kaufen solltest, um dich der Zielallokation ohne Verkäufe zu nähern (keine Verkaufskosten oder Steuern).",
+      "saveTargetsFirst": "Speichere zuerst die Zielallokation.",
+      "amount": "Betrag €",
+      "allCash": "gesamte Liquidität",
+      "minOrder": "Mindestorder €",
+      "feePerOrder": "Gebühr pro Order €",
+      "fromCash": "Kontoliquidität verwenden",
+      "wholeUnits": "Nur ganze Anteile",
+      "calculate": "Berechnen",
+      "class": "Klasse",
+      "orderAmount": "Betrag",
+      "uninvested": "Nicht investiert (bleibt liquide): {{amount}}",
+      "target": "Ziel",
+      "openInSimulator": "Im Simulator öffnen"
+    },
+    "goals": {
+      "title": "Kapitalziel",
+      "desc": "Monte-Carlo-Projektion (5.000 Szenarien) des Vermögens mit monatlichen Einzahlungen, in heutigen Euro.",
+      "new": "Neu",
+      "name": "Name",
+      "namePlaceholder": "z. B. Haus, Rente",
+      "targetAmount": "Ziel (heutige €)",
+      "targetDate": "Bis",
+      "monthly": "Monatliche Einzahlung €",
+      "initial": "Startkapital €",
+      "currentNetWorth": "aktuelles Vermögen",
+      "inflation": "Inflation %",
+      "editAssumptions": "Renditeannahmen bearbeiten",
+      "hideAssumptions": "Annahmen ausblenden",
+      "returnPct": "Rendite %",
+      "volPct": "Volatilität %",
+      "assumptionsNote": "Langfristige Annahmen pro Anlageklasse, gewichtet nach der aktuellen Allokation. Keine Prognosen.",
+      "project": "Projektion berechnen",
+      "save": "Ziel speichern",
+      "update": "Ziel aktualisieren",
+      "untitled": "Ziel",
+      "probability": "Wahrscheinlichkeit, es zu erreichen",
+      "median": "Medianwert (P10 – P90)",
+      "contributed": "Gesamt eingezahlt",
+      "required80": "Einzahlung für 80 %",
+      "monthShort": "Monat",
+      "chartNote": "Helles Band: 10.–90. Perzentil; dunkel: 25.–75.; Linie: Median; grau gestrichelt: eingezahlt; grün: Ziel. Erwartete Rendite {{ret}} %, Volatilität {{vol}} %.",
+      "yearShort": "J",
+      "year": "Jahr",
+      "yearsLong": "Jahre",
+      "yearShortLong": "Jahr",
+      "series": {
+        "band": "P10–P90",
+        "mid": "P25–P75",
+        "p50": "Median",
+        "contributed": "Eingezahlt"
+      }
+    },
+    "fire": {
+      "title": "Finanzielle Unabhängigkeit (FIRE)",
+      "desc": "Wie viel Kapital du brauchst, um von deinen Anlagen zu leben, und wann du es erreichen könntest.",
+      "expenses": "Jährliche Ausgaben €",
+      "rate": "Entnahmerate %",
+      "horizon": "Jahre der Entnahme",
+      "calculate": "Berechnen",
+      "target": "Benötigtes Kapital",
+      "years": "Jahre bis dahin (Median)",
+      "pessimistic": "ungünstiges Szenario",
+      "over50": "über 50 Jahre",
+      "success": "Kapital reicht {{years}} Jahre",
+      "sustainable": "Nachhaltige Entnahme (90 %)",
+      "note": "Entnahmen inflationsindexiert. Die 26 % Steuer auf durch Entnahmen realisierte Gewinne und die Rente sind nicht berücksichtigt."
+    },
+    "drift": {
+      "notice": "Allokation außerhalb der Toleranz von ±{{tol}} %:",
+      "action": "Einzahlung planen"
     }
   }
 }

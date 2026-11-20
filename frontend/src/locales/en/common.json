@@ -895,7 +895,9 @@
     "intro": "Search securities, simulate purchases and compare scenarios before investing. Nothing is recorded until you execute a scenario.",
     "tabs": {
       "simula": "Simulate purchase",
-      "scenari": "Scenarios"
+      "scenari": "Scenarios",
+      "versamento": "Contribution",
+      "obiettivi": "Goals"
     },
     "search": {
       "placeholder": "Search by name, ticker or ISIN (e.g. MSCI World, SWDA, IE00B4L5Y983)",
@@ -969,6 +971,97 @@
       "priceEur": "Price (EUR)",
       "confirm": "Record transactions",
       "done": "{{n}} transactions recorded ({{skipped}} already present)."
+    },
+    "classes": {
+      "EQUITY": "Equities",
+      "BOND": "Bonds",
+      "MONEY_MARKET": "Money market / cash",
+      "CRYPTO": "Crypto",
+      "OTHER": "Other"
+    },
+    "contrib": {
+      "targetsTitle": "Target allocation",
+      "targetsDesc": "Weights per underlying asset class. For each class you can choose the instruments to invest contributions in.",
+      "instrumentWeight": "Weight in class",
+      "addInstrument": "Add instrument",
+      "chooseInstrument": "Choose instrument",
+      "defaultInstruments": "Without chosen instruments, the ones already held in this class are used.",
+      "total": "Total {{total}}%",
+      "tolerance": "Tolerance ±",
+      "saveTargets": "Save allocation",
+      "driftTitle": "Drift from target (tolerance ±{{tol}}%)",
+      "title": "Smart contribution",
+      "desc": "Suggests what to buy to get closer to the target allocation without selling (no selling costs or taxes).",
+      "saveTargetsFirst": "Save the target allocation first.",
+      "amount": "Amount €",
+      "allCash": "all cash",
+      "minOrder": "Minimum order €",
+      "feePerOrder": "Fee per order €",
+      "fromCash": "Use account cash",
+      "wholeUnits": "Whole units only",
+      "calculate": "Calculate",
+      "class": "Class",
+      "orderAmount": "Amount",
+      "uninvested": "Not invested (stays in cash): {{amount}}",
+      "target": "target",
+      "openInSimulator": "Open in simulator"
+    },
+    "goals": {
+      "title": "Savings goal",
+      "desc": "Monte Carlo projection (5,000 scenarios) of your net worth with monthly contributions, in today's euros.",
+      "new": "New",
+      "name": "Name",
+      "namePlaceholder": "e.g. House, Retirement",
+      "targetAmount": "Target (today's €)",
+      "targetDate": "By",
+      "monthly": "Monthly contribution €",
+      "initial": "Starting capital €",
+      "currentNetWorth": "current net worth",
+      "inflation": "Inflation %",
+      "editAssumptions": "Edit return assumptions",
+      "hideAssumptions": "Hide assumptions",
+      "returnPct": "Return %",
+      "volPct": "Volatility %",
+      "assumptionsNote": "Long-term assumptions per asset class, weighted on the current allocation. Not forecasts.",
+      "project": "Run projection",
+      "save": "Save goal",
+      "update": "Update goal",
+      "untitled": "Goal",
+      "probability": "Probability of reaching it",
+      "median": "Median value (P10 – P90)",
+      "contributed": "Total contributed",
+      "required80": "Contribution for 80%",
+      "monthShort": "month",
+      "chartNote": "Light band: 10th–90th percentile; dark: 25th–75th; line: median; grey dashes: contributed; green: target. Expected return {{ret}}%, volatility {{vol}}%.",
+      "yearShort": "y",
+      "year": "Year",
+      "yearsLong": "years",
+      "yearShortLong": "year",
+      "series": {
+        "band": "P10–P90",
+        "mid": "P25–P75",
+        "p50": "Median",
+        "contributed": "Contributed"
+      }
+    },
+    "fire": {
+      "title": "Financial independence (FIRE)",
+      "desc": "How much capital you need to live off your investments and when you could get there.",
+      "expenses": "Annual expenses €",
+      "rate": "Withdrawal rate %",
+      "horizon": "Years of withdrawals",
+      "calculate": "Calculate",
+      "target": "Capital needed",
+      "years": "Years to get there (median)",
+      "pessimistic": "unfavourable scenario",
+      "over50": "over 50 years",
+      "success": "Capital lasts {{years}} years",
+      "sustainable": "Sustainable withdrawal (90%)",
+      "note": "Withdrawals are inflation-indexed. The 26% tax on gains realised through withdrawals and pensions are not considered."
+    },
+    "drift": {
+      "notice": "Allocation outside the ±{{tol}}% tolerance:",
+      "action": "plan a contribution"
     }
   }
 }

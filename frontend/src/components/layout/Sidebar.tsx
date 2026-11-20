@@ -5,7 +5,6 @@ import {
   TrendingUp,
   PieChart,
   Calculator,
-  Wrench,
   Bell,
   Upload,
   ShieldCheck,
@@ -34,7 +33,6 @@ export function Sidebar() {
     { to: "/watchlist", label: t("nav.watchlist"), icon: Eye },
     { to: "/pianifica", label: t("nav.planning"), icon: Compass },
     { to: "/ai",        label: t("nav.ai"),        icon: Sparkles },
-    { to: "/strumenti", label: t("nav.tools"), icon: Wrench },
     { to: "/alert", label: t("nav.alerts"), icon: Bell },
     { to: "/import", label: t("nav.import"), icon: Upload },
   ];

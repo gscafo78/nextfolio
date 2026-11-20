@@ -118,3 +118,91 @@ async def get_scenarios(ctx: Context) -> str:
                           [[i.name, i.amount_eur, i.quantity, i.price_eur] for i in sc.items])
             out.append(f"### {sc.name} (ID {sc.id}, {'eseguito' if sc.status == 'executed' else 'bozza'})\n{items}")
         return "\n\n".join(out) if out else "_Nessuno scenario salvato._"
+
+
+@mcp.tool(
+    name="suggest-contribution",
+    title="Suggest contribution",
+    annotations=ToolAnnotations(title="Suggest contribution", **_READ),
+    structured_output=False,
+    description=(
+        "Suggerisce cosa comprare con un importo (o con la liquidità dei conti) per avvicinare il portafoglio "
+        "all'allocazione obiettivo impostata nella pagina Pianifica, senza vendere. Non registra nulla."
+    ),
+)
+async def suggest_contribution(
+    ctx: Context,
+    amount_eur: Annotated[float | None, Field(gt=0, description="Importo; vuoto = tutta la liquidità (con from_cash)")] = None,
+    from_cash: bool = False,
+    whole_units: bool = True,
+) -> str:
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.planning import ContributionIn, run_contribution
+
+    async with _Session(ctx) as s:
+        try:
+            plan = await run_contribution(s.db, s.user, ContributionIn(amount_eur=amount_eur, from_cash=from_cash,
+                                                                       whole_units=whole_units))
+        except HTTPException as e:
+            raise ToolError(str(e.detail)) from e
+        out = [f"Importo da investire: {plan['amount_eur']:.2f} €"
+               f"{' (dalla liquidità)' if from_cash else ''}; non investiti: {plan['uninvested_eur']:.2f} €."]
+        out.append(table(["Classe", "Obiettivo %", "Prima %", "Dopo %", "Allocati €"],
+                         [[c["label"], c["target_pct"], c["before_pct"], c["after_pct"], c["allocated_eur"]]
+                          for c in plan["per_class"]]))
+        out.append(table(["Titolo", "Classe", "Quantità", "Prezzo €", "Importo €"],
+                         [[o["name"], o["asset_class"], o["quantity"], round(o["price_eur"], 2), o["amount_eur"]]
+                          for o in plan["orders"]]))
+        if plan["warnings"]:
+            out.append("\n".join(f"- ⚠ {w}" for w in plan["warnings"]))
+        return "\n\n".join(out)
+
+
+@mcp.tool(
+    name="project-goal",
+    title="Project goal",
+    annotations=ToolAnnotations(title="Project goal", **{**_READ, "openWorldHint": False}),
+    structured_output=False,
+    description=(
+        "Proiezione Monte Carlo (5.000 scenari) del patrimonio verso un obiettivo: probabilità di raggiungerlo, "
+        "valori mediano e pessimistico in euro di oggi, versamento mensile necessario per l'80% di probabilità. "
+        "Rendimento e volatilità derivano dall'allocazione attuale con ipotesi di lungo periodo per asset class."
+    ),
+)
+async def project_goal(
+    ctx: Context,
+    target_amount: Annotated[float, Field(gt=0, description="Obiettivo in euro di oggi")],
+    target_date: Annotated[str, Field(description="Data ISO, es. 2040-12-31")],
+    monthly_contribution: Annotated[float, Field(ge=0)] = 0.0,
+    initial_amount: Annotated[float | None, Field(ge=0, description="Default: patrimonio attuale")] = None,
+    inflation_pct: float = 2.0,
+) -> str:
+    import datetime
+
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.planning import ProjectionIn, projection
+
+    async with _Session(ctx) as s:
+        try:
+            body = ProjectionIn(target_amount=target_amount, target_date=datetime.date.fromisoformat(target_date),
+                                monthly_contribution=monthly_contribution, initial_amount=initial_amount,
+                                inflation_pct=inflation_pct)
+            r = await projection(body=body, db=s.db, current_user=s.user)
+        except (ValueError, HTTPException) as e:
+            raise ToolError(str(getattr(e, "detail", e))) from e
+        return (
+            f"Probabilità di raggiungere {target_amount:,.0f} € (euro di oggi) entro {target_date}: "
+            f"**{r['probability'] * 100:.0f}%**.\n\n"
+            + table(["Voce", "Valore"], [
+                ["Capitale iniziale (EUR)", r["initial_amount"]],
+                ["Versamento mensile (EUR)", monthly_contribution],
+                ["Rendimento atteso / volatilità annui", f"{r['expected_return_pct']}% / {r['volatility_pct']}%"],
+                ["Valore mediano a scadenza (EUR di oggi)", r["median_final"]],
+                ["Scenario sfavorevole, 10° percentile (EUR di oggi)", r["p10_final"]],
+                ["Scenario favorevole, 90° percentile (EUR di oggi)", r["p90_final"]],
+                ["Versamento mensile per l'80% di probabilità (EUR)", r["required_monthly_80"]],
+            ])
+            + "\n\nIpotesi di lungo periodo, non previsioni."
+        )

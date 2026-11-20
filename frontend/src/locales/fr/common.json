@@ -895,7 +895,9 @@
     "intro": "Recherche des titres, simule des achats et compare des scénarios avant d'investir. Rien n'est enregistré tant que tu n'exécutes pas un scénario.",
     "tabs": {
       "simula": "Simuler un achat",
-      "scenari": "Scénarios"
+      "scenari": "Scénarios",
+      "versamento": "Versement",
+      "obiettivi": "Objectifs"
     },
     "search": {
       "placeholder": "Recherche par nom, ticker ou ISIN (ex. MSCI World, SWDA, IE00B4L5Y983)",
@@ -969,6 +971,97 @@
       "priceEur": "Prix (EUR)",
       "confirm": "Enregistrer les transactions",
       "done": "{{n}} transactions enregistrées ({{skipped}} déjà présentes)."
+    },
+    "classes": {
+      "EQUITY": "Actions",
+      "BOND": "Obligations",
+      "MONEY_MARKET": "Monétaire / liquidités",
+      "CRYPTO": "Crypto",
+      "OTHER": "Autre"
+    },
+    "contrib": {
+      "targetsTitle": "Allocation cible",
+      "targetsDesc": "Poids par classe d'actifs du sous-jacent. Pour chaque classe tu peux choisir les instruments où investir les versements.",
+      "instrumentWeight": "Poids dans la classe",
+      "addInstrument": "Ajouter un instrument",
+      "chooseInstrument": "Choisir l'instrument",
+      "defaultInstruments": "Sans instrument choisi, on utilise ceux déjà détenus dans cette classe.",
+      "total": "Total {{total}} %",
+      "tolerance": "Tolérance ±",
+      "saveTargets": "Enregistrer l'allocation",
+      "driftTitle": "Écart par rapport à la cible (tolérance ±{{tol}} %)",
+      "title": "Versement intelligent",
+      "desc": "Suggère quoi acheter pour se rapprocher de l'allocation cible sans vendre (ni frais ni impôts de vente).",
+      "saveTargetsFirst": "Enregistre d'abord l'allocation cible.",
+      "amount": "Montant €",
+      "allCash": "toutes les liquidités",
+      "minOrder": "Ordre minimum €",
+      "feePerOrder": "Frais par ordre €",
+      "fromCash": "Utiliser les liquidités des comptes",
+      "wholeUnits": "Parts entières uniquement",
+      "calculate": "Calculer",
+      "class": "Classe",
+      "orderAmount": "Montant",
+      "uninvested": "Non investi (reste en liquidités) : {{amount}}",
+      "target": "cible",
+      "openInSimulator": "Ouvrir dans le simulateur"
+    },
+    "goals": {
+      "title": "Objectif de capital",
+      "desc": "Projection Monte Carlo (5 000 scénarios) du patrimoine avec versements mensuels, en euros d'aujourd'hui.",
+      "new": "Nouveau",
+      "name": "Nom",
+      "namePlaceholder": "ex. Maison, Retraite",
+      "targetAmount": "Objectif (€ d'aujourd'hui)",
+      "targetDate": "D'ici le",
+      "monthly": "Versement mensuel €",
+      "initial": "Capital initial €",
+      "currentNetWorth": "patrimoine actuel",
+      "inflation": "Inflation %",
+      "editAssumptions": "Modifier les hypothèses de rendement",
+      "hideAssumptions": "Masquer les hypothèses",
+      "returnPct": "Rendement %",
+      "volPct": "Volatilité %",
+      "assumptionsNote": "Hypothèses de long terme par classe d'actifs, pondérées sur l'allocation actuelle. Pas des prévisions.",
+      "project": "Calculer la projection",
+      "save": "Enregistrer l'objectif",
+      "update": "Mettre à jour",
+      "untitled": "Objectif",
+      "probability": "Probabilité de l'atteindre",
+      "median": "Valeur médiane (P10 – P90)",
+      "contributed": "Total versé",
+      "required80": "Versement pour 80 %",
+      "monthShort": "mois",
+      "chartNote": "Bande claire : 10e–90e centile ; foncée : 25e–75e ; ligne : médiane ; pointillés gris : versé ; vert : objectif. Rendement attendu {{ret}} %, volatilité {{vol}} %.",
+      "yearShort": "a",
+      "year": "Année",
+      "yearsLong": "ans",
+      "yearShortLong": "an",
+      "series": {
+        "band": "P10–P90",
+        "mid": "P25–P75",
+        "p50": "Médiane",
+        "contributed": "Versé"
+      }
+    },
+    "fire": {
+      "title": "Indépendance financière (FIRE)",
+      "desc": "Quel capital il faut pour vivre de ses investissements et quand tu pourrais y arriver.",
+      "expenses": "Dépenses annuelles €",
+      "rate": "Taux de retrait %",
+      "horizon": "Années de retraits",
+      "calculate": "Calculer",
+      "target": "Capital nécessaire",
+      "years": "Années pour y arriver (médiane)",
+      "pessimistic": "scénario défavorable",
+      "over50": "plus de 50 ans",
+      "success": "Capital suffisant pour {{years}} ans",
+      "sustainable": "Retrait soutenable (90 %)",
+      "note": "Retraits indexés sur l'inflation. L'impôt de 26 % sur les plus-values réalisées par les retraits et la retraite ne sont pas pris en compte."
+    },
+    "drift": {
+      "notice": "Allocation hors tolérance de ±{{tol}} % :",
+      "action": "planifier un versement"
     }
   }
 }
