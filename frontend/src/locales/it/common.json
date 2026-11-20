@@ -15,7 +15,8 @@
     "logout": "Esci",
     "xray": "X-Ray",
     "watchlist": "Watchlist",
-    "ai": "AI"
+    "ai": "AI",
+    "planning": "Pianifica"
   },
   "about": {
     "title": "Informazioni sull'app",
@@ -889,5 +890,85 @@
     "permDelete": "cancellazione",
     "writeWarning": "Con il permesso di scrittura l'assistente AI può registrare e modificare transazioni, watchlist, alert e la classificazione degli asset. Ogni modifica finisce nel log di audit.",
     "writeDeleteWarning": "Con questi permessi l'assistente AI può anche cancellare transazioni, voci di watchlist e alert. Le cancellazioni sono definitive: usa questo token solo con client che chiedono conferma."
+  },
+  "planning": {
+    "intro": "Cerca titoli, simula acquisti e confronta scenari prima di investire. Nulla viene registrato finché non esegui uno scenario.",
+    "tabs": {
+      "simula": "Simula acquisto",
+      "scenari": "Scenari"
+    },
+    "search": {
+      "placeholder": "Cerca per nome, ticker o ISIN (es. MSCI World, SWDA, IE00B4L5Y983)",
+      "allTypes": "Tutti",
+      "minChars": "Scrivi almeno {{n}} caratteri",
+      "isinDetected": "ISIN riconosciuto",
+      "error": "Ricerca non riuscita, riprova.",
+      "noResults": "Nessun titolo trovato.",
+      "owned": "in portafoglio",
+      "watched": "watchlist",
+      "new": "nuovo"
+    },
+    "card": {
+      "loadError": "Impossibile caricare i dati del titolo.",
+      "return1y": "Rendimento 1A",
+      "return3y": "3A annuo",
+      "return5y": "5A annuo",
+      "volatility": "Volatilità 1A",
+      "maxDrawdown": "Max drawdown 1A",
+      "currencies": "Valute del sottostante",
+      "sectors": "Settori",
+      "countries": "Paesi",
+      "topHoldings": "Principali titoli",
+      "amount": "Importo €",
+      "quantity": "Quantità",
+      "fee": "Commissioni €",
+      "anyAccount": "Conto: qualsiasi",
+      "addToSimulation": "Aggiungi alla simulazione",
+      "addToWatchlist": "Watchlist",
+      "watched": "In watchlist",
+      "approxQty": "≈ {{qty}} quote al prezzo corrente",
+      "approxAmount": "≈ {{amount}} al prezzo corrente",
+      "units": "quote"
+    },
+    "sim": {
+      "cartTitle": "Acquisti da simulare",
+      "scenarioTitle": "Scenario: {{name}}",
+      "useCash": "Paga con la liquidità dei conti",
+      "empty": "Cerca un titolo e aggiungilo per vedere l'effetto sul portafoglio.",
+      "scenarioName": "Nome dello scenario",
+      "save": "Salva scenario",
+      "update": "Aggiorna scenario",
+      "execute": "Esegui",
+      "newSimulation": "Nuova simulazione",
+      "untitled": "Scenario senza nome",
+      "error": "Simulazione non riuscita.",
+      "netWorth": "Patrimonio",
+      "cash": "Liquidità",
+      "invested": "Da investire",
+      "xrayScore": "Punteggio X-Ray",
+      "before": "prima",
+      "after": "dopo",
+      "weights": "Pesi dei titoli",
+      "xrayRules": "Regole X-Ray",
+      "rulesChanged": "{{n}} regole cambiano esito",
+      "noRuleChange": "Nessuna regola cambia esito"
+    },
+    "scenarios": {
+      "none": "Nessuno scenario salvato. Crea una simulazione e salvala.",
+      "open": "Apri",
+      "executed": "eseguito",
+      "draft": "bozza",
+      "selectCompare": "Seleziona per il confronto",
+      "compare": "Confronta ({{n}})"
+    },
+    "exec": {
+      "title": "Esegui «{{name}}»",
+      "desc": "Inserisci quantità e prezzi effettivi: gli acquisti saranno registrati come transazioni reali. I titoli non ancora in Nextfolio vengono aggiunti automaticamente.",
+      "account": "Conto",
+      "date": "Data",
+      "priceEur": "Prezzo (EUR)",
+      "confirm": "Registra transazioni",
+      "done": "{{n}} transazioni registrate ({{skipped}} già presenti)."
+    }
   }
 }

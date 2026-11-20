@@ -220,7 +220,7 @@ async def test_mcp_lists_tools_with_annotations(fake_access):
                 "get-risk-metrics", "get-xray", "get-dividends", "get-watchlist", "get-tax-report"} <= set(tools)
         read = {"get-portfolio", "get-accounts", "get-transactions", "get-performance", "get-allocation",
             "get-risk-metrics", "get-xray", "get-dividends", "get-watchlist", "get-tax-report",
-            "search-assets", "get-alerts"}
+            "search-assets", "get-alerts", "search-securities", "simulate-purchase", "get-scenarios"}
     assert all(tools[n]["annotations"]["readOnlyHint"] for n in read)
     deletes = {"delete-transaction", "remove-from-watchlist", "delete-alert"}
     assert all(tools[n]["annotations"]["destructiveHint"] for n in deletes)

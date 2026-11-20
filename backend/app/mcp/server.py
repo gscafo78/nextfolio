@@ -419,3 +419,4 @@ class McpMiddleware:
 
 # Registra i tool di scrittura e cancellazione sullo stesso server
 from app.mcp import write_tools  # noqa: E402,F401
+from app.mcp import planning_tools  # noqa: E402,F401

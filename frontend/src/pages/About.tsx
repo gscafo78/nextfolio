@@ -19,6 +19,21 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.13.0",
+    date: "2026-11-19",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Pagina Pianifica: ricerca titoli per nome, ticker o ISIN dopo 3 caratteri, anche titoli non ancora in Nextfolio",
+          "Scheda titolo con grafico, rendimenti, volatilità, asset class, valute e look-through",
+          "Simulatore d'acquisto: effetto su asset class, valute, pesi e regole X-Ray prima/dopo",
+          "Scenari salvati: confronto fino a 4 ed esecuzione come transazioni reali",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.12.0",
     date: "2026-11-19",
     sections: [

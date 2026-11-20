@@ -24,6 +24,7 @@
 16. [Settings](#16-settings)
 17. [Administration](#17-administration)
 18. [AI — chatbot prompt & MCP server](#18-ai--chatbot-prompt--mcp-server)
+19. [Plan (Pianifica)](#19-plan-pianifica)
 
 ---
 
@@ -683,7 +684,7 @@ Available tools:
 
 | Permission | Tools |
 |---|---|
-| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
+| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios` |
 | Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
 
@@ -696,6 +697,32 @@ How writes work:
 - Every write and delete is recorded in the **audit log** (Administration) with the token that made it.
 
 Revoke a token at any time with the 🗑 button; the list shows each token's permissions and when it was last used.
+
+---
+
+## 19. Plan (Pianifica)
+
+The **Pianifica** page (sidebar, 🧭 icon) is for planning: you can try purchases and compare scenarios before investing. Nothing is recorded until you execute a scenario.
+
+### Search securities
+
+Type a name, ticker or ISIN: suggestions appear after **3 characters**. Results come from Nextfolio (marked *in portafoglio* / *watchlist*) and from Yahoo Finance (marked *nuovo*), so you can also find securities you have never bought. The chips filter by type (ETF, stocks, bonds, crypto, commodities); a 12-character ISIN is recognised automatically. Use ↑ ↓ and Enter to choose.
+
+### Security card
+
+Selecting a result opens its card: current price in EUR, 3-year chart, 1Y return, 3Y/5Y annualised return, 1Y volatility and max drawdown, asset class by underlying, currency exposure, sectors, countries and top holdings. From the card you can add the security to the **watchlist** (a Yahoo security is added to Nextfolio first) or to the simulation.
+
+### Simulate a purchase
+
+1. In the card choose **Importo €** or **Quantità**, optionally fees and account, then **Aggiungi alla simulazione**. Add as many securities as you like.
+2. Tick **Paga con la liquidità dei conti** to pay with the accounts' cash balance (a warning appears if it is not enough); otherwise the purchase is new money.
+3. The result shows before → after: net worth, cash, amount invested, X-Ray score, asset class and currency exposure donuts, the weight of each security and every X-Ray rule (rules that change outcome are highlighted).
+
+### Scenarios
+
+- **Salva scenario** keeps the simulation; the **Scenari** tab lists saved scenarios (draft / executed).
+- Tick 2–4 scenarios and click **Confronta** to see them side by side: amount invested, remaining cash, X-Ray score and asset class after each one.
+- **Esegui** on a saved draft opens a dialog with the simulated quantities and prices: adjust them to the actual execution, choose account and date and confirm. The purchases are recorded as real BUY transactions (all or nothing, duplicates skipped); securities found on Yahoo are added to Nextfolio automatically. An executed scenario can no longer be edited.
 
 ---
 

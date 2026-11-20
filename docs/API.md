@@ -328,6 +328,26 @@ Returns dividend/coupon/interest income aggregated by month and asset.
 
 ---
 
+## Planning (Pianifica)
+
+```
+GET    /planning/search?q=&type=                 # min 3 chars; Nextfolio + Yahoo Finance, local first
+GET    /planning/security?asset_id= | ?symbol=&type=&name=   # card: price EUR, 3Y history, metrics, look-through
+POST   /planning/security/import                 # { symbol, name, type, isin? } → add a Yahoo security to Nextfolio
+POST   /planning/simulate                        # { items: [{asset_id|symbol, amount_eur|quantity, price_eur?, fee_eur?, account_id?}], use_cash }
+GET    /planning/scenarios                       # saved scenarios
+POST   /planning/scenarios                       # { name, notes?, use_cash, items }
+GET    /planning/scenarios/{id}                  # scenario + simulation
+PUT    /planning/scenarios/{id}                  # replace (drafts only)
+DELETE /planning/scenarios/{id}
+GET    /planning/scenarios/compare?ids=1,2,3     # up to 4, side by side
+POST   /planning/scenarios/{id}/execute          # { account_id, date, items: [{item_id, quantity, price, price_currency?, exchange_rate?, fee}] }
+```
+
+`/planning/simulate` returns `allocation_before/after` (same shape as `/portfolio/allocation`), `xray_before/after`, `rule_changes[]` (`before_status`, `after_status`, `changed`), `weights[]` (`before_pct`, `after_pct`, `delta_pct`, `new`), totals (net worth, cash, invested, fees) and `warnings[]`. Yahoo data is cached in Redis (search 24 h, price 15 min, history 12 h, profile 7 days).
+
+---
+
 ## Watchlist
 ```
 GET    /watchlist                  # list user's watchlist
@@ -371,7 +391,7 @@ Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp
 
 | Permission | Tools |
 |---|---|
-| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets` |
+| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios` |
 | `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
 

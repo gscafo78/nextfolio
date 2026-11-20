@@ -13,6 +13,7 @@ import {
   ScanSearch,
   Eye,
   Sparkles,
+  Compass,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ export function Sidebar() {
     { to: "/dividendi", label: t("nav.dividends"), icon: Coins },
     { to: "/xray",      label: t("nav.xray"),      icon: ScanSearch },
     { to: "/watchlist", label: t("nav.watchlist"), icon: Eye },
+    { to: "/pianifica", label: t("nav.planning"), icon: Compass },
     { to: "/ai",        label: t("nav.ai"),        icon: Sparkles },
     { to: "/strumenti", label: t("nav.tools"), icon: Wrench },
     { to: "/alert", label: t("nav.alerts"), icon: Bell },

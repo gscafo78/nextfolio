@@ -15,7 +15,8 @@
     "logout": "Déconnexion",
     "xray": "X-Ray",
     "watchlist": "Watchlist",
-    "ai": "IA"
+    "ai": "IA",
+    "planning": "Planifier"
   },
   "about": {
     "title": "À propos de Nextfolio",
@@ -889,5 +890,85 @@
     "permDelete": "suppression",
     "writeWarning": "Avec la permission d'écriture, l'assistant IA peut enregistrer et modifier transactions, watchlist, alertes et classification des actifs. Chaque modification est enregistrée dans le journal d'audit.",
     "writeDeleteWarning": "Avec ces permissions, l'assistant IA peut aussi supprimer transactions, éléments de watchlist et alertes. Les suppressions sont définitives : utilise ce token uniquement avec des clients qui demandent confirmation."
+  },
+  "planning": {
+    "intro": "Recherche des titres, simule des achats et compare des scénarios avant d'investir. Rien n'est enregistré tant que tu n'exécutes pas un scénario.",
+    "tabs": {
+      "simula": "Simuler un achat",
+      "scenari": "Scénarios"
+    },
+    "search": {
+      "placeholder": "Recherche par nom, ticker ou ISIN (ex. MSCI World, SWDA, IE00B4L5Y983)",
+      "allTypes": "Tous",
+      "minChars": "Saisis au moins {{n}} caractères",
+      "isinDetected": "ISIN reconnu",
+      "error": "Recherche échouée, réessaie.",
+      "noResults": "Aucun titre trouvé.",
+      "owned": "en portefeuille",
+      "watched": "watchlist",
+      "new": "nouveau"
+    },
+    "card": {
+      "loadError": "Impossible de charger les données du titre.",
+      "return1y": "Rendement 1A",
+      "return3y": "3A annuel",
+      "return5y": "5A annuel",
+      "volatility": "Volatilité 1A",
+      "maxDrawdown": "Drawdown max 1A",
+      "currencies": "Devises du sous-jacent",
+      "sectors": "Secteurs",
+      "countries": "Pays",
+      "topHoldings": "Principales lignes",
+      "amount": "Montant €",
+      "quantity": "Quantité",
+      "fee": "Frais €",
+      "anyAccount": "Compte : n'importe lequel",
+      "addToSimulation": "Ajouter à la simulation",
+      "addToWatchlist": "Watchlist",
+      "watched": "Dans la watchlist",
+      "approxQty": "≈ {{qty}} parts au prix actuel",
+      "approxAmount": "≈ {{amount}} au prix actuel",
+      "units": "parts"
+    },
+    "sim": {
+      "cartTitle": "Achats à simuler",
+      "scenarioTitle": "Scénario : {{name}}",
+      "useCash": "Payer avec les liquidités des comptes",
+      "empty": "Recherche un titre et ajoute-le pour voir l'effet sur le portefeuille.",
+      "scenarioName": "Nom du scénario",
+      "save": "Enregistrer le scénario",
+      "update": "Mettre à jour",
+      "execute": "Exécuter",
+      "newSimulation": "Nouvelle simulation",
+      "untitled": "Scénario sans nom",
+      "error": "Simulation échouée.",
+      "netWorth": "Patrimoine",
+      "cash": "Liquidités",
+      "invested": "À investir",
+      "xrayScore": "Score X-Ray",
+      "before": "avant",
+      "after": "après",
+      "weights": "Poids des titres",
+      "xrayRules": "Règles X-Ray",
+      "rulesChanged": "{{n}} règles changent de résultat",
+      "noRuleChange": "Aucune règle ne change de résultat"
+    },
+    "scenarios": {
+      "none": "Aucun scénario enregistré. Crée une simulation et enregistre-la.",
+      "open": "Ouvrir",
+      "executed": "exécuté",
+      "draft": "brouillon",
+      "selectCompare": "Sélectionner pour comparer",
+      "compare": "Comparer ({{n}})"
+    },
+    "exec": {
+      "title": "Exécuter « {{name}} »",
+      "desc": "Saisis les quantités et prix réels : les achats seront enregistrés comme transactions réelles. Les titres absents de Nextfolio sont ajoutés automatiquement.",
+      "account": "Compte",
+      "date": "Date",
+      "priceEur": "Prix (EUR)",
+      "confirm": "Enregistrer les transactions",
+      "done": "{{n}} transactions enregistrées ({{skipped}} déjà présentes)."
+    }
   }
 }

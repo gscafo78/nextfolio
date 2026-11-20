@@ -15,7 +15,8 @@
     "logout": "Log out",
     "xray": "X-Ray",
     "watchlist": "Watchlist",
-    "ai": "AI"
+    "ai": "AI",
+    "planning": "Plan"
   },
   "about": {
     "title": "About Nextfolio",
@@ -889,5 +890,85 @@
     "permDelete": "delete",
     "writeWarning": "With write permission the AI assistant can record and edit transactions, watchlist, alerts and asset classification. Every change is written to the audit log.",
     "writeDeleteWarning": "With these permissions the AI assistant can also delete transactions, watchlist items and alerts. Deletions are permanent: use this token only with clients that ask for confirmation."
+  },
+  "planning": {
+    "intro": "Search securities, simulate purchases and compare scenarios before investing. Nothing is recorded until you execute a scenario.",
+    "tabs": {
+      "simula": "Simulate purchase",
+      "scenari": "Scenarios"
+    },
+    "search": {
+      "placeholder": "Search by name, ticker or ISIN (e.g. MSCI World, SWDA, IE00B4L5Y983)",
+      "allTypes": "All",
+      "minChars": "Type at least {{n}} characters",
+      "isinDetected": "ISIN detected",
+      "error": "Search failed, try again.",
+      "noResults": "No security found.",
+      "owned": "in portfolio",
+      "watched": "watchlist",
+      "new": "new"
+    },
+    "card": {
+      "loadError": "Could not load the security data.",
+      "return1y": "1Y return",
+      "return3y": "3Y p.a.",
+      "return5y": "5Y p.a.",
+      "volatility": "1Y volatility",
+      "maxDrawdown": "1Y max drawdown",
+      "currencies": "Underlying currencies",
+      "sectors": "Sectors",
+      "countries": "Countries",
+      "topHoldings": "Top holdings",
+      "amount": "Amount €",
+      "quantity": "Quantity",
+      "fee": "Fees €",
+      "anyAccount": "Account: any",
+      "addToSimulation": "Add to simulation",
+      "addToWatchlist": "Watchlist",
+      "watched": "In watchlist",
+      "approxQty": "≈ {{qty}} units at current price",
+      "approxAmount": "≈ {{amount}} at current price",
+      "units": "units"
+    },
+    "sim": {
+      "cartTitle": "Purchases to simulate",
+      "scenarioTitle": "Scenario: {{name}}",
+      "useCash": "Pay with account cash",
+      "empty": "Search a security and add it to see the effect on your portfolio.",
+      "scenarioName": "Scenario name",
+      "save": "Save scenario",
+      "update": "Update scenario",
+      "execute": "Execute",
+      "newSimulation": "New simulation",
+      "untitled": "Untitled scenario",
+      "error": "Simulation failed.",
+      "netWorth": "Net worth",
+      "cash": "Cash",
+      "invested": "To invest",
+      "xrayScore": "X-Ray score",
+      "before": "before",
+      "after": "after",
+      "weights": "Security weights",
+      "xrayRules": "X-Ray rules",
+      "rulesChanged": "{{n}} rules change outcome",
+      "noRuleChange": "No rule changes outcome"
+    },
+    "scenarios": {
+      "none": "No saved scenarios. Create a simulation and save it.",
+      "open": "Open",
+      "executed": "executed",
+      "draft": "draft",
+      "selectCompare": "Select to compare",
+      "compare": "Compare ({{n}})"
+    },
+    "exec": {
+      "title": "Execute “{{name}}”",
+      "desc": "Enter actual quantities and prices: purchases will be recorded as real transactions. Securities not yet in Nextfolio are added automatically.",
+      "account": "Account",
+      "date": "Date",
+      "priceEur": "Price (EUR)",
+      "confirm": "Record transactions",
+      "done": "{{n}} transactions recorded ({{skipped}} already present)."
+    }
   }
 }

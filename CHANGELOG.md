@@ -5,6 +5,22 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.13.0] — 2026-11-19
+### Added
+- **Pagina Pianifica** (`/pianifica`, icona `Compass`; i18n IT/EN/FR/DE)
+- **Ricerca titoli** (`GET /planning/search`): nome, ticker o ISIN con suggerimenti dopo 3 caratteri, da Nextfolio e da Yahoo Finance, filtro per tipo, navigazione da tastiera
+- **Scheda titolo** (`GET /planning/security`): prezzo in EUR, grafico 3 anni, rendimento 1A e 3A/5A annuo, volatilità e max drawdown, asset class, valute, settori, paesi e principali titoli; aggiunta alla watchlist anche per titoli non ancora in Nextfolio (`POST /planning/security/import`)
+- **Simulatore d'acquisto** (`POST /planning/simulate`): acquisti ipotetici con denaro nuovo o liquidità dei conti, prima/dopo di patrimonio, liquidità, asset class, valute, pesi e regole X-Ray
+- **Scenari** (migration `0027`): salva, confronta fino a 4 (`/planning/scenarios/compare`), esegui come transazioni reali (`/execute`, tutto-o-niente, doppioni saltati, titoli Yahoo importati automaticamente)
+- Tool MCP di lettura `search-securities`, `simulate-purchase`, `get-scenarios`
+- Dati Yahoo per titoli esterni in cache Redis (`services/market_data/external.py`); prezzi in pence (`GBp`) gestiti
+
+### Changed
+- Snapshot del portafoglio spostato in `services/portfolio/snapshot.py` (condiviso da report AI e Pianifica); inserimento transazioni in blocco in `services/transaction.create_transactions_batch` (usato da MCP ed esecuzione scenari)
+- La ricerca asset locale cerca anche nel ticker Yahoo e accetta un filtro per tipo
+
+---
+
 ## [1.12.0] — 2026-11-19
 ### Added
 - **Saldo di cassa per conto** (migration `0026`, tabella `account_balances`): storico per data, il più recente è quello corrente, un nuovo saldo nella stessa data sostituisce il precedente; date future rifiutate; conversione in EUR per conti in altra valuta

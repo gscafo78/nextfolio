@@ -166,7 +166,7 @@ def calculate_allocation(
         by_type[label_type] += value
         by_type_count[label_type] += 1
 
-        currency = info.get("currency", "EUR")
+        currency = info.get("currency") or "EUR"
         by_currency[currency] += value
         by_currency_count[currency] += 1
 

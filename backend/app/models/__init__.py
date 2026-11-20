@@ -9,5 +9,6 @@ from app.models.watchlist import WatchlistItem
 from app.models.bond_detail import BondDetail, CouponFrequency
 from app.models.mcp_token import McpAccessToken
 from app.models.account_balance import AccountBalance
+from app.models.planning import PlanningScenario, PlanningScenarioItem
 
-__all__ = ["User", "UserRole", "UserSettings", "Account", "Asset", "PriceHistory", "Transaction", "PriceAlert", "AlertType", "AuditLog", "WatchlistItem", "BondDetail", "CouponFrequency", "McpAccessToken", "AccountBalance"]
+__all__ = ["User", "UserRole", "UserSettings", "Account", "Asset", "PriceHistory", "Transaction", "PriceAlert", "AlertType", "AuditLog", "WatchlistItem", "BondDetail", "CouponFrequency", "McpAccessToken", "AccountBalance", "PlanningScenario", "PlanningScenarioItem"]

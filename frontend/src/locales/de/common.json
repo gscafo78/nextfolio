@@ -15,7 +15,8 @@
     "logout": "Abmelden",
     "xray": "X-Ray",
     "watchlist": "Watchlist",
-    "ai": "KI"
+    "ai": "KI",
+    "planning": "Planen"
   },
   "about": {
     "title": "Über Nextfolio",
@@ -889,5 +890,85 @@
     "permDelete": "Löschen",
     "writeWarning": "Mit Schreibrecht kann der KI-Assistent Transaktionen, Watchlist, Alerts und die Asset-Klassifizierung erfassen und ändern. Jede Änderung wird im Audit-Log protokolliert.",
     "writeDeleteWarning": "Mit diesen Rechten kann der KI-Assistent auch Transaktionen, Watchlist-Einträge und Alerts löschen. Löschungen sind endgültig: nutze diesen Token nur mit Clients, die nach Bestätigung fragen."
+  },
+  "planning": {
+    "intro": "Wertpapiere suchen, Käufe simulieren und Szenarien vergleichen, bevor du investierst. Nichts wird erfasst, bis du ein Szenario ausführst.",
+    "tabs": {
+      "simula": "Kauf simulieren",
+      "scenari": "Szenarien"
+    },
+    "search": {
+      "placeholder": "Suche nach Name, Ticker oder ISIN (z. B. MSCI World, SWDA, IE00B4L5Y983)",
+      "allTypes": "Alle",
+      "minChars": "Mindestens {{n}} Zeichen eingeben",
+      "isinDetected": "ISIN erkannt",
+      "error": "Suche fehlgeschlagen, bitte erneut versuchen.",
+      "noResults": "Kein Wertpapier gefunden.",
+      "owned": "im Portfolio",
+      "watched": "Watchlist",
+      "new": "neu"
+    },
+    "card": {
+      "loadError": "Daten des Wertpapiers konnten nicht geladen werden.",
+      "return1y": "Rendite 1J",
+      "return3y": "3J p.a.",
+      "return5y": "5J p.a.",
+      "volatility": "Volatilität 1J",
+      "maxDrawdown": "Max. Drawdown 1J",
+      "currencies": "Währungen des Basiswerts",
+      "sectors": "Sektoren",
+      "countries": "Länder",
+      "topHoldings": "Top-Positionen",
+      "amount": "Betrag €",
+      "quantity": "Stückzahl",
+      "fee": "Gebühren €",
+      "anyAccount": "Konto: beliebig",
+      "addToSimulation": "Zur Simulation hinzufügen",
+      "addToWatchlist": "Watchlist",
+      "watched": "In Watchlist",
+      "approxQty": "≈ {{qty}} Anteile zum aktuellen Kurs",
+      "approxAmount": "≈ {{amount}} zum aktuellen Kurs",
+      "units": "Anteile"
+    },
+    "sim": {
+      "cartTitle": "Zu simulierende Käufe",
+      "scenarioTitle": "Szenario: {{name}}",
+      "useCash": "Mit Kontoguthaben bezahlen",
+      "empty": "Suche ein Wertpapier und füge es hinzu, um die Wirkung auf das Portfolio zu sehen.",
+      "scenarioName": "Name des Szenarios",
+      "save": "Szenario speichern",
+      "update": "Szenario aktualisieren",
+      "execute": "Ausführen",
+      "newSimulation": "Neue Simulation",
+      "untitled": "Unbenanntes Szenario",
+      "error": "Simulation fehlgeschlagen.",
+      "netWorth": "Vermögen",
+      "cash": "Liquidität",
+      "invested": "Zu investieren",
+      "xrayScore": "X-Ray-Punktzahl",
+      "before": "vorher",
+      "after": "nachher",
+      "weights": "Gewichte der Wertpapiere",
+      "xrayRules": "X-Ray-Regeln",
+      "rulesChanged": "{{n}} Regeln ändern ihr Ergebnis",
+      "noRuleChange": "Keine Regel ändert ihr Ergebnis"
+    },
+    "scenarios": {
+      "none": "Keine gespeicherten Szenarien. Erstelle eine Simulation und speichere sie.",
+      "open": "Öffnen",
+      "executed": "ausgeführt",
+      "draft": "Entwurf",
+      "selectCompare": "Zum Vergleich auswählen",
+      "compare": "Vergleichen ({{n}})"
+    },
+    "exec": {
+      "title": "„{{name}}“ ausführen",
+      "desc": "Gib die tatsächlichen Stückzahlen und Kurse ein: die Käufe werden als echte Transaktionen erfasst. Wertpapiere, die noch nicht in Nextfolio sind, werden automatisch hinzugefügt.",
+      "account": "Konto",
+      "date": "Datum",
+      "priceEur": "Kurs (EUR)",
+      "confirm": "Transaktionen erfassen",
+      "done": "{{n}} Transaktionen erfasst ({{skipped}} bereits vorhanden)."
+    }
   }
 }

@@ -5,13 +5,14 @@ from app.models.asset import Asset
 from app.schemas.asset import AssetCreate, AssetUpdate
 
 
-async def search_assets(db: AsyncSession, q: str, limit: int = 20) -> list[Asset]:
+async def search_assets(db: AsyncSession, q: str, limit: int = 20, asset_type: str | None = None) -> list[Asset]:
     q = f"%{q.upper()}%"
-    result = await db.execute(
-        select(Asset)
-        .where(or_(Asset.symbol.ilike(q), Asset.isin.ilike(q), Asset.name.ilike(q)))
-        .limit(limit)
+    stmt = select(Asset).where(
+        or_(Asset.symbol.ilike(q), Asset.isin.ilike(q), Asset.name.ilike(q), Asset.yahoo_ticker.ilike(q))
     )
+    if asset_type:
+        stmt = stmt.where(Asset.type == asset_type)
+    result = await db.execute(stmt.limit(limit))
     return list(result.scalars())
 
 

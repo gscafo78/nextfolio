@@ -26,6 +26,7 @@ const Admin        = lazy(() => import("@/pages/Admin").then((m) => ({ default: 
 const XRay         = lazy(() => import("@/pages/XRay").then((m) => ({ default: m.XRay })));
 const WatchlistPage = lazy(() => import("@/pages/Watchlist").then((m) => ({ default: m.Watchlist })));
 const AIPage       = lazy(() => import("@/pages/AI").then((m) => ({ default: m.AI })));
+const PianificaPage = lazy(() => import("@/pages/Pianifica").then((m) => ({ default: m.Pianifica })));
 
 function PageSkeleton() {
   return (
@@ -73,6 +74,7 @@ export function App() {
               <Route path="xray"         element={<Suspense fallback={<PageSkeleton />}><XRay /></Suspense>} />
               <Route path="watchlist"    element={<Suspense fallback={<PageSkeleton />}><WatchlistPage /></Suspense>} />
               <Route path="ai"           element={<Suspense fallback={<PageSkeleton />}><AIPage /></Suspense>} />
+              <Route path="pianifica"    element={<Suspense fallback={<PageSkeleton />}><PianificaPage /></Suspense>} />
               <Route path="about"        element={<About />} />
             </Route>
           </Route>

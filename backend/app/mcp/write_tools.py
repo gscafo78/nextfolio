@@ -37,7 +37,7 @@ from app.services.asset import get_asset_by_id, get_or_create_asset, search_asse
 from app.services.audit import log_action
 from app.services.market_data.updater import invalidate_perf_cache
 from app.services.portfolio.classification import build_asset_info, display_ticker
-from app.services.transaction import get_transaction
+from app.services.transaction import BatchError, create_transactions_batch, get_transaction
 
 MAX_BATCH = 100
 
@@ -264,14 +264,6 @@ class TransactionInput(BaseModel):
     notes: str | None = Field(None, max_length=500)
 
 
-def _same(tx: Transaction, row: TransactionInput) -> bool:
-    return (
-        tx.account_id == row.account_id and tx.asset_id == row.asset_id and _enum(tx.type) == row.type
-        and tx.date == row.date and abs(tx.quantity - row.quantity) < 1e-9 and abs(tx.price - row.price) < 1e-9
-        and abs((tx.fee or 0) - row.fee) < 1e-9
-    )
-
-
 @mcp.tool(
     name="create-transactions",
     title="Create transactions",
@@ -290,45 +282,26 @@ async def create_transactions(
 ) -> str:
     async with _Session(ctx, require="write") as s:
         errors: list[str] = []
-        accounts: dict[int, object] = {}
-        assets: dict[int, Asset] = {}
         validated: list[TransactionCreate] = []
         for i, row in enumerate(transactions, 1):
-            if row.account_id not in accounts:
-                accounts[row.account_id] = await get_account(s.db, row.account_id, s.user.id)
-            if accounts[row.account_id] is None:
-                errors.append(f"riga {i}: conto {row.account_id} non trovato")
-            if row.asset_id not in assets:
-                assets[row.asset_id] = await get_asset_by_id(s.db, row.asset_id)
-            if assets[row.asset_id] is None:
-                errors.append(f"riga {i}: asset {row.asset_id} non trovato")
-            if row.date > datetime.date.today():
-                errors.append(f"riga {i}: data futura {row.date}")
             try:
                 validated.append(TransactionCreate(**{**row.model_dump(), "type": TransactionType(row.type)}))
             except ValidationError as e:
                 errors.append(f"riga {i}: {e.errors()[0]['msg']}")
         if errors:
             raise ToolError("Nessuna transazione registrata. " + "; ".join(errors))
-
-        existing = list((await s.db.execute(
-            select(Transaction).where(Transaction.account_id.in_(list(accounts)))
-        )).scalars())
-        created: list[Transaction] = []
-        skipped: list[int] = []
-        for i, (row, data) in enumerate(zip(transactions, validated), 1):
-            if any(_same(t, row) for t in existing):
-                skipped.append(i)
-                continue
-            tx = Transaction(**data.model_dump())
-            s.db.add(tx)
-            created.append(tx)
-        await s.db.flush()
+        try:
+            created, skipped = await create_transactions_batch(s.db, s.user.id, validated)
+        except BatchError as e:
+            raise ToolError("Nessuna transazione registrata. " + "; ".join(e.errors)) from e
+        names = {a.id: a.name for a in (await s.db.execute(
+            select(Asset).where(Asset.id.in_({t.asset_id for t in created}))
+        )).scalars()}
         await _audit(s, MCP_CREATE_TRANSACTIONS, "transaction", None,
                      {"created": [t.id for t in created], "skipped_rows": skipped})
         await invalidate_perf_cache(s.user.id)
 
-        rows = [[t.id, t.date.isoformat(), _enum(t.type), assets[t.asset_id].name, t.quantity, t.price,
+        rows = [[t.id, t.date.isoformat(), _enum(t.type), names.get(t.asset_id, t.asset_id), t.quantity, t.price,
                  t.price_currency, t.fee] for t in created]
         out = f"Transazioni registrate: {len(created)}; saltate perché già presenti: {len(skipped)}"
         out += f" (righe {', '.join(map(str, skipped))})." if skipped else "."

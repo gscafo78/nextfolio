@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.12.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.13.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -41,6 +41,11 @@
 - **PAC calculator** — Simulate a recurring investment plan
 - **Correlation matrix** — Pearson heatmap between portfolio assets
 - **Risk metrics** — Volatility, max drawdown, Sharpe, Sortino, Calmar on flow-neutral trading-day returns, with plausibility warnings
+
+### Planning
+- **Security search** — Name, ticker or ISIN with suggestions after 3 characters, from Nextfolio and Yahoo Finance (also securities never bought), type filters, security card with chart, metrics and look-through
+- **Purchase simulator** — What-if purchases (new money or account cash): asset class, currency exposure, weights and every X-Ray rule before → after
+- **Scenarios** — Save, compare (up to 4) and execute scenarios as real transactions
 
 ### AI
 - **Chatbot prompt** — One click generates a text with your portfolio (holdings, allocation, performance, risk, X-Ray, dividends) plus analysis instructions, ready to paste into ChatGPT, Claude, Gemini, …; amounts optional (percentages only)

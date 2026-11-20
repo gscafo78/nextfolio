@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { PieChart as PieIcon, ChevronDown, ChevronRight, Pencil, X, Check, Globe } from "lucide-react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { useTranslation } from "react-i18next";
@@ -10,6 +9,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { useZenMode } from "@/context/ThemeContext";
 import { portfolioService, type AllocationItem, type PositionOut, type ETFHoldingOut, type CountryItem } from "@/services/portfolio";
 import { useAuth } from "@/hooks/useAuth";
+import { SmallDonutCard } from "@/components/charts/SmallDonutCard";
 import { api } from "@/services/api";
 
 // ── Costanti ──────────────────────────────────────────────────────────────────
@@ -104,65 +104,6 @@ function StackedAllocationBar({ items, total }: { items: AllocationItem[]; total
             <span className="font-semibold text-gray-900 tabular-nums">{item.pct}%</span>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function SmallDonutCard({ title, items }: { title: string; items: AllocationItem[] }) {
-  if (!items.length) return null;
-  const maxPct = Math.max(...items.map((it) => it.pct));
-  const zenMode = useZenMode();
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
-      <div className="flex flex-col sm:flex-row gap-3 items-center sm:items-start">
-        <ResponsiveContainer width={130} height={130}>
-          <PieChart>
-            <Pie
-              data={items}
-              dataKey="value_eur"
-              nameKey="label"
-              cx="50%"
-              cy="50%"
-              innerRadius={40}
-              outerRadius={60}
-              strokeWidth={1}
-              stroke="#f8fafc"
-            >
-              {items.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(v: number) => [zenMode ? "•••••" : `€ ${fmt(v)}`, ""]}
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="w-full sm:flex-1 space-y-2 min-w-0">
-          {items.map((item, i) => (
-            <div key={item.label}>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                />
-                <span className="text-xs text-gray-600 truncate flex-1">{item.label}</span>
-                <span className="text-xs font-semibold text-gray-800 tabular-nums">{item.pct}%</span>
-              </div>
-              <div className="ml-4 h-1 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${maxPct > 0 ? (item.pct / maxPct) * 100 : 0}%`,
-                    backgroundColor: COLORS[i % COLORS.length],
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
