@@ -427,8 +427,22 @@ def _compensate(gains: float, losses: float, pool: dict[int, float], year: int):
 
 def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
     """Report fiscale per anno con zainetto (26% unico + cripto) su 4 anni."""
+    return _build_reports(events)[0]
+
+
+def carryforward_pools(events: list[TaxEvent], as_of_year: int) -> tuple[dict[int, float], dict[int, float]]:
+    """Zainetti residui dopo tutti gli eventi (26% e cripto): {anno di realizzo: importo}.
+
+    Le voci scadute rispetto a ``as_of_year`` (realizzate oltre 4 anni prima) sono escluse.
+    """
+    _, std, crypto = _build_reports(events)
+    keep = lambda pool: {y: a for y, a in pool.items() if as_of_year - y <= CARRYFORWARD_YEARS and a > 1e-6}  # noqa: E731
+    return keep(std), keep(crypto)
+
+
+def _build_reports(events: list[TaxEvent]) -> tuple[list[AnnualTaxReport], dict[int, float], dict[int, float]]:
     if not events:
-        return []
+        return [], {}, {}
 
     by_year: dict[int, list[TaxEvent]] = defaultdict(list)
     for ev in events:
@@ -506,7 +520,7 @@ def build_annual_reports(events: list[TaxEvent]) -> list[AnnualTaxReport]:
         r.has_declaratory_accounts = any(not e.is_sostituto_imposta for e in year_events)
         reports.append(r)
 
-    return reports
+    return reports, pool_standard, pool_crypto
 
 
 def simulate_sell(

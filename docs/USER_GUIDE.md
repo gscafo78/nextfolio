@@ -684,7 +684,7 @@ Available tools:
 
 | Permission | Tools |
 |---|---|
-| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal` |
+| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax` |
 | Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
 
@@ -737,6 +737,21 @@ Selecting a result opens its card: current price in EUR, 3-year chart, 1Y return
 - Expected return and volatility come from your current allocation and long-term assumptions per asset class (equities 7%/16%, bonds 3%/6%, money market 2%/0.5%, crypto 15%/60%, other 4%/15%), which you can change. They are assumptions, not forecasts.
 - **FIRE**: annual expenses and withdrawal rate give the capital needed; the page estimates the years to get there (median and unfavourable scenario), the probability that the capital lasts for the chosen number of years with inflation-indexed withdrawals, and the sustainable withdrawal with 90% success. Taxes on withdrawals and pensions are not included.
 - **Proiezione semplice**: the deterministic PAC calculator (formerly in Tools). `/strumenti` now opens this tab.
+
+### Tax (Fisco)
+
+- **Estimated taxes** for the current year: capital gains (from recorded sales), coupons and dividends, estimated stamp duty / IVAFE on positions.
+- **Loss carryforward** with year of realisation and expiry; losses expiring at the end of this year are highlighted.
+- **Use expiring losses**: positions in gain that you could sell (and rebuy) to absorb the expiring losses, with the quantity and the tax saved. ETFs are never proposed, because their gains are capital income and cannot be offset; government bonds count at 48.08%.
+- **Offset this year's gains**: positions in loss that would offset gains already taxable this year.
+- **Simulate sales**: choose one or more positions and quantities; the page shows gains/losses at average cost per sale (with category and rate) and this year's taxes, losses used and new losses before → after.
+
+Limits: the loss pool is treated as shared across all accounts (in the administered regime each broker keeps its own); anti-abuse rules are not checked. This is an estimate, not tax advice.
+
+### Compare
+
+- **Compare securities**: 2–4 securities (also not owned). Chart rebased to 100 on the common period (1, 3, 5 or 10 years), period and annual return, 1Y volatility and drawdown, correlation of daily returns and, for ETFs, the overlap of the top holdings.
+- **Backtest**: build a model portfolio (securities and weights, total 100%), starting capital, monthly contribution and rebalancing (none, annual, or when a weight drifts by more than 5 points), optionally a benchmark security. The result shows value over time, TWRR (contributions excluded), annual return, volatility and max drawdown on monthly closes in EUR. Past returns do not guarantee future ones; costs and taxes are not included.
 
 ---
 

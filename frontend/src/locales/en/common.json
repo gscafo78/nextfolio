@@ -897,7 +897,9 @@
       "simula": "Simulate purchase",
       "scenari": "Scenarios",
       "versamento": "Contribution",
-      "obiettivi": "Goals"
+      "obiettivi": "Goals",
+      "fisco": "Tax",
+      "confronto": "Compare"
     },
     "search": {
       "placeholder": "Search by name, ticker or ISIN (e.g. MSCI World, SWDA, IE00B4L5Y983)",
@@ -1062,6 +1064,77 @@
     "drift": {
       "notice": "Allocation outside the ±{{tol}}% tolerance:",
       "action": "plan a contribution"
+    },
+    "tax": {
+      "yearTitle": "Estimated taxes {{year}}",
+      "capitalGains": "On capital gains",
+      "income": "On coupons and dividends",
+      "wealth": "Stamp duty / IVAFE (est.)",
+      "total": "Estimated total",
+      "yearNote": "Estimate on recorded events and current position values; it does not replace the broker's statements.",
+      "poolTitle": "Loss carryforward",
+      "noPool": "No losses to carry forward.",
+      "pool": "Pool",
+      "realized": "Year",
+      "residual": "Remaining",
+      "expires": "Expires end of",
+      "poolStandard": "Other income 26%",
+      "poolCrypto": "Crypto-assets",
+      "useTitle": "Losses expiring this year: {{amount}}",
+      "useDesc": "Selling (and possibly rebuying) these positions in gain uses the losses before they expire. ETFs are not proposed: their gains cannot be offset.",
+      "noCandidates": "No position with offsettable gains.",
+      "gain": "Gain",
+      "taxSaved": "Tax saved",
+      "harvestTitle": "Offset this year's gains",
+      "harvestDesc": "Realising these losses offsets gains already taxable this year.",
+      "salesTitle": "Simulate sales",
+      "salesDesc": "Choose positions to sell today at the current price: see gains/losses at average cost and this year's taxes before and after.",
+      "choosePosition": "Choose a position",
+      "addSale": "Add",
+      "simulate": "Simulate",
+      "proceeds": "Proceeds",
+      "cost": "Cost",
+      "result": "Result",
+      "category": "Category",
+      "deltaTax": "Tax change",
+      "categories": {
+        "standard": "Other income",
+        "government_bond": "Government bonds",
+        "fund": "ETFs/funds (capital income)",
+        "crypto": "Crypto"
+      },
+      "summary": {
+        "total_tax_eur": "Tax on gains",
+        "carryforward_used_eur": "Losses used",
+        "new_carryforward_eur": "New losses carried forward"
+      }
+    },
+    "compare": {
+      "title": "Compare securities",
+      "desc": "2 to 4 securities, also not owned: performance over the same period, returns, risk, correlation and ETF overlap.",
+      "run": "Compare",
+      "window": "Common period: {{start}} → {{end}}",
+      "periodReturn": "Period return",
+      "annual": "Annual",
+      "correlation": "Correlation of daily returns",
+      "overlap": "Overlap {{a}} / {{b}}: {{pct}}%"
+    },
+    "backtest": {
+      "title": "Model portfolio backtest",
+      "desc": "How a portfolio with these weights, contributions and rebalancing would have done (monthly closes in EUR).",
+      "rebalance": "Rebalancing",
+      "rebalanceModes": {
+        "none": "None",
+        "annual": "Annual",
+        "threshold": "When drift > 5 points"
+      },
+      "benchmark": "Benchmark",
+      "addBenchmark": "Add a benchmark security",
+      "run": "Run backtest",
+      "model": "Model portfolio",
+      "final": "Final value",
+      "vol": "Volatility",
+      "note": "From {{start}}, {{rebalances}} rebalances. Past returns do not guarantee future ones; costs and taxes not included."
     }
   }
 }

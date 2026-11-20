@@ -897,7 +897,9 @@
       "simula": "Simula acquisto",
       "scenari": "Scenari",
       "versamento": "Versamento",
-      "obiettivi": "Obiettivi"
+      "obiettivi": "Obiettivi",
+      "fisco": "Fisco",
+      "confronto": "Confronto"
     },
     "search": {
       "placeholder": "Cerca per nome, ticker o ISIN (es. MSCI World, SWDA, IE00B4L5Y983)",
@@ -1062,6 +1064,77 @@
     "drift": {
       "notice": "Allocazione fuori dalla tolleranza di ±{{tol}}%:",
       "action": "pianifica un versamento"
+    },
+    "tax": {
+      "yearTitle": "Imposte stimate {{year}}",
+      "capitalGains": "Su plusvalenze",
+      "income": "Su cedole e dividendi",
+      "wealth": "Bollo / IVAFE stimati",
+      "total": "Totale stimato",
+      "yearNote": "Stima su eventi già registrati e valore attuale delle posizioni; non sostituisce i prospetti del broker.",
+      "poolTitle": "Zainetto fiscale (minusvalenze riportabili)",
+      "noPool": "Nessuna minusvalenza riportabile.",
+      "pool": "Zainetto",
+      "realized": "Anno",
+      "residual": "Residuo",
+      "expires": "Scade a fine",
+      "poolStandard": "Redditi diversi 26%",
+      "poolCrypto": "Cripto-attività",
+      "useTitle": "Minusvalenze in scadenza quest'anno: {{amount}}",
+      "useDesc": "Vendendo (ed eventualmente riacquistando) queste posizioni in guadagno usi le minusvalenze prima che scadano. Gli ETF non sono proposti: le loro plusvalenze non sono compensabili.",
+      "noCandidates": "Nessuna posizione in guadagno compensabile.",
+      "gain": "Plusvalenza",
+      "taxSaved": "Imposta risparmiata",
+      "harvestTitle": "Compensare le plusvalenze dell'anno",
+      "harvestDesc": "Realizzando queste minusvalenze compensi le plusvalenze già tassabili quest'anno.",
+      "salesTitle": "Simula vendite",
+      "salesDesc": "Scegli le posizioni da vendere oggi al prezzo corrente: vedi plus/minusvalenze al costo medio e le imposte dell'anno prima e dopo.",
+      "choosePosition": "Scegli una posizione",
+      "addSale": "Aggiungi",
+      "simulate": "Simula",
+      "proceeds": "Ricavo",
+      "cost": "Costo",
+      "result": "Risultato",
+      "category": "Categoria",
+      "deltaTax": "Variazione imposte",
+      "categories": {
+        "standard": "Redditi diversi",
+        "government_bond": "Titoli di Stato",
+        "fund": "ETF/fondi (redditi di capitale)",
+        "crypto": "Cripto"
+      },
+      "summary": {
+        "total_tax_eur": "Imposte su plusvalenze",
+        "carryforward_used_eur": "Zainetto usato",
+        "new_carryforward_eur": "Nuove minus riportabili"
+      }
+    },
+    "compare": {
+      "title": "Confronta titoli",
+      "desc": "Da 2 a 4 titoli, anche non in portafoglio: andamento sullo stesso periodo, rendimenti, rischio, correlazione e sovrapposizione degli ETF.",
+      "run": "Confronta",
+      "window": "Periodo comune: {{start}} → {{end}}",
+      "periodReturn": "Rendimento periodo",
+      "annual": "Annuo",
+      "correlation": "Correlazione dei rendimenti giornalieri",
+      "overlap": "Sovrapposizione {{a}} / {{b}}: {{pct}}%"
+    },
+    "backtest": {
+      "title": "Backtest portafoglio modello",
+      "desc": "Come sarebbe andato un portafoglio con questi pesi, versamenti e ribilanciamento (chiusure mensili in EUR).",
+      "rebalance": "Ribilanciamento",
+      "rebalanceModes": {
+        "none": "Nessuno",
+        "annual": "Annuale",
+        "threshold": "Se scostamento > 5 punti"
+      },
+      "benchmark": "Confronto",
+      "addBenchmark": "Aggiungi un titolo di confronto",
+      "run": "Esegui backtest",
+      "model": "Portafoglio modello",
+      "final": "Valore finale",
+      "vol": "Volatilità",
+      "note": "Dal {{start}}, {{rebalances}} ribilanciamenti. I rendimenti passati non garantiscono quelli futuri; costi e imposte non inclusi."
     }
   }
 }

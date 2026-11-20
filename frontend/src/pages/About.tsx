@@ -19,6 +19,20 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.15.0",
+    date: "2026-11-20",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Pianificazione fiscale: minusvalenze in scadenza, vendite suggerite e simulazione delle imposte",
+          "Confronto fino a 4 titoli con correlazione e sovrapposizione degli ETF",
+          "Backtest di portafogli modello con versamenti e ribilanciamento",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.14.0",
     date: "2026-11-20",
     sections: [

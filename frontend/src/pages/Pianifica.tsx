@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FolderOpen, PiggyBank, ShoppingCart, Target } from "lucide-react";
+import { FolderOpen, GitCompare, PiggyBank, Receipt, ShoppingCart, Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/layout/TopBar";
+import { CompareBacktest } from "@/components/planning/CompareBacktest";
 import { ContributionPlanner } from "@/components/planning/ContributionPlanner";
 import { GoalsProjection } from "@/components/planning/GoalsProjection";
 import { PurchaseSimulator } from "@/components/planning/PurchaseSimulator";
 import { ScenarioList } from "@/components/planning/ScenarioList";
+import { TaxPlanner } from "@/components/planning/TaxPlanner";
 import type { PlanItem, Scenario } from "@/services/planning";
 
 const TABS = [
@@ -14,6 +16,8 @@ const TABS = [
   { key: "scenari", icon: FolderOpen },
   { key: "versamento", icon: PiggyBank },
   { key: "obiettivi", icon: Target },
+  { key: "fisco", icon: Receipt },
+  { key: "confronto", icon: GitCompare },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -51,6 +55,8 @@ export function Pianifica() {
           }} />
         )}
         {tab === "obiettivi" && <GoalsProjection />}
+        {tab === "fisco" && <TaxPlanner />}
+        {tab === "confronto" && <CompareBacktest />}
       </main>
     </>
   );

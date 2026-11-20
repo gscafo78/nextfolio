@@ -354,6 +354,13 @@ POST   /planning/fire                            # { annual_expenses, withdrawal
 GET    /planning/goals                           # saved goals (POST, PUT /{id}, DELETE /{id})
 ```
 
+```
+GET    /planning/tax/overview                    # expiring losses, sales to use them / offset gains, year tax estimate
+POST   /planning/tax/simulate-sales              # { sales: [{asset_id, quantity, account_id?, price_eur?, fee_eur?}] } → year taxes before/after
+POST   /planning/compare                         # { securities: [{asset_id | symbol, type, name}] (2–4), years: 1|3|5|10 }
+POST   /planning/backtest                        # { components: [{asset_id|symbol, weight %}], years, initial_amount, monthly_contribution, rebalance: none|annual|threshold, benchmark? }
+```
+
 Asset class keys: `EQUITY`, `BOND`, `MONEY_MARKET`, `CRYPTO`, `OTHER`. Projections use 5,000 Monte Carlo paths with a fixed seed (same inputs → same result); values are in today's euros.
 
 `/planning/simulate` returns `allocation_before/after` (same shape as `/portfolio/allocation`), `xray_before/after`, `rule_changes[]` (`before_status`, `after_status`, `changed`), `weights[]` (`before_pct`, `after_pct`, `delta_pct`, `new`), totals (net worth, cash, invested, fees) and `warnings[]`. Yahoo data is cached in Redis (search 24 h, price 15 min, history 12 h, profile 7 days).
@@ -403,7 +410,7 @@ Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp
 
 | Permission | Tools |
 |---|---|
-| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal` |
+| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax` |
 | `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
 

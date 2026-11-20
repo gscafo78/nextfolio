@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.14.0 · [Changelog](CHANGELOG.md)
+**Current version:** 1.15.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -48,6 +48,8 @@
 - **Scenarios** — Save, compare (up to 4) and execute scenarios as real transactions
 - **Smart contribution** — Target allocation by asset class with tolerance band and drift alert; buy-only suggestions for a new contribution or the available cash
 - **Goals & FIRE** — Monte Carlo projection (probability, percentiles, contribution needed), FIRE calculator, simple PAC projection
+- **Tax planning** — Expiring losses, suggested sales to use them or offset this year's gains (ETF gains excluded), multi-sale simulation with taxes before → after
+- **Compare & backtest** — Compare 2–4 securities (returns, risk, correlation, ETF overlap) and backtest model portfolios with contributions and rebalancing
 
 ### AI
 - **Chatbot prompt** — One click generates a text with your portfolio (holdings, allocation, performance, risk, X-Ray, dividends) plus analysis instructions, ready to paste into ChatGPT, Claude, Gemini, …; amounts optional (percentages only)

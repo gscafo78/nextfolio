@@ -191,6 +191,54 @@ export interface Goal {
   inflation_pct: number;
 }
 
+
+export interface SecurityRef { asset_id?: number | null; symbol?: string | null; name?: string | null; type?: PlanAssetType }
+
+export interface TaxOverview {
+  year: number;
+  pool_standard: { year: number; amount: number; expires_year: number; expiring: boolean }[];
+  pool_crypto: { year: number; amount: number; expires_year: number; expiring: boolean }[];
+  expiring_standard: number;
+  expiring_crypto: number;
+  use_losses: { asset_id: number; name: string; account: string; pool: string; quantity: number; price_eur: number;
+    proceeds_eur: number; gain_eur: number; losses_used_eur: number; tax_saved_eur: number }[];
+  harvest_losses: { asset_id: number; name: string; account: string; pool: string; quantity: number; price_eur: number;
+    proceeds_eur: number; loss_eur: number; gains_offset_eur: number; tax_saved_eur: number }[];
+  year_tax: { capital_gains_tax_eur: number; income_tax_eur: number; wealth_tax_eur: number; total_eur: number;
+    net_taxable_standard_eur: number; gains_funds_eur: number };
+  notes: string[];
+}
+
+export interface SalesSimulation {
+  year: number;
+  sales: { asset_id: number; name: string; quantity: number; proceeds_eur: number; cost_eur: number;
+    gain_loss_eur: number; category: string; tax_rate: number }[];
+  before: Record<string, number>;
+  after: Record<string, number>;
+  delta_tax_eur: number;
+  proceeds_eur: number;
+}
+
+export interface CompareResult {
+  dates: string[];
+  normalized: Record<string, number[]>;
+  metrics: Record<string, { window_return_pct: number; window_ann_return_pct: number | null; volatility_1y_pct: number | null;
+    max_drawdown_1y_pct: number | null; return_1y_pct: number | null; return_3y_ann_pct: number | null }>;
+  correlation: Record<string, Record<string, number>>;
+  start: string | null;
+  end: string | null;
+  names: Record<string, string>;
+  overlaps: { a: string; b: string; overlap_pct: number; common: { name: string; weight_a: number; weight_b: number }[] }[];
+  notes: string[];
+}
+
+export interface BacktestRun {
+  series: { date: string; value: number; invested: number }[];
+  metrics: { start?: string; end?: string; final_value?: number; invested?: number; twrr_pct?: number;
+    twrr_ann_pct?: number | null; volatility_pct?: number | null; max_drawdown_pct?: number; rebalances?: number };
+  warnings: string[];
+}
+
 const toBody = (items: PlanItem[]) =>
   items.map((i) => ({
     asset_id: i.asset_id,
@@ -301,5 +349,27 @@ export const planningService = {
 
   async deleteGoal(id: number): Promise<void> {
     await api.delete(`/planning/goals/${id}`);
+  },
+
+  async taxOverview(): Promise<TaxOverview> {
+    const { data } = await api.get<TaxOverview>("/planning/tax/overview");
+    return data;
+  },
+
+  async simulateSales(sales: { asset_id: number; quantity: number; account_id?: number | null; price_eur?: number | null }[]): Promise<SalesSimulation> {
+    const { data } = await api.post<SalesSimulation>("/planning/tax/simulate-sales", { sales });
+    return data;
+  },
+
+  async compareSecurities(securities: SecurityRef[], years: number): Promise<CompareResult> {
+    const { data } = await api.post<CompareResult>("/planning/compare", { securities, years });
+    return data;
+  },
+
+  async backtest(body: { components: (SecurityRef & { weight: number })[]; years: number; initial_amount: number;
+    monthly_contribution: number; rebalance: "none" | "annual" | "threshold"; benchmark?: SecurityRef | null }): Promise<{
+    names: Record<string, string>; weights_pct: Record<string, number>; model: BacktestRun; benchmark: (BacktestRun & { name: string }) | null }> {
+    const { data } = await api.post("/planning/backtest", body);
+    return data;
   },
 };

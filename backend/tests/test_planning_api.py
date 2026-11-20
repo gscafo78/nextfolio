@@ -214,3 +214,43 @@ async def test_goals_projection_fire(fake_yahoo):
         assert (await c.put(f"/api/v1/planning/goals/{g['id']}", headers=h, json={**g, "target_amount": 60_000})).json()["target_amount"] == 60_000
         assert (await c.delete(f"/api/v1/planning/goals/{g['id']}", headers=auth(ids["other"]))).status_code == 404
         assert (await c.delete(f"/api/v1/planning/goals/{g['id']}", headers=h)).status_code == 204
+
+
+# ── 1.15: fisco, confronto, backtest ─────────────────────────────────────────
+
+async def test_tax_overview_and_simulate_sales(fake_yahoo):
+    async with _env() as (c, auth, ids):
+        h = auth(ids["user"])
+        o = (await c.get("/api/v1/planning/tax/overview", headers=h)).json()
+        assert o["year"] == TODAY.year and "year_tax" in o and o["notes"]
+        r = await c.post("/api/v1/planning/tax/simulate-sales", headers=h,
+                         json={"sales": [{"asset_id": ids["asset"], "quantity": 50}]})
+        assert r.status_code == 200, r.text
+        res = r.json()
+        # 50 quote comprate a 90, prezzo 100: +500 su ETF (redditi di capitale, 26%)
+        assert res["sales"][0]["gain_loss_eur"] == pytest.approx(500)
+        assert res["after"]["tax_funds_eur"] == pytest.approx(130)
+        too_many = await c.post("/api/v1/planning/tax/simulate-sales", headers=h,
+                                json={"sales": [{"asset_id": ids["asset"], "quantity": 1000}]})
+        assert too_many.status_code == 400
+
+
+async def test_compare_and_backtest(fake_yahoo):
+    async with _env() as (c, auth, ids):
+        h = auth(ids["user"])
+        body = {"years": 1, "securities": [{"asset_id": ids["asset"]},
+                                           {"symbol": "X13G.DE", "type": "ETF", "name": "Govt 1-3"}]}
+        r = await c.post("/api/v1/planning/compare", headers=h, json=body)
+        assert r.status_code == 200, r.text
+        res = r.json()
+        assert len(res["names"]) == 2 and res["dates"] and res["correlation"]
+        bt = await c.post("/api/v1/planning/backtest", headers=h, json={
+            "years": 1, "initial_amount": 10000, "monthly_contribution": 100, "rebalance": "annual",
+            "components": [{"symbol": "X13G.DE", "type": "ETF", "name": "Govt 1-3", "weight": 100}],
+            "benchmark": {"symbol": "X13G.DE", "type": "ETF", "name": "Govt 1-3"}})
+        assert bt.status_code == 200, bt.text
+        m = bt.json()
+        assert m["model"]["metrics"]["final_value"] > 0 and m["benchmark"]["name"] == "Govt 1-3"
+        assert m["model"]["warnings"]                                 # storico di un anno
+        one = await c.post("/api/v1/planning/compare", headers=h, json={"securities": [{"asset_id": ids["asset"]}]})
+        assert one.status_code == 422

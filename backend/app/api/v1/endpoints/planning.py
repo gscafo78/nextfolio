@@ -18,6 +18,10 @@ Pagina Pianifica — ricerca titoli, scheda titolo, simulazione d'acquisto, scen
   POST   /planning/projection                proiezione Monte Carlo verso un obiettivo
   POST   /planning/fire                      calcolatore FIRE
   GET    /planning/goals                     obiettivi salvati (POST/PUT/DELETE)
+  GET    /planning/tax/overview              zainetto in scadenza, vendite suggerite, stima imposte
+  POST   /planning/tax/simulate-sales        imposte dell'anno prima/dopo vendite ipotetiche
+  POST   /planning/compare                   confronto 2–4 titoli
+  POST   /planning/backtest                  backtest di un portafoglio modello
 """
 from __future__ import annotations
 
@@ -845,3 +849,167 @@ async def update_goal(goal_id: int, body: GoalIO, db: AsyncSession = Depends(get
 async def delete_goal(goal_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     await db.delete(await _goal(db, current_user, goal_id))
     await db.commit()
+
+
+# ── Pianificazione fiscale ───────────────────────────────────────────────────
+
+from app.services.planning import compare as cmp  # noqa: E402
+from app.services.planning import tax_planning  # noqa: E402
+
+WEALTH_TAX_RATE = 0.002
+
+
+@router.get("/tax/overview")
+async def tax_overview_endpoint(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Zainetto in scadenza, vendite suggerite per usarlo o per compensare le plus dell'anno, stima imposte."""
+    snap = await load_snapshot(db, current_user)
+    wealth = sum(snap.account_values.values()) * WEALTH_TAX_RATE
+    o = tax_planning.tax_overview(snap.transactions, snap.price_eur, wealth_tax_eur=wealth)
+    return o.__dict__
+
+
+class SaleIn(BaseModel):
+    asset_id: int
+    quantity: float = Field(gt=0)
+    account_id: int | None = Field(None, description="Default: il conto che ne detiene di più")
+    price_eur: float | None = Field(None, gt=0, description="Default: prezzo corrente")
+    fee_eur: float = Field(0.0, ge=0)
+
+
+class SalesIn(BaseModel):
+    sales: list[SaleIn] = Field(min_length=1, max_length=30)
+
+
+async def run_sales_simulation(db: AsyncSession, user: User, body: SalesIn) -> dict:
+    from app.services.portfolio.positions import calculate_positions
+
+    snap = await load_snapshot(db, user)
+    accounts = {a.id: a for a in snap.accounts}
+    sales = []
+    for s in body.sales:
+        per_acc = {a: calculate_positions([t for t in snap.transactions if t.account_id == a]).get(s.asset_id)
+                   for a in accounts}
+        held = {a: p.quantity for a, p in per_acc.items() if p and p.quantity > 1e-9}
+        if not held:
+            raise HTTPException(400, f"Asset {s.asset_id} non presente in portafoglio")
+        acc_id = s.account_id or max(held, key=held.get)
+        if acc_id not in accounts:
+            raise HTTPException(404, f"Conto {acc_id} non trovato")
+        if held.get(acc_id, 0) < s.quantity - 1e-9:
+            raise HTTPException(400, f"Quantità disponibile sul conto insufficiente ({held.get(acc_id, 0):g})")
+        price = s.price_eur or snap.price_eur.get(s.asset_id)
+        if not price:
+            raise HTTPException(400, f"Prezzo dell'asset {s.asset_id} non disponibile: indicane uno")
+        sales.append(tax_planning.Sale(asset_id=s.asset_id, quantity=s.quantity, price_eur=price,
+                                       account=accounts[acc_id], fee_eur=s.fee_eur))
+    return tax_planning.simulate_sales(snap.transactions, sales)
+
+
+@router.post("/tax/simulate-sales")
+async def simulate_sales_endpoint(body: SalesIn, db: AsyncSession = Depends(get_db),
+                                  current_user: User = Depends(get_current_user)):
+    return await run_sales_simulation(db, current_user, body)
+
+
+# ── Confronto e backtest ─────────────────────────────────────────────────────
+
+
+class SecurityRef(BaseModel):
+    asset_id: int | None = None
+    symbol: str | None = Field(None, max_length=50)
+    name: str | None = Field(None, max_length=200)
+    type: AssetTypeLit = "ETF"
+
+    @model_validator(mode="after")
+    def _check(self):
+        if self.asset_id is None and not self.symbol:
+            raise ValueError("Indica asset_id oppure symbol")
+        return self
+
+    @property
+    def key(self) -> str:
+        return f"a:{self.asset_id}" if self.asset_id else f"y:{self.symbol}"
+
+
+async def _history_for(db: AsyncSession, ref: SecurityRef, years: int) -> tuple[str, list[dict], list[dict]]:
+    """(nome, storico EUR, top holdings)."""
+    period = "10y" if years > 5 else "5y"
+    if ref.asset_id:
+        asset = await get_asset_by_id(db, ref.asset_id)
+        if not asset:
+            raise HTTPException(404, f"Asset {ref.asset_id} non trovato")
+        hist = await _local_history(db, asset.id, days=365 * years + 30)
+        span = (datetime.date.fromisoformat(hist[-1]["date"]) - datetime.date.fromisoformat(hist[0]["date"])).days if hist else 0
+        if asset.yahoo_ticker and span < 365 * years - 30:
+            ext = await external.history_eur(asset.yahoo_ticker, period)
+            if ext and len(ext) > len(hist):
+                hist = ext
+        return asset.name, hist, (asset.holdings_override or asset.holdings or [])
+    hist = await external.history_eur(ref.symbol, period)
+    prof = await external.profile(ref.symbol, ref.type)
+    return ref.name or ref.symbol, hist, prof.get("holdings") or []
+
+
+class CompareIn(BaseModel):
+    securities: list[SecurityRef] = Field(min_length=2, max_length=4)
+    years: Literal[1, 3, 5, 10] = 3
+
+
+@router.post("/compare")
+async def compare_endpoint(body: CompareIn, db: AsyncSession = Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    start = datetime.date.today() - datetime.timedelta(days=365 * body.years)
+    names, series, holdings = {}, {}, {}
+    for ref in body.securities:
+        names[ref.key], series[ref.key], holdings[ref.key] = await _history_for(db, ref, body.years)
+    empty = [names[k] for k, s in series.items() if not s]
+    if empty:
+        raise HTTPException(400, "Storico prezzi non disponibile per: " + ", ".join(empty))
+    res = cmp.compare(series, start)
+    keys = list(series)
+    overlaps = [{"a": names[a], "b": names[b], **cmp.holdings_overlap(holdings[a], holdings[b])}
+                for i, a in enumerate(keys) for b in keys[i + 1:] if holdings[a] and holdings[b]]
+    return {**res, "names": names, "overlaps": overlaps,
+            "notes": ["La sovrapposizione si basa sulle principali posizioni disponibili (di solito le prime 10)."]}
+
+
+class BacktestComponent(SecurityRef):
+    weight: float = Field(gt=0, description="Peso in %")
+
+
+class BacktestIn(BaseModel):
+    components: list[BacktestComponent] = Field(min_length=1, max_length=10)
+    years: Literal[1, 3, 5, 10] = 5
+    initial_amount: float = Field(10_000, ge=0)
+    monthly_contribution: float = Field(0.0, ge=0)
+    rebalance: Literal["none", "annual", "threshold"] = "annual"
+    threshold_pct: float = Field(5.0, gt=0, le=50)
+    benchmark: SecurityRef | None = None
+
+
+@router.post("/backtest")
+async def backtest_endpoint(body: BacktestIn, db: AsyncSession = Depends(get_db),
+                            current_user: User = Depends(get_current_user)):
+    if body.initial_amount <= 0 and body.monthly_contribution <= 0:
+        raise HTTPException(400, "Indica un capitale iniziale o un versamento mensile")
+    start = datetime.date.today() - datetime.timedelta(days=365 * body.years)
+    names, series = {}, {}
+    weights = {}
+    for c in body.components:
+        names[c.key], series[c.key], _ = await _history_for(db, c, body.years)
+        weights[c.key] = weights.get(c.key, 0) + c.weight
+    empty = [names[k] for k, s in series.items() if not s]
+    if empty:
+        raise HTTPException(400, "Storico prezzi non disponibile per: " + ", ".join(empty))
+    initial = body.initial_amount or 0.01
+    model = cmp.backtest(series, weights, start=start, initial=initial, monthly=body.monthly_contribution,
+                         rebalance=body.rebalance, threshold_pct=body.threshold_pct)
+    bench = None
+    if body.benchmark:
+        bname, bseries, _ = await _history_for(db, body.benchmark, body.years)
+        if bseries:
+            bench_start = datetime.date.fromisoformat(model["metrics"]["start"]) if model["metrics"] else start
+            bench = {"name": bname, **cmp.backtest({"b": bseries}, {"b": 1.0}, start=bench_start, initial=initial,
+                                                   monthly=body.monthly_contribution)}
+    return {"names": names, "weights_pct": {names[k]: round(v / sum(weights.values()) * 100, 2) for k, v in weights.items()},
+            "model": model, "benchmark": bench}

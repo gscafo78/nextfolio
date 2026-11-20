@@ -897,7 +897,9 @@
       "simula": "Simuler un achat",
       "scenari": "Scénarios",
       "versamento": "Versement",
-      "obiettivi": "Objectifs"
+      "obiettivi": "Objectifs",
+      "fisco": "Fiscalité",
+      "confronto": "Comparer"
     },
     "search": {
       "placeholder": "Recherche par nom, ticker ou ISIN (ex. MSCI World, SWDA, IE00B4L5Y983)",
@@ -1062,6 +1064,77 @@
     "drift": {
       "notice": "Allocation hors tolérance de ±{{tol}} % :",
       "action": "planifier un versement"
+    },
+    "tax": {
+      "yearTitle": "Impôts estimés {{year}}",
+      "capitalGains": "Sur plus-values",
+      "income": "Sur coupons et dividendes",
+      "wealth": "Timbre / IVAFE estimés",
+      "total": "Total estimé",
+      "yearNote": "Estimation sur les événements enregistrés et la valeur actuelle des positions ; ne remplace pas les relevés du courtier.",
+      "poolTitle": "Report des moins-values",
+      "noPool": "Aucune moins-value reportable.",
+      "pool": "Report",
+      "realized": "Année",
+      "residual": "Restant",
+      "expires": "Expire fin",
+      "poolStandard": "Revenus divers 26 %",
+      "poolCrypto": "Crypto-actifs",
+      "useTitle": "Moins-values expirant cette année : {{amount}}",
+      "useDesc": "Vendre (et éventuellement racheter) ces positions en gain utilise les moins-values avant leur expiration. Les ETF ne sont pas proposés : leurs plus-values ne sont pas compensables.",
+      "noCandidates": "Aucune position en gain compensable.",
+      "gain": "Plus-value",
+      "taxSaved": "Impôt économisé",
+      "harvestTitle": "Compenser les plus-values de l'année",
+      "harvestDesc": "Réaliser ces moins-values compense les plus-values déjà imposables cette année.",
+      "salesTitle": "Simuler des ventes",
+      "salesDesc": "Choisis les positions à vendre aujourd'hui au prix actuel : vois les plus/moins-values au coût moyen et les impôts de l'année avant et après.",
+      "choosePosition": "Choisir une position",
+      "addSale": "Ajouter",
+      "simulate": "Simuler",
+      "proceeds": "Produit",
+      "cost": "Coût",
+      "result": "Résultat",
+      "category": "Catégorie",
+      "deltaTax": "Variation d'impôt",
+      "categories": {
+        "standard": "Revenus divers",
+        "government_bond": "Titres d'État",
+        "fund": "ETF/fonds (revenus de capitaux)",
+        "crypto": "Crypto"
+      },
+      "summary": {
+        "total_tax_eur": "Impôt sur plus-values",
+        "carryforward_used_eur": "Report utilisé",
+        "new_carryforward_eur": "Nouvelles moins-values reportables"
+      }
+    },
+    "compare": {
+      "title": "Comparer des titres",
+      "desc": "2 à 4 titres, même non détenus : évolution sur la même période, rendements, risque, corrélation et chevauchement des ETF.",
+      "run": "Comparer",
+      "window": "Période commune : {{start}} → {{end}}",
+      "periodReturn": "Rendement période",
+      "annual": "Annuel",
+      "correlation": "Corrélation des rendements quotidiens",
+      "overlap": "Chevauchement {{a}} / {{b}} : {{pct}} %"
+    },
+    "backtest": {
+      "title": "Backtest d'un portefeuille modèle",
+      "desc": "Comment aurait évolué un portefeuille avec ces poids, versements et rééquilibrage (clôtures mensuelles en EUR).",
+      "rebalance": "Rééquilibrage",
+      "rebalanceModes": {
+        "none": "Aucun",
+        "annual": "Annuel",
+        "threshold": "Si écart > 5 points"
+      },
+      "benchmark": "Comparaison",
+      "addBenchmark": "Ajouter un titre de comparaison",
+      "run": "Lancer le backtest",
+      "model": "Portefeuille modèle",
+      "final": "Valeur finale",
+      "vol": "Volatilité",
+      "note": "Depuis le {{start}}, {{rebalances}} rééquilibrages. Les rendements passés ne garantissent pas les rendements futurs ; frais et impôts non inclus."
     }
   }
 }

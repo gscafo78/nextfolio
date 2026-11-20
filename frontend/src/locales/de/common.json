@@ -897,7 +897,9 @@
       "simula": "Kauf simulieren",
       "scenari": "Szenarien",
       "versamento": "Einzahlung",
-      "obiettivi": "Ziele"
+      "obiettivi": "Ziele",
+      "fisco": "Steuern",
+      "confronto": "Vergleich"
     },
     "search": {
       "placeholder": "Suche nach Name, Ticker oder ISIN (z. B. MSCI World, SWDA, IE00B4L5Y983)",
@@ -1062,6 +1064,77 @@
     "drift": {
       "notice": "Allokation außerhalb der Toleranz von ±{{tol}} %:",
       "action": "Einzahlung planen"
+    },
+    "tax": {
+      "yearTitle": "Geschätzte Steuern {{year}}",
+      "capitalGains": "Auf Kursgewinne",
+      "income": "Auf Kupons und Dividenden",
+      "wealth": "Stempelsteuer / IVAFE (geschätzt)",
+      "total": "Geschätzte Summe",
+      "yearNote": "Schätzung auf Basis erfasster Ereignisse und aktueller Positionswerte; ersetzt nicht die Abrechnungen des Brokers.",
+      "poolTitle": "Verlustvortrag",
+      "noPool": "Keine vortragbaren Verluste.",
+      "pool": "Topf",
+      "realized": "Jahr",
+      "residual": "Rest",
+      "expires": "Verfällt Ende",
+      "poolStandard": "Sonstige Einkünfte 26 %",
+      "poolCrypto": "Krypto-Assets",
+      "useTitle": "Dieses Jahr verfallende Verluste: {{amount}}",
+      "useDesc": "Durch Verkauf (und ggf. Rückkauf) dieser Positionen im Gewinn nutzt du die Verluste, bevor sie verfallen. ETFs werden nicht vorgeschlagen: ihre Gewinne sind nicht verrechenbar.",
+      "noCandidates": "Keine Position mit verrechenbarem Gewinn.",
+      "gain": "Gewinn",
+      "taxSaved": "Gesparte Steuer",
+      "harvestTitle": "Gewinne des Jahres verrechnen",
+      "harvestDesc": "Durch Realisieren dieser Verluste verrechnest du bereits steuerpflichtige Gewinne dieses Jahres.",
+      "salesTitle": "Verkäufe simulieren",
+      "salesDesc": "Wähle Positionen zum heutigen Verkauf zum aktuellen Kurs: Gewinne/Verluste zu Durchschnittskosten und Steuern des Jahres vorher und nachher.",
+      "choosePosition": "Position wählen",
+      "addSale": "Hinzufügen",
+      "simulate": "Simulieren",
+      "proceeds": "Erlös",
+      "cost": "Kosten",
+      "result": "Ergebnis",
+      "category": "Kategorie",
+      "deltaTax": "Steueränderung",
+      "categories": {
+        "standard": "Sonstige Einkünfte",
+        "government_bond": "Staatsanleihen",
+        "fund": "ETFs/Fonds (Kapitalerträge)",
+        "crypto": "Krypto"
+      },
+      "summary": {
+        "total_tax_eur": "Steuer auf Gewinne",
+        "carryforward_used_eur": "Verlustvortrag genutzt",
+        "new_carryforward_eur": "Neue vortragbare Verluste"
+      }
+    },
+    "compare": {
+      "title": "Wertpapiere vergleichen",
+      "desc": "2 bis 4 Wertpapiere, auch nicht gehaltene: Verlauf im gleichen Zeitraum, Renditen, Risiko, Korrelation und ETF-Überschneidung.",
+      "run": "Vergleichen",
+      "window": "Gemeinsamer Zeitraum: {{start}} → {{end}}",
+      "periodReturn": "Rendite Zeitraum",
+      "annual": "Jährlich",
+      "correlation": "Korrelation der Tagesrenditen",
+      "overlap": "Überschneidung {{a}} / {{b}}: {{pct}} %"
+    },
+    "backtest": {
+      "title": "Backtest Modellportfolio",
+      "desc": "Wie sich ein Portfolio mit diesen Gewichten, Einzahlungen und Rebalancing entwickelt hätte (Monatsschlusskurse in EUR).",
+      "rebalance": "Rebalancing",
+      "rebalanceModes": {
+        "none": "Keines",
+        "annual": "Jährlich",
+        "threshold": "Bei Abweichung > 5 Punkte"
+      },
+      "benchmark": "Vergleich",
+      "addBenchmark": "Vergleichswertpapier hinzufügen",
+      "run": "Backtest starten",
+      "model": "Modellportfolio",
+      "final": "Endwert",
+      "vol": "Volatilität",
+      "note": "Ab {{start}}, {{rebalances}} Rebalancings. Vergangene Renditen garantieren keine zukünftigen; Kosten und Steuern nicht enthalten."
     }
   }
 }

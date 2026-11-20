@@ -5,6 +5,17 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.15.0] — 2026-11-20
+### Added
+- **Pianificazione fiscale** (scheda Fisco, `GET /planning/tax/overview`): stima imposte dell'anno, zainetto con scadenze, vendite suggerite per usare le minusvalenze in scadenza (ETF esclusi, titoli di Stato al 48,08%) o per compensare le plusvalenze dell'anno, con imposta risparmiata
+- **Simulazione vendite multiple** (`POST /planning/tax/simulate-sales`): plus/minus al costo medio e imposte dell'anno prima/dopo, uso dello zainetto
+- **Confronto titoli** (scheda Confronto, `POST /planning/compare`): 2–4 titoli anche non in portafoglio, serie ribasate, rendimenti, rischio, correlazione, sovrapposizione delle holding tra ETF
+- **Backtest portafoglio modello** (`POST /planning/backtest`): pesi, capitale iniziale, versamenti mensili, ribilanciamento nessuno/annuale/a soglia, benchmark
+- Tool MCP di lettura `compare-securities`, `simulate-sale-tax`
+- `carryforward_pools()` nel motore fiscale: zainetto residuo dopo tutti gli eventi
+
+---
+
 ## [1.14.0] — 2026-11-20
 ### Added
 - **Versamento intelligente** (scheda Versamento): allocazione obiettivo per asset class con tolleranza e strumenti preferiti (migration `0028`, `GET/PUT /planning/targets`), barre di scostamento (`GET /planning/drift`) e avviso in dashboard, suggerimento "solo acquisti" per un importo o per la liquidità (`POST /planning/contribution`) con quote intere, ordine minimo e commissioni, apertura nel simulatore

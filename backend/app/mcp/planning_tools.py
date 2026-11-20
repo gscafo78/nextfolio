@@ -206,3 +206,94 @@ async def project_goal(
             ])
             + "\n\nIpotesi di lungo periodo, non previsioni."
         )
+
+
+class SecurityInput(BaseModel):
+    asset_id: int | None = None
+    symbol: str | None = Field(None, description="Ticker Yahoo (vedi search-securities)")
+    name: str | None = None
+    type: Literal["STOCK", "ETF", "BOND", "CRYPTO", "COMMODITY", "REIT", "OTHER"] = "ETF"
+
+
+@mcp.tool(
+    name="compare-securities",
+    title="Compare securities",
+    annotations=ToolAnnotations(title="Compare securities", **_READ),
+    structured_output=False,
+    description=(
+        "Confronta 2–4 titoli (in Nextfolio o su Yahoo) sullo stesso periodo: rendimento, rendimento annuo, "
+        "volatilità, max drawdown, correlazione dei rendimenti giornalieri e sovrapposizione delle principali "
+        "holding tra ETF."
+    ),
+)
+async def compare_securities(
+    ctx: Context,
+    securities: Annotated[list[SecurityInput], Field(min_length=2, max_length=4)],
+    years: Literal[1, 3, 5, 10] = 3,
+) -> str:
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.planning import CompareIn, SecurityRef, compare_endpoint
+
+    async with _Session(ctx) as s:
+        try:
+            body = CompareIn(years=years, securities=[SecurityRef(**x.model_dump()) for x in securities])
+            r = await compare_endpoint(body=body, db=s.db, current_user=s.user)
+        except (ValidationError, HTTPException) as e:
+            raise ToolError(str(getattr(e, "detail", e))) from e
+        names = r["names"]
+        out = [f"Periodo comune: {r['start']} → {r['end']}"]
+        out.append(table(["Titolo", "Rendimento periodo %", "Annuo %", "Volatilità 1A %", "Max DD 1A %"],
+                         [[names[k], m["window_return_pct"], m["window_ann_return_pct"], m["volatility_1y_pct"],
+                           m["max_drawdown_1y_pct"]] for k, m in r["metrics"].items()]))
+        keys = list(r["correlation"])
+        out.append("#### Correlazione\n" + table([""] + [names[k] for k in keys],
+                                                 [[names[a]] + [r["correlation"][a][b] for b in keys] for a in keys]))
+        for o in r["overlaps"]:
+            out.append(f"Sovrapposizione {o['a']} / {o['b']}: {o['overlap_pct']}% (sulle principali holding)")
+        return "\n\n".join(out)
+
+
+class SaleInput(BaseModel):
+    asset_id: int
+    quantity: float = Field(gt=0)
+    account_id: int | None = None
+    price_eur: float | None = Field(None, gt=0)
+
+
+@mcp.tool(
+    name="simulate-sale-tax",
+    title="Simulate sale tax",
+    annotations=ToolAnnotations(title="Simulate sale tax", **{**_READ, "openWorldHint": False}),
+    structured_output=False,
+    description=(
+        "Simula la vendita di uno o più titoli oggi (senza registrarla) e mostra plusvalenze/minusvalenze al costo "
+        "medio ponderato e le imposte italiane dell'anno prima e dopo, con l'uso dello zainetto."
+    ),
+)
+async def simulate_sale_tax(
+    ctx: Context,
+    sales: Annotated[list[SaleInput], Field(min_length=1, max_length=20)],
+) -> str:
+    from fastapi import HTTPException
+
+    from app.api.v1.endpoints.planning import SaleIn, SalesIn, run_sales_simulation
+
+    async with _Session(ctx) as s:
+        if not s.with_values:
+            return "Questo token MCP non può leggere gli importi: la simulazione fiscale non è disponibile."
+        try:
+            r = await run_sales_simulation(s.db, s.user, SalesIn(sales=[SaleIn(**x.model_dump()) for x in sales]))
+        except (ValidationError, HTTPException) as e:
+            raise ToolError(str(getattr(e, "detail", e))) from e
+        out = [table(["Titolo", "Quantità", "Ricavo €", "Costo €", "Plus/minus €", "Categoria"],
+                     [[x["name"], x["quantity"], x["proceeds_eur"], x["cost_eur"], x["gain_loss_eur"], x["category"]]
+                      for x in r["sales"]])]
+        b, a = r["before"], r["after"]
+        out.append(table(["Voce (anno " + str(r["year"]) + ")", "Prima €", "Dopo €"], [
+            ["Imposte su plusvalenze", b["total_tax_eur"], a["total_tax_eur"]],
+            ["Zainetto usato", b["carryforward_used_eur"], a["carryforward_used_eur"]],
+            ["Nuove minusvalenze riportabili", b["new_carryforward_eur"], a["new_carryforward_eur"]],
+        ]))
+        out.append(f"Variazione imposte dell'anno: {r['delta_tax_eur']:+.2f} €.")
+        return "\n\n".join(out)
