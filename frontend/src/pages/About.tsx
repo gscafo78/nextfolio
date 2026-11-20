@@ -19,6 +19,16 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.15.1",
+    date: "2026-11-20",
+    sections: [
+      {
+        type: "fixed",
+        items: ["Storico e prezzo di alcuni BTP non venivano caricati: ora si prova anche il codice di mercato alternativo di Borsa Italiana"],
+      },
+    ],
+  },
+  {
     version: "1.15.0",
     date: "2026-11-20",
     sections: [

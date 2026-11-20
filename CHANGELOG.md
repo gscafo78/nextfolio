@@ -5,6 +5,13 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.15.1] — 2026-11-20
+### Fixed
+- **Storico prezzi assente per alcuni BTP/obbligazioni MOT**: Borsa Italiana censisce i grafici di alcuni titoli con un codice di mercato diverso da quello in cui sono negoziati (es. `IT0005619546` negoziato sul MOT ma con grafici su `XMIL`): con `MOTX` rispondeva 400 «InstrumentKey non valido» e il titolo restava senza prezzi né storico. Ora se il mercato previsto non restituisce dati si provano gli altri (MOTX, XMIL, ETLX), ricordando quello che funziona
+- Il prezzo corrente ripiega sull'ultima chiusura dello storico anche quando il JWT del mercato previsto non è ottenibile
+
+---
+
 ## [1.15.0] — 2026-11-20
 ### Added
 - **Pianificazione fiscale** (scheda Fisco, `GET /planning/tax/overview`): stima imposte dell'anno, zainetto con scadenze, vendite suggerite per usare le minusvalenze in scadenza (ETF esclusi, titoli di Stato al 48,08%) o per compensare le plusvalenze dell'anno, con imposta risparmiata

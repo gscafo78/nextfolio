@@ -70,6 +70,17 @@ async def _get_jwt(isin: str, mic: str) -> str:
     return match.group(1)
 
 
+# Mercati provati in ordine quando quello previsto non restituisce dati: lo stesso titolo può essere
+# negoziato sul MOT ma avere i grafici censiti con un altro codice (es. un BTP con XMIL).
+_FALLBACK_MICS = ["MOTX", "XMIL", "ETLX"]
+_WORKING_MIC: dict[str, str] = {}   # ISIN → mic che ha risposto l'ultima volta
+
+
+def _candidate_mics(isin: str, exchange: Exchange) -> list[str]:
+    first = [m for m in (_WORKING_MIC.get(isin), _EXCHANGE_TO_MIC.get(exchange)) if m]
+    return list(dict.fromkeys(first + _FALLBACK_MICS))
+
+
 def _mic_from_exchange(exchange: Exchange) -> str:
     mic = _EXCHANGE_TO_MIC.get(exchange)
     if not mic:
@@ -134,18 +145,29 @@ async def get_history(
     Restituisce lista di dict nel formato standard di Nextfolio:
       {"date": "yyyy-mm-dd", "close": float, "open": ..., "high": ..., "low": ..., "volume": ...}
     """
-    mic = _mic_from_exchange(exchange)
-    token = await _get_jwt(isin, mic)
-
-    url = f"{_GRAFICI_BASE}/api/instruments/{isin},{mic},ISIN/history/period"
-    params = {"period": "MAX", "adjustment": "true", "add-last-price": "true"}
-    headers = {**_base_headers(_GRAFICI_BASE + "/"), "Authorization": f"Bearer {token}"}
-
-    async with httpx.AsyncClient(timeout=_TIMEOUT, verify=False) as client:
-        resp = await client.get(url, params=params, headers=headers)
-        resp.raise_for_status()
-
-    raw: list[dict] = resp.json()["history"]["historyDt"]
+    _mic_from_exchange(exchange)   # exchange non gestito da Borsa Italiana → ValueError
+    raw: list[dict] = []
+    last_error: Exception | None = None
+    for mic in _candidate_mics(isin, exchange):
+        try:
+            token = await _get_jwt(isin, mic)
+            url = f"{_GRAFICI_BASE}/api/instruments/{isin},{mic},ISIN/history/period"
+            params = {"period": "MAX", "adjustment": "true", "add-last-price": "true"}
+            headers = {**_base_headers(_GRAFICI_BASE + "/"), "Authorization": f"Bearer {token}"}
+            async with httpx.AsyncClient(timeout=_TIMEOUT, verify=False) as client:
+                resp = await client.get(url, params=params, headers=headers)
+                resp.raise_for_status()
+            raw = (resp.json().get("history") or {}).get("historyDt") or []
+        except Exception as e:   # mercato non valido per questo titolo: si prova il successivo
+            last_error = e
+            continue
+        if raw:
+            _WORKING_MIC[isin] = mic
+            break
+    if not raw:
+        if last_error is not None:
+            raise last_error
+        return []
 
     records = []
     for item in raw:
@@ -176,17 +198,19 @@ async def get_current_price(isin: str, exchange: Exchange) -> dict | None:
     Restituisce:
       {"price": float, "prev_close": float|None, "change_pct": float, "currency": "EUR"}
     """
-    mic = _mic_from_exchange(exchange)
+    mic = _WORKING_MIC.get(isin) or _mic_from_exchange(exchange)
     try:
         token = await _get_jwt(isin, mic)
     except Exception:
-        return None
+        token = None
 
     url = f"{_GRAFICI_BASE}/api/instruments/{isin},{mic},ISIN/price"
     headers = {**_base_headers(_GRAFICI_BASE + "/"), "Authorization": f"Bearer {token}"}
 
     async with httpx.AsyncClient(timeout=_TIMEOUT, verify=False) as client:
         try:
+            if token is None:
+                raise ValueError("JWT non disponibile")
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
