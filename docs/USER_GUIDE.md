@@ -25,6 +25,7 @@
 17. [Administration](#17-administration)
 18. [AI — chatbot prompt & MCP server](#18-ai--chatbot-prompt--mcp-server)
 19. [Plan (Pianifica)](#19-plan-pianifica)
+20. [Selling-advantage monitor for bonds](#20-selling-advantage-monitor-for-bonds)
 
 ---
 
@@ -684,7 +685,7 @@ Available tools:
 
 | Permission | Tools |
 |---|---|
-| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax` |
+| Read (every token) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities` (Nextfolio + Yahoo), `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax`, `get-bond-monitors` |
 | Write | `create-asset`, `update-asset`, `create-transactions`, `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | Delete | `delete-transaction`, `remove-from-watchlist`, `delete-alert` |
 
@@ -752,6 +753,25 @@ Limits: the loss pool is treated as shared across all accounts (in the administe
 
 - **Compare securities**: 2–4 securities (also not owned). Chart rebased to 100 on the common period (1, 3, 5 or 10 years), period and annual return, 1Y volatility and drawdown, correlation of daily returns and, for ETFs, the overlap of the top holdings.
 - **Backtest**: build a model portfolio (securities and weights, total 100%), starting capital, monthly contribution and rebalancing (none, annual, or when a weight drifts by more than 5 points), optionally a benchmark security. The result shows value over time, TWRR (contributions excluded), annual return, volatility and max drawdown on monthly closes in EUR. Past returns do not guarantee future ones; costs and taxes are not included.
+
+---
+
+## 20. Selling-advantage monitor for bonds
+
+On a bond's detail panel (**Cedole** tab) the **Monitora convenienza vendita** switch checks every working day at 10:00 (Europe/Rome) whether selling the bond now pays more than holding it to maturity, and emails you when it does.
+
+How the two options are compared, **after tax** (12.5% on Italian government bonds, 26% on other bonds):
+
+| | Value |
+|---|---|
+| **Sell now** | price × quantity + accrued interest, minus tax on the capital gain and on the accrued interest |
+| **Hold to maturity** | redemption (face value × quantity) + **all coupons still to be received**, minus tax on the gain at maturity and on the coupons |
+
+Coupons you have already received count the same in both cases, so they don't change the comparison (they are shown in the total gain). The panel shows both columns, the **advantage** of selling and the **break-even price**: above it selling pays more.
+
+- **Email**: one message when selling becomes better, with no repeats while it stays better. If the advantage disappears and later comes back you get a new one.
+- To enable it you need an open position and the bond's coupons configured (**Cedole** tab). If the position is closed or the bond matures, the monitor switches itself off.
+- It is an indicative comparison: no discounting, no selling fees, no loss offsetting, and it does not evaluate how you would reinvest the proceeds. Email must be configured on the server (Administration → Email).
 
 ---
 

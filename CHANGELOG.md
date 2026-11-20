@@ -5,6 +5,15 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.16.0] — 2026-11-20
+### Added
+- **Monitoraggio convenienza vendita delle obbligazioni**: interruttore nella scheda Cedole del dettaglio titolo; ogni giorno lavorativo alle 10:00 (task Celery `check_bond_monitors`) confronta, **al netto delle imposte** (12,5% titoli di Stato, 26% altre obbligazioni), *vendere ora* (prezzo + rateo) con *tenere a scadenza* (rimborso + cedole ancora da incassare) e invia **una email** quando vendere conviene; si riarma solo se il vantaggio sparisce e poi si ripresenta. Mostra vantaggio e **prezzo di pareggio**; si spegne da solo se la posizione si chiude o il titolo scade
+- Migration `0029_bond_monitors`; API `GET/PUT /bonds/assets/{id}/monitor`, `GET /bonds/monitors`; azioni di audit `BOND_MONITOR_ON/OFF`
+- Tool MCP di lettura `get-bond-monitors`
+- Motore `services/bonds/monitor.py` (funzione pura) con test sull'esempio d'uso, prezzo di pareggio, imposte, rateo e macchina a stati dell'email
+
+---
+
 ## [1.15.2] — 2026-11-20
 ### Fixed
 - **Grafico vuoto nel dettaglio di un titolo comprato da poco** («Nessuno storico prezzi. Avvia un backfill dalla Dashboard»): il dettaglio mostrava lo storico solo dal giorno del primo acquisto, quindi un titolo comprato oggi aveva un solo punto anche con anni di prezzi già caricati. Ora lo storico parte dal primo acquisto o da un anno fa, se l'acquisto è più recente

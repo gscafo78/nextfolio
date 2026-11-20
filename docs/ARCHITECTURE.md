@@ -122,6 +122,8 @@ backend/app/
 │       └── ivafe.py         # IVAFE calculator:
 │                            #   - 0.2% on Dec-31 market value of foreign accounts
 │                            #   - Queries price_history for year-end price
+├── services/bonds/monitor.py # Sell-now vs hold-to-maturity (net of tax), break-even, email state machine
+├── tasks/bond_monitor.py    # Daily (10:00, Mon–Fri) check of bond monitors → one email when selling pays more
 ├── services/cash.py         # Account cash balances (history by date, latest = current, EUR conversion)
 ├── services/planning/       # Plan page: simulate.py (what-if purchases), metrics.py (price metrics),
 │                            #   contribution.py (buy-only contribution, drift), projection.py (Monte Carlo, FIRE),

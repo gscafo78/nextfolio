@@ -11,6 +11,7 @@ import { portfolioService } from "@/services/portfolio";
 import { accountService } from "@/services/transactions";
 import { AccountFavicon } from "@/components/AccountFavicon";
 import { AssetEditModal } from "./AssetEditModal";
+import { BondMonitorCard } from "./BondMonitorCard";
 import { useZenMode } from "@/context/ThemeContext";
 import { getIntlLocale, getDateFnsLocale } from "@/utils/format";
 import i18n from "@/i18n";
@@ -440,6 +441,9 @@ export function HoldingDetailModal({ assetId, onClose }: { assetId: number; onCl
                       {bondMsg.text}
                     </div>
                   )}
+
+                  {/* ── Monitoraggio convenienza vendita (con email) ── */}
+                  <BondMonitorCard assetId={assetId} />
 
                   {/* ── Caso A: nessun bond_detail — form di configurazione ── */}
                   {!bondDetail && !editingBond && (

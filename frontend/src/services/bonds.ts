@@ -89,7 +89,54 @@ export const bondService = {
     const { data } = await api.post<BackfillSummary>("/bonds/backfill-coupons");
     return data;
   },
+
+  async getMonitor(assetId: number): Promise<BondMonitor> {
+    const { data } = await api.get<BondMonitor>(`/bonds/assets/${assetId}/monitor`);
+    return data;
+  },
+
+  async setMonitor(assetId: number, enabled: boolean): Promise<BondMonitor> {
+    const { data } = await api.put<BondMonitor>(`/bonds/assets/${assetId}/monitor`, { enabled });
+    return data;
+  },
 };
+
+/** Confronto «vendi ora» contro «tieni a scadenza», al netto delle imposte. */
+export interface BondEvaluation {
+  status: "ok" | "missing_data";
+  reason: string | null;
+  should_sell: boolean;
+  advantage_eur: number;
+  break_even_price: number | null;
+  quantity: number;
+  avg_cost: number;
+  price: number;
+  tax_rate: number;
+  maturity_date: string | null;
+  future_coupons: number;
+  accrued_per_unit: number;
+  cost_eur: number;
+  collected_coupons_net_eur: number;
+  sell_gross_eur: number;
+  sell_tax_eur: number;
+  sell_net_eur: number;
+  hold_redemption_eur: number;
+  hold_future_coupons_gross_eur: number;
+  hold_tax_eur: number;
+  hold_net_eur: number;
+  total_gain_sell_eur: number;
+  total_gain_hold_eur: number;
+}
+
+export interface BondMonitor {
+  asset_id: number;
+  enabled: boolean;
+  active: boolean;
+  last_checked_at: string | null;
+  last_notified_at: string | null;
+  email_configured: boolean;
+  evaluation: BondEvaluation;
+}
 
 export interface BackfillDetail {
   asset_id: number;

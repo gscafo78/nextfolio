@@ -1136,5 +1136,27 @@
       "vol": "Volatility",
       "note": "From {{start}}, {{rebalances}} rebalances. Past returns do not guarantee future ones; costs and taxes not included."
     }
+  },
+  "bondMonitor": {
+    "title": "Monitor selling advantage",
+    "desc": "Every working day (10:00) it compares selling now with holding the bond to maturity and emails you when selling pays more.",
+    "toggle": "Enable monitoring",
+    "noEmail": "Email is not configured on the server or your profile has no address: the check runs but cannot notify you.",
+    "missing": "Check not possible",
+    "sellBetter": "Selling pays more: {{amount}} extra versus holding to maturity (after tax).",
+    "holdBetter": "Holding pays more: selling now would give {{amount}} less (after tax).",
+    "breakEven": "Break-even price {{price}} (today {{current}}): above it selling pays more.",
+    "sellNow": "Sell now",
+    "holdToMaturity": "Hold to maturity",
+    "grossProceeds": "Gross proceeds (redemption + coupons)",
+    "taxes": "Taxes {{pct}}%",
+    "netProceeds": "Net",
+    "collected": "Coupons already received (net)",
+    "totalGain": "Total gain",
+    "note": "Holding to maturity = redemption + {{coupons}} coupons still to be received until {{date}}; selling includes accrued interest. No discounting or fees; reinvesting the proceeds is not evaluated.",
+    "never": "never",
+    "lastChecked": "Last check: {{date}}",
+    "lastEmail": "last email: {{date}}",
+    "alreadyNotified": "notice already sent"
   }
 }

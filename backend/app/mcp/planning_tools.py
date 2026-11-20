@@ -297,3 +297,39 @@ async def simulate_sale_tax(
         ]))
         out.append(f"Variazione imposte dell'anno: {r['delta_tax_eur']:+.2f} €.")
         return "\n\n".join(out)
+
+
+@mcp.tool(
+    name="get-bond-monitors",
+    title="Get bond monitors",
+    annotations=ToolAnnotations(title="Get bond monitors", **{**_READ, "openWorldHint": False}),
+    structured_output=False,
+    description=(
+        "Obbligazioni con il monitoraggio «conviene vendere?» attivo (controllo giornaliero con email): confronta, al "
+        "netto delle imposte, vendere ora contro tenere fino a scadenza (rimborso + cedole rimanenti), con vantaggio e "
+        "prezzo di pareggio. Gli importi richiedono un token che può leggere gli importi."
+    ),
+)
+async def get_bond_monitors(ctx: Context) -> str:
+    from app.api.v1.endpoints.bonds import list_bond_monitors
+    from app.models.asset import Asset
+
+    async with _Session(ctx) as s:
+        monitors = await list_bond_monitors(db=s.db, current_user=s.user)
+        if not monitors:
+            return "_Nessun monitoraggio attivo._"
+        names = {a.id: a.name for a in (await s.db.execute(
+            select(Asset).where(Asset.id.in_([m.asset_id for m in monitors])))).scalars()}
+        rows = []
+        for m in monitors:
+            ev = m.evaluation
+            if ev["status"] != "ok":
+                rows.append([names.get(m.asset_id), "attivo" if m.enabled else "spento", "dati mancanti: " + str(ev["reason"]),
+                             None, None, None, None])
+                continue
+            rows.append([names.get(m.asset_id), "attivo" if m.enabled else "spento",
+                         "CONVIENE VENDERE" if ev["should_sell"] else "conviene tenere", ev["price"], ev["break_even_price"],
+                         round(ev["advantage_eur"], 2) if s.with_values else None,
+                         m.last_checked_at.date().isoformat() if m.last_checked_at else "—"])
+        return table(["Titolo", "Monitor", "Esito", "Prezzo", "Prezzo di pareggio", "Vantaggio vendere (EUR, netto)",
+                      "Ultimo controllo"], rows)

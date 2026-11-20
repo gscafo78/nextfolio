@@ -18,7 +18,7 @@ celery_app = Celery(
     "nextfolio",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.prices", "app.tasks.alerts", "app.tasks.registration", "app.tasks.coupons"],
+    include=["app.tasks.prices", "app.tasks.alerts", "app.tasks.registration", "app.tasks.coupons", "app.tasks.bond_monitor"],
 )
 
 celery_app.conf.update(
@@ -75,5 +75,10 @@ celery_app.conf.beat_schedule = {
     "check-due-coupons": {
         "task": "app.tasks.coupons.check_due_coupons",
         "schedule": crontab(hour=8, minute=0),
+    },
+    # Convenienza a vendere le obbligazioni monitorate: ogni giorno lavorativo alle 10:00
+    "check-bond-monitors": {
+        "task": "app.tasks.bond_monitor.check_bond_monitors",
+        "schedule": crontab(hour=10, minute=0, day_of_week="mon-fri"),
     },
 }

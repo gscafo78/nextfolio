@@ -8,6 +8,9 @@ Routes:
   GET    /assets/{id}/coupon-schedule      — calendario cedole future
   GET    /portfolio/upcoming-coupons       — cedole in arrivo per tutto il portafoglio
   POST   /bonds/backfill-coupons           — inserisce le cedole storiche mancanti
+  GET    /bonds/assets/{id}/monitor        — stato del monitoraggio convenienza vendita + valutazione attuale
+  PUT    /bonds/assets/{id}/monitor        — attiva/disattiva il controllo giornaliero con email
+  GET    /bonds/monitors                   — monitor dell'utente
 """
 from datetime import date, timedelta
 
@@ -422,3 +425,89 @@ async def backfill_coupons(
         total_amount_eur=round(sum(d.amount_eur for d in created), 2),
         details=details,
     )
+
+
+# ── Monitoraggio convenienza vendita ─────────────────────────────────────────
+
+import datetime as _dt  # noqa: E402
+
+from pydantic import BaseModel  # noqa: E402
+
+from app.core.config import settings  # noqa: E402
+from app.models.bond_monitor import BondMonitor  # noqa: E402
+from app.services.audit import BOND_MONITOR_OFF, BOND_MONITOR_ON, log_action  # noqa: E402
+from app.services.bonds.monitor import evaluate_for_user  # noqa: E402
+
+# Motivi per cui non si può attivare il monitor (a differenza di un prezzo temporaneamente assente)
+_NOT_ENABLEABLE = ("Nessuna posizione aperta", "Cedole non configurate", "Scadenza", "Il titolo è scaduto", "Il monitoraggio è disponibile")
+
+
+class BondMonitorIn(BaseModel):
+    enabled: bool
+
+
+class BondMonitorOut(BaseModel):
+    asset_id: int
+    enabled: bool
+    active: bool                              # vendere conviene e l'email è già stata inviata
+    last_checked_at: _dt.datetime | None
+    last_notified_at: _dt.datetime | None
+    email_configured: bool
+    evaluation: dict                          # valutazione calcolata adesso
+
+
+async def _monitor_out(db: AsyncSession, user: User, asset_id: int, monitor: BondMonitor | None) -> BondMonitorOut:
+    ev = await evaluate_for_user(db, user.id, asset_id)
+    return BondMonitorOut(
+        asset_id=asset_id, enabled=bool(monitor and monitor.enabled), active=bool(monitor and monitor.active),
+        last_checked_at=monitor.last_checked_at if monitor else None,
+        last_notified_at=monitor.last_notified_at if monitor else None,
+        email_configured=settings.email_configured and bool(user.email), evaluation=ev.to_dict(),
+    )
+
+
+async def _get_monitor(db: AsyncSession, user_id: int, asset_id: int) -> BondMonitor | None:
+    return (await db.execute(
+        select(BondMonitor).where(BondMonitor.user_id == user_id, BondMonitor.asset_id == asset_id)
+    )).scalar_one_or_none()
+
+
+@router.get("/bonds/monitors", response_model=list[BondMonitorOut])
+async def list_bond_monitors(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = (await db.execute(
+        select(BondMonitor).where(BondMonitor.user_id == current_user.id).order_by(BondMonitor.id)
+    )).scalars().all()
+    return [await _monitor_out(db, current_user, m.asset_id, m) for m in rows]
+
+
+@router.get("/bonds/assets/{asset_id}/monitor", response_model=BondMonitorOut)
+async def get_bond_monitor(asset_id: int, db: AsyncSession = Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    await _get_asset_for_user(db, asset_id, current_user.id)
+    return await _monitor_out(db, current_user, asset_id, await _get_monitor(db, current_user.id, asset_id))
+
+
+@router.put("/bonds/assets/{asset_id}/monitor", response_model=BondMonitorOut)
+async def set_bond_monitor(asset_id: int, body: BondMonitorIn, db: AsyncSession = Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    """Attiva o disattiva il controllo giornaliero. Attivare richiede una posizione aperta con cedole configurate."""
+    await _get_asset_for_user(db, asset_id, current_user.id)
+    monitor = await _get_monitor(db, current_user.id, asset_id)
+    if body.enabled:
+        ev = await evaluate_for_user(db, current_user.id, asset_id)
+        if ev.status != "ok" and ev.reason and ev.reason.startswith(_NOT_ENABLEABLE):
+            raise HTTPException(400, ev.reason)
+        if monitor is None:
+            monitor = BondMonitor(user_id=current_user.id, asset_id=asset_id)
+            db.add(monitor)
+        monitor.enabled = True
+        monitor.active = False        # al primo controllo scatta l'email se già conviene vendere
+    elif monitor is not None:
+        monitor.enabled = False
+        monitor.active = False
+    else:
+        return await _monitor_out(db, current_user, asset_id, None)
+    await log_action(db, user_id=current_user.id, action=BOND_MONITOR_ON if body.enabled else BOND_MONITOR_OFF,
+                     entity_type="asset", entity_id=asset_id, detail={})
+    await db.commit()
+    return await _monitor_out(db, current_user, asset_id, monitor)

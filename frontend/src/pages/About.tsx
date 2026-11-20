@@ -19,6 +19,18 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.16.0",
+    date: "2026-11-20",
+    sections: [
+      {
+        type: "added",
+        items: [
+          "Monitoraggio convenienza vendita per BTP e obbligazioni: ogni giorno lavorativo confronta vendere ora con tenere a scadenza (al netto delle imposte) e ti avvisa via email",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.15.2",
     date: "2026-11-20",
     sections: [

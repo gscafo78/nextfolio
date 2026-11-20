@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.15.2 · [Changelog](CHANGELOG.md)
+**Current version:** 1.16.0 · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -41,6 +41,9 @@
 - **PAC calculator** — Simulate a recurring investment plan
 - **Correlation matrix** — Pearson heatmap between portfolio assets
 - **Risk metrics** — Volatility, max drawdown, Sharpe, Sortino, Calmar on flow-neutral trading-day returns, with plausibility warnings
+
+### Bonds
+- **Selling-advantage monitor** — Switch on a bond: every working day it compares selling now with holding to maturity (redemption + remaining coupons, net of tax) and emails you when selling pays more
 
 ### Planning
 - **Security search** — Name, ticker or ISIN with suggestions after 3 characters, from Nextfolio and Yahoo Finance (also securities never bought), type filters, security card with chart, metrics and look-through

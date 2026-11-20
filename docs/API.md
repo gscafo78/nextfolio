@@ -410,7 +410,7 @@ Without a valid token: `401` with `WWW-Authenticate: Bearer realm="nextfolio-mcp
 
 | Permission | Tools |
 |---|---|
-| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax` |
+| read (always) | `get-portfolio`, `get-allocation`, `get-accounts`, `get-transactions`, `get-performance`, `get-risk-metrics`, `get-xray`, `get-dividends`, `get-watchlist`, `get-alerts`, `get-tax-report`, `search-assets`, `search-securities`, `simulate-purchase`, `get-scenarios`, `suggest-contribution`, `project-goal`, `compare-securities`, `simulate-sale-tax`, `get-bond-monitors` |
 | `can_write` | `create-asset`, `update-asset`, `create-transactions` (≤ 100, all-or-nothing, duplicates skipped), `update-transaction`, `update-account-balance`, `add-to-watchlist`, `update-watchlist-item`, `create-alert`, `update-alert` |
 | `can_delete` (requires `can_write`) | `delete-transaction`, `remove-from-watchlist`, `delete-alert` (`destructiveHint: true`) |
 
@@ -420,6 +420,18 @@ Tokens without `can_read_values` get percentages only (`get-tax-report` returns 
 claude mcp add --transport http nextfolio https://nextfolio.example.com/api/mcp \
   --header "Authorization: Bearer nfmcp_..."
 ```
+
+---
+
+## Bond selling-advantage monitor
+
+```
+GET /bonds/assets/{id}/monitor      # { enabled, active, last_checked_at, last_notified_at, email_configured, evaluation }
+PUT /bonds/assets/{id}/monitor      # { enabled } — needs an open position and configured coupons
+GET /bonds/monitors                 # the user's monitors
+```
+
+`evaluation` is computed at request time: `status` (`ok` | `missing_data` + `reason`), `should_sell`, `advantage_eur` (net sell − net hold), `break_even_price`, and the components (`sell_gross_eur`, `sell_tax_eur`, `sell_net_eur`, `hold_redemption_eur`, `hold_future_coupons_gross_eur`, `hold_tax_eur`, `hold_net_eur`, `collected_coupons_net_eur`, `total_gain_sell_eur`, `total_gain_hold_eur`). A Celery task checks enabled monitors every working day at 10:00 and sends one email when selling becomes better; it re-arms only after the advantage disappears and returns.
 
 ---
 

@@ -155,6 +155,41 @@ async def send_price_alert(
     await send_email(to, f"Alert Nextfolio: {asset_symbol} — {label}", html)
 
 
+async def send_bond_sell_signal(to: str, asset_name: str, isin: str | None, asset_id: int, ev: dict) -> None:
+    """Avviso: vendere l'obbligazione ora rende più che tenerla fino a scadenza (valori netti)."""
+    eur = lambda v: f"€ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")  # noqa: E731
+    pct = f"{ev['tax_rate'] * 100:.1f}".replace(".0", "").replace(".", ",")
+    row = lambda label, val, bold=False: (  # noqa: E731
+        f'<tr><td style="padding:7px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">{label}</td>'
+        f'<td style="padding:7px 0;text-align:right;border-bottom:1px solid #f3f4f6;{"font-weight:700;" if bold else ""}">{val}</td></tr>'
+    )
+    maturity = ev.get("maturity_date") or ""
+    url = f"{settings.APP_URL}/transazioni"
+    html = _base(
+        f"Conviene vendere: {asset_name}",
+        f"""
+        <p>Con il prezzo di oggi, <strong>vendere {asset_name}</strong>{f" ({isin})" if isin else ""} rende
+        <strong>{eur(ev['advantage_eur'])}</strong> in più (al netto delle imposte, {pct}%) rispetto a tenerlo fino a scadenza
+        ({maturity}) incassando il rimborso e le cedole rimanenti.</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px">
+          {row("Prezzo attuale (corso secco)", f"{ev['price']:.3f}")}
+          {row("Prezzo di pareggio", f"{ev['break_even_price']:.3f}" if ev.get('break_even_price') is not None else "—")}
+          {row("Costo medio di carico", f"{ev['avg_cost']:.3f}")}
+          {row(f"Vendi ora (ricavo netto, incluso rateo)", eur(ev['sell_net_eur']))}
+          {row(f"Tieni a scadenza (rimborso + {ev['future_coupons']} cedole nette)", eur(ev['hold_net_eur']))}
+          {row("Vantaggio di vendere", eur(ev['advantage_eur']), True)}
+          {row("Cedole già incassate (nette)", eur(ev['collected_coupons_net_eur']))}
+          {row("Guadagno totale se vendi", eur(ev['total_gain_sell_eur']))}
+          {row("Guadagno totale se tieni", eur(ev['total_gain_hold_eur']))}
+        </table>
+        <a href="{url}" class="btn">Apri Nextfolio</a>
+        <p class="note">Confronto indicativo: nessuna attualizzazione né commissione di vendita; non valuta come reinvestiresti
+        il ricavato. Riceverai un nuovo avviso solo se la convenienza rientra e poi si ripresenta.</p>
+        """,
+    )
+    await send_email(to, f"Nextfolio: conviene vendere {asset_name}", html)
+
+
 async def send_test(to: str) -> None:
     html = _base(
         "Email di test",

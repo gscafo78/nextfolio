@@ -1136,5 +1136,27 @@
       "vol": "Volatilità",
       "note": "Dal {{start}}, {{rebalances}} ribilanciamenti. I rendimenti passati non garantiscono quelli futuri; costi e imposte non inclusi."
     }
+  },
+  "bondMonitor": {
+    "title": "Monitora convenienza vendita",
+    "desc": "Ogni giorno lavorativo (ore 10) confronta vendere ora con tenere il titolo fino a scadenza e ti scrive una email quando vendere conviene.",
+    "toggle": "Attiva il monitoraggio",
+    "noEmail": "L'email non è configurata sul server o il tuo profilo non ha un indirizzo: il controllo funziona ma non potrà avvisarti.",
+    "missing": "Controllo non possibile",
+    "sellBetter": "Conviene vendere: {{amount}} in più rispetto a tenere fino a scadenza (netto imposte).",
+    "holdBetter": "Conviene tenere: vendere ora renderebbe {{amount}} in meno (netto imposte).",
+    "breakEven": "Prezzo di pareggio {{price}} (oggi {{current}}): sopra questo prezzo conviene vendere.",
+    "sellNow": "Vendi ora",
+    "holdToMaturity": "Tieni a scadenza",
+    "grossProceeds": "Ricavo lordo (rimborso + cedole)",
+    "taxes": "Imposte {{pct}}%",
+    "netProceeds": "Netto",
+    "collected": "Cedole già incassate (nette)",
+    "totalGain": "Guadagno totale",
+    "note": "Tenere a scadenza = rimborso + {{coupons}} cedole ancora da incassare fino al {{date}}; vendere include il rateo maturato. Senza attualizzazione né commissioni; non valuta il reinvestimento del ricavato.",
+    "never": "mai",
+    "lastChecked": "Ultimo controllo: {{date}}",
+    "lastEmail": "ultima email: {{date}}",
+    "alreadyNotified": "avviso già inviato"
   }
 }

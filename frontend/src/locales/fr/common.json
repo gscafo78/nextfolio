@@ -1136,5 +1136,27 @@
       "vol": "Volatilité",
       "note": "Depuis le {{start}}, {{rebalances}} rééquilibrages. Les rendements passés ne garantissent pas les rendements futurs ; frais et impôts non inclus."
     }
+  },
+  "bondMonitor": {
+    "title": "Surveiller l'intérêt de vendre",
+    "desc": "Chaque jour ouvré (10 h) compare vendre maintenant et conserver le titre jusqu'à l'échéance et t'envoie un e-mail quand vendre est plus avantageux.",
+    "toggle": "Activer la surveillance",
+    "noEmail": "L'e-mail n'est pas configuré sur le serveur ou ton profil n'a pas d'adresse : le contrôle fonctionne mais ne pourra pas te prévenir.",
+    "missing": "Contrôle impossible",
+    "sellBetter": "Vendre est plus avantageux : {{amount}} de plus que conserver jusqu'à l'échéance (après impôts).",
+    "holdBetter": "Conserver est plus avantageux : vendre maintenant rapporterait {{amount}} de moins (après impôts).",
+    "breakEven": "Prix d'équilibre {{price}} (aujourd'hui {{current}}) : au-dessus, vendre est plus avantageux.",
+    "sellNow": "Vendre maintenant",
+    "holdToMaturity": "Conserver jusqu'à l'échéance",
+    "grossProceeds": "Produit brut (remboursement + coupons)",
+    "taxes": "Impôts {{pct}} %",
+    "netProceeds": "Net",
+    "collected": "Coupons déjà perçus (nets)",
+    "totalGain": "Gain total",
+    "note": "Conserver jusqu'à l'échéance = remboursement + {{coupons}} coupons restant à percevoir jusqu'au {{date}} ; la vente inclut le coupon couru. Sans actualisation ni frais ; le réinvestissement du produit n'est pas évalué.",
+    "never": "jamais",
+    "lastChecked": "Dernier contrôle : {{date}}",
+    "lastEmail": "dernier e-mail : {{date}}",
+    "alreadyNotified": "avis déjà envoyé"
   }
 }

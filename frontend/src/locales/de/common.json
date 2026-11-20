@@ -1136,5 +1136,27 @@
       "vol": "Volatilität",
       "note": "Ab {{start}}, {{rebalances}} Rebalancings. Vergangene Renditen garantieren keine zukünftigen; Kosten und Steuern nicht enthalten."
     }
+  },
+  "bondMonitor": {
+    "title": "Verkaufsvorteil überwachen",
+    "desc": "An jedem Werktag (10 Uhr) wird Verkaufen jetzt mit Halten bis zur Fälligkeit verglichen; du bekommst eine E-Mail, wenn Verkaufen mehr bringt.",
+    "toggle": "Überwachung aktivieren",
+    "noEmail": "E-Mail ist auf dem Server nicht konfiguriert oder dein Profil hat keine Adresse: die Prüfung läuft, kann dich aber nicht benachrichtigen.",
+    "missing": "Prüfung nicht möglich",
+    "sellBetter": "Verkaufen lohnt sich: {{amount}} mehr als Halten bis zur Fälligkeit (nach Steuern).",
+    "holdBetter": "Halten lohnt sich: ein Verkauf jetzt brächte {{amount}} weniger (nach Steuern).",
+    "breakEven": "Break-even-Kurs {{price}} (heute {{current}}): darüber lohnt sich der Verkauf.",
+    "sellNow": "Jetzt verkaufen",
+    "holdToMaturity": "Bis Fälligkeit halten",
+    "grossProceeds": "Bruttoerlös (Rückzahlung + Kupons)",
+    "taxes": "Steuern {{pct}} %",
+    "netProceeds": "Netto",
+    "collected": "Bereits erhaltene Kupons (netto)",
+    "totalGain": "Gesamtgewinn",
+    "note": "Halten bis Fälligkeit = Rückzahlung + {{coupons}} noch ausstehende Kupons bis {{date}}; beim Verkauf sind die Stückzinsen enthalten. Ohne Abzinsung und Gebühren; die Wiederanlage des Erlöses wird nicht bewertet.",
+    "never": "nie",
+    "lastChecked": "Letzte Prüfung: {{date}}",
+    "lastEmail": "letzte E-Mail: {{date}}",
+    "alreadyNotified": "Hinweis bereits gesendet"
   }
 }
