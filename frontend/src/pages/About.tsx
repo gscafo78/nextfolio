@@ -19,6 +19,16 @@ const CHANGELOG: Array<{
   sections: Array<{ type: "added" | "fixed" | "changed"; items: string[] }>;
 }> = [
   {
+    version: "1.15.2",
+    date: "2026-11-20",
+    sections: [
+      {
+        type: "fixed",
+        items: ["Il grafico del dettaglio titolo mostra almeno l'ultimo anno di prezzi anche per titoli comprati da poco"],
+      },
+    ],
+  },
+  {
     version: "1.15.1",
     date: "2026-11-20",
     sections: [

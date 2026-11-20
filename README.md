@@ -3,7 +3,7 @@
 > Self-hosted wealth management and portfolio tracker for the Italian market.
 
 **Stack:** React + TypeScript · FastAPI · PostgreSQL · Redis · Celery · Docker  
-**Current version:** 1.15.1 · [Changelog](CHANGELOG.md)
+**Current version:** 1.15.2 · [Changelog](CHANGELOG.md)
 
 ---
 

@@ -5,6 +5,12 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.0.0/) · Versioning:
 
 ---
 
+## [1.15.2] — 2026-11-20
+### Fixed
+- **Grafico vuoto nel dettaglio di un titolo comprato da poco** («Nessuno storico prezzi. Avvia un backfill dalla Dashboard»): il dettaglio mostrava lo storico solo dal giorno del primo acquisto, quindi un titolo comprato oggi aveva un solo punto anche con anni di prezzi già caricati. Ora lo storico parte dal primo acquisto o da un anno fa, se l'acquisto è più recente
+
+---
+
 ## [1.15.1] — 2026-11-20
 ### Fixed
 - **Storico prezzi assente per alcuni BTP/obbligazioni MOT**: Borsa Italiana censisce i grafici di alcuni titoli con un codice di mercato diverso da quello in cui sono negoziati (es. `IT0005619546` negoziato sul MOT ma con grafici su `XMIL`): con `MOTX` rispondeva 400 «InstrumentKey non valido» e il titolo restava senza prezzi né storico. Ora se il mercato previsto non restituisce dati si provano gli altri (MOTX, XMIL, ETLX), ricordando quello che funziona

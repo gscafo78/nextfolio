@@ -1061,17 +1061,19 @@ async def get_holding_detail(
     def _ttype(tx) -> str:
         return tx.type if isinstance(tx.type, str) else tx.type.value
 
-    # Storico prezzi dalla prima data di acquisto
+    # Storico prezzi dalla prima data di acquisto, ma con almeno un anno di contesto:
+    # un titolo comprato da poco (o oggi) non deve avere un grafico vuoto.
     buy_dates = [tx.date for tx in asset_txs if _ttype(tx) == "BUY"]
     first_buy = min(buy_dates) if buy_dates else None
+    history_start = min(first_buy, date.today() - timedelta(days=365)) if first_buy else None
 
     ph_query = (
         select(PriceHistory)
         .where(PriceHistory.asset_id == asset_id)
         .order_by(PriceHistory.date.asc())
     )
-    if first_buy:
-        ph_query = ph_query.where(PriceHistory.date >= first_buy)
+    if history_start:
+        ph_query = ph_query.where(PriceHistory.date >= history_start)
     ph_result = await db.execute(ph_query)
     ph_rows = ph_result.scalars().all()
     price_history = [
